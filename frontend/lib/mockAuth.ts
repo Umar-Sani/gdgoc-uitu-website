@@ -1,14 +1,14 @@
-export const MOCK_ENABLED = true
-// Set to false when you're ready to use real Supabase auth
-// Change 'admin' to 'member' or 'editor' to test different roles
+import type { User } from '../../shared/types'
 
-export const mockUsers = {
+export const MOCK_ENABLED = true
+
+export const mockUsers: Record<string, User> = {
   member: {
     user_id: 'mock-member-001',
     email: 'member@gdgoc.com',
     full_name: 'Test Member',
     username: 'testmember',
-    role_name: 'user' as const,
+    role_name: 'user',
     avatar_url: null,
     bio: 'Community member interested in Flutter and Web.',
     skill_tags: ['Flutter', 'Web'],
@@ -22,7 +22,7 @@ export const mockUsers = {
     email: 'admin@gdgoc.com',
     full_name: 'Test Admin',
     username: 'testadmin',
-    role_name: 'super_admin' as const,
+    role_name: 'super_admin',
     avatar_url: null,
     bio: null,
     skill_tags: [],
@@ -36,7 +36,7 @@ export const mockUsers = {
     email: 'editor@gdgoc.com',
     full_name: 'Test Editor',
     username: 'testeditor',
-    role_name: 'editor' as const,
+    role_name: 'editor',
     avatar_url: null,
     bio: null,
     skill_tags: ['AI/ML'],
@@ -47,5 +47,4 @@ export const mockUsers = {
   },
 }
 
-// ← Change 'admin' to 'member' or 'editor' to test as different roles
-export const ACTIVE_MOCK_USER = mockUsers.admin
+export const ACTIVE_MOCK_USER: User = mockUsers.admin
