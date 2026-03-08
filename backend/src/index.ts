@@ -5,6 +5,8 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+import './db/client'
+
 const app = express()
 const PORT = process.env.PORT || 4000
 
