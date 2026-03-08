@@ -75,10 +75,11 @@ export default function RegisterPage() {
     usernameTimeout.current = setTimeout(async () => {
         try {
         const { data, error } = await supabase
-            .from('users')
-            .select('username')
-            .eq('username', username.toLowerCase())
-            .maybeSingle();
+          .schema('users')
+          .from('users')
+          .select('username')
+          .eq('username', username.toLowerCase())
+          .maybeSingle();
 
         if (error) {
             console.error('Username check error:', error.message);
@@ -104,10 +105,11 @@ export default function RegisterPage() {
         const timeout = setTimeout(async () => {
             try {
             const { data } = await supabase
-                .from('users')
-                .select('email')
-                .eq('email', email.toLowerCase())
-                .maybeSingle();
+              .schema('users')
+              .from('users')
+              .select('email')
+              .eq('email', email.toLowerCase())
+              .maybeSingle();
 
             if (data) {
                 setErrors(prev => ({ ...prev, email: 'An account with this email already exists.' }));
@@ -211,20 +213,33 @@ export default function RegisterPage() {
 
       if (error) {
         if (
-            error.message.toLowerCase().includes('already') ||
-            error.message.toLowerCase().includes('registered') ||
-            error.message.toLowerCase().includes('duplicate')
+          error.message.toLowerCase().includes('already') ||
+          error.message.toLowerCase().includes('registered') ||
+          error.message.toLowerCase().includes('duplicate')
         ) {
-            setErrors({ email: 'An account with this email already exists.' });
+          setErrors({ email: 'An account with this email already exists.' });
         } else {
-            setErrors({ general: error.message });
+          setErrors({ general: error.message });
         }
         return;
-    }
+      }
 
-      // Success — redirect to the registration success page
-      sessionStorage.setItem('registration_email', email);
-      router.push('/register/success');
+      // Supabase returns a user with no session when email already exists
+      // data.user exists but data.session is null — this means duplicate email
+      if (data.user && !data.session) {
+        setErrors({ email: 'An account with this email already exists. Please log in instead.' });
+        return;
+      }
+
+      // Genuine new registration — has both user and session (or awaiting verification)
+      if (data.user) {
+        sessionStorage.setItem('registration_email', email);
+        router.push('/register/success');
+        return;
+      }
+
+      // Fallback
+      setErrors({ general: 'Something went wrong. Please try again.' });
 
     } catch (err) {
       setErrors({ general: 'Something went wrong. Please try again.' });
