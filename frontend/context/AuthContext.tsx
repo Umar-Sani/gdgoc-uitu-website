@@ -2,23 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { MOCK_ENABLED, ACTIVE_MOCK_USER } from '@/lib/mockAuth'
-
-type RoleName = 'super_admin' | 'admin' | 'editor' | 'viewer' | 'user'
-
-type User = {
-  user_id: string
-  email: string
-  full_name: string
-  username: string | null
-  role_name: RoleName
-  avatar_url: string | null
-  bio: string | null
-  skill_tags: string[]
-  is_verified: boolean
-  is_active: boolean
-  created_at: string
-  last_login: string | null
-}
+import type { User } from '../../shared/types'
 
 type AuthContextType = {
   user: User | null
