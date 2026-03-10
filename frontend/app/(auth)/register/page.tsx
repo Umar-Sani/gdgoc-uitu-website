@@ -101,7 +101,7 @@ export default function RegisterPage() {
     // Check email availability
     useEffect(() => {
         if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-
+        if (isLoading) return; // skip check while submitting
         const timeout = setTimeout(async () => {
             try {
             const { data } = await supabase
@@ -126,7 +126,7 @@ export default function RegisterPage() {
         }, 600);
 
         return () => clearTimeout(timeout);
-        }, [email]);
+        }, [email, isLoading]);
 
     // ─── Skill tag toggle ───────────────────────────────────────────────────────
     function toggleSkill(skill: string) {
