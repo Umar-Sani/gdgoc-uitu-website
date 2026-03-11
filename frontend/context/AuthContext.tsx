@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { MOCK_ENABLED, ACTIVE_MOCK_USER } from '@/lib/mockAuth'
-import type { User } from '../../shared/types'
+import type { User } from '@shared/types'
 
 type AuthContextType = {
   user: User | null

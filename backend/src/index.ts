@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import dotenv from 'dotenv'
+import eventsRouter from './routes/events';
 
 dotenv.config()
 
@@ -16,6 +17,7 @@ app.use(cors({
   credentials: true,
 }))
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
 // Health check
 app.get('/health', (req, res) => {
@@ -25,6 +27,8 @@ app.get('/health', (req, res) => {
     port: PORT
   })
 })
+
+app.use('/api/events', eventsRouter);
 
 app.listen(PORT, () => {
   console.log(`✅ Express server running on http://localhost:${PORT}`)
