@@ -234,16 +234,30 @@ export default function RegisterPage() {
 
       // Supabase returns a user with no session when email already exists
       // data.user exists but data.session is null — this means duplicate email
-      if (data.user && !data.session) {
-        setErrors({ email: 'An account with this email already exists. Please log in instead.' });
-        return;
-      }
+      // if (data.user && !data.session) {
+      //   setErrors({ email: 'An account with this email already exists. Please log in instead.' });
+      //   return;
+      // }
 
-      // Genuine new registration — has both user and session (or awaiting verification)
+      // // Genuine new registration — has both user and session (or awaiting verification)
+      // if (data.user) {
+      //   sessionStorage.setItem('registration_email', email);
+      //   router.push('/register/success');
+      //   return;
+      // }
+
       if (data.user) {
-        sessionStorage.setItem('registration_email', email);
-        router.push('/register/success');
-        return;
+        // Empty identities array = duplicate email (Supabase's way of signalling this)
+        // Works correctly whether email confirmation is on or off
+        if (data.user.identities && data.user.identities.length === 0) {
+          setErrors({ email: 'An account with this email already exists. Please log in instead.' })
+          return
+        }
+
+        // Genuine new registration
+        sessionStorage.setItem('registration_email', email)
+        router.push('/register/success')
+        return
       }
 
       // Fallback

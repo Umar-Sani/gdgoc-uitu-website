@@ -20,37 +20,80 @@ export default function VerifyPage() {
   // picks up the token from the URL and exchanges it automatically.
   useEffect(() => {
     async function verify() {
-        try {
-        // Listen for the SIGNED_IN event which fires when Supabase
-        // processes the token from the email link URL hash
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-                if (session?.user?.email_confirmed_at) {
-                subscription.unsubscribe();
-                setState('success');
-                }
-            }
-            }
+      try {
+        // Supabase puts the token in the URL hash as #access_token=...&type=signup
+        // The SDK's exchangeCodeForSession handles this automatically
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1) // remove the # 
         );
+        
+        const tokenHash = hashParams.get('token_hash') || hashParams.get('access_token');
+        const type = hashParams.get('type');
 
-        // Also check existing session in case page was refreshed
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const { data: { session } } = await supabase.auth.getSession();
+        if (tokenHash && type) {
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'signup'
+          });
 
-        if (session?.user?.email_confirmed_at) {
-            setState('success');
-        } else {
+          if (error) {
             setState('expired');
+            return
+          }
+
+          if (data.session) {
+            setState('success');
+            return
+          }
         }
 
-        } catch {
-        setState('error');
+        // No token in URL — check if already verified
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email_confirmed_at) {
+          setState('already_verified');
+        } else {
+          setState('expired');
         }
+
+      } catch {
+        setState('error');
+      }
     }
 
     verify();
-    }, []);
+  }, []);
+    // async function verify() {
+    //     try {
+    //     // Listen for the SIGNED_IN event which fires when Supabase
+    //     // processes the token from the email link URL hash
+    //     const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    //         async (event, session) => {
+    //         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+    //             if (session?.user?.email_confirmed_at) {
+    //             subscription.unsubscribe();
+    //             setState('success');
+    //             }
+    //         }
+    //         }
+    //     );
+
+    //     // Also check existing session in case page was refreshed
+    //     await new Promise(resolve => setTimeout(resolve, 1500));
+    //     const { data: { session } } = await supabase.auth.getSession();
+
+    //     if (session?.user?.email_confirmed_at) {
+    //         setState('success');
+    //     } else {
+    //         setState('expired');
+    //     }
+
+    //     } catch {
+    //     setState('error');
+    //     }
+    // }
+
+    // verify();
+    // }, []);
 
   // ─── Auto-redirect countdown on success ─────────────────────────────────────
   useEffect(() => {
