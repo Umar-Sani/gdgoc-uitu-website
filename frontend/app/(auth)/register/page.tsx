@@ -99,34 +99,34 @@ export default function RegisterPage() {
     }, [username]);
 
     // Check email availability
-    useEffect(() => {
-        if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-        if (isLoading) return; // skip check while submitting
-        const timeout = setTimeout(async () => {
-            try {
-            const { data } = await supabase
-              .schema('users')
-              .from('users')
-              .select('email')
-              .eq('email', email.toLowerCase())
-              .maybeSingle();
+    // useEffect(() => {
+    //     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    //     if (isLoading) return; // skip check while submitting
+    //     const timeout = setTimeout(async () => {
+    //         try {
+    //         const { data } = await supabase
+    //           .schema('users')
+    //           .from('users')
+    //           .select('email')
+    //           .eq('email', email.toLowerCase())
+    //           .maybeSingle();
 
-            if (data) {
-                setErrors(prev => ({ ...prev, email: 'An account with this email already exists.' }));
-            } else {
-                setErrors(prev => {
-                const updated = { ...prev };
-                delete updated.email;
-                return updated;
-                });
-            }
-            } catch {
-            // ignore
-            }
-        }, 600);
+    //         if (data) {
+    //             setErrors(prev => ({ ...prev, email: 'An account with this email already exists.' }));
+    //         } else {
+    //             setErrors(prev => {
+    //             const updated = { ...prev };
+    //             delete updated.email;
+    //             return updated;
+    //             });
+    //         }
+    //         } catch {
+    //         // ignore
+    //         }
+    //     }, 600);
 
-        return () => clearTimeout(timeout);
-        }, [email, isLoading]);
+    //     return () => clearTimeout(timeout);
+    //     }, [email, isLoading]);
 
     // ─── Skill tag toggle ───────────────────────────────────────────────────────
     function toggleSkill(skill: string) {
@@ -145,14 +145,14 @@ export default function RegisterPage() {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
         newErrors.email = 'A valid email address is required.';
     
-    if (errors.email)
-        newErrors.email = errors.email;
+    // if (errors.email)
+    //     newErrors.email = errors.email;
 
     if (!username.trim() || username.length < 3)
         newErrors.username = 'Username must be at least 3 characters.';
 
-    if (errors.username)
-        newErrors.username = errors.username;
+    // if (errors.username)
+    //     newErrors.username = errors.username;
     // ADD THIS CHECK
     if (usernameStatus === 'taken')
         newErrors.username = 'This username is already taken.';
@@ -186,8 +186,16 @@ export default function RegisterPage() {
   // ─── Submit ─────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
 
+    console.log('Submit clicked');
+    console.log('Errors state at submit time:', errors);
+
+    if (!validate()) {
+      console.log('Validation failed, errors:', errors);
+      return;
+    }
+
+    console.log('Validation passed, proceeding...');
     setIsLoading(true);
 
     try {
@@ -519,7 +527,7 @@ export default function RegisterPage() {
             {/* Submit Button */}
             <button
                 type="submit"
-                disabled={isLoading || usernameStatus === 'taken' || usernameStatus === 'checking' || !!errors.email}
+                disabled={isLoading || usernameStatus === 'taken' || usernameStatus === 'checking'}
                 className="w-full py-3 px-6 rounded-xl bg-[#4285F4] hover:bg-blue-600 active:bg-blue-700
                     text-white font-semibold text-sm transition-all duration-200
                     disabled:opacity-60 disabled:cursor-not-allowed
