@@ -73,25 +73,54 @@ export default function EventDetailPage() {
   const [registering, setRegistering] = useState(false);
   const [registerError, setRegisterError] = useState('');
   const [registered, setRegistered] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // ─── Fetch event ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!params.id) return;
+  if (!user || !token || !params.id) return;
 
-    fetch(`${API_URL}/api/events/${params.id}`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.error || !res.data) {
-          setNotFound(true);
-        } else {
-          setEvent(res.data);
-        }
-      })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [params.id]);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  fetch(`${API_URL}/api/events/${params.id}/registration-status`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: controller.signal,
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res.data?.registered) setAlreadyRegistered(true);
+    })
+    .catch(() => {})
+    .finally(() => clearTimeout(timeout));
+}, [user, token, params.id]);
+
+  useEffect(() => {
+  if (!params.id) return;
+
+  //console.log('Fetching event:', params.id);
+  //console.log('API URL:', API_URL);
+
+  fetch(`${API_URL}/api/events/${params.id}`)
+    .then((r) => {
+      //console.log('Response status:', r.status);
+      return r.json();
+    })
+    .then((res) => {
+      //console.log('Response data:', res);
+      if (res.error || !res.data) {
+        setNotFound(true);
+      } else {
+        setEvent(res.data);
+      }
+    })
+    .catch((err) => {
+      //console.log('Fetch error:', err);
+      setNotFound(true);
+    })
+    .finally(() => setLoading(false));
+}, [params.id]);
 
   // ─── Register for event ───────────────────────────────────────────────────────
   async function handleRegister() {
@@ -100,6 +129,13 @@ export default function EventDetailPage() {
       return;
     }
 
+    // Paid events go to checkout page
+    if (event && !event.is_free) {
+      router.push(`/events/${params.id}/checkout`);
+      return;
+    }
+
+    // Free event registration
     setRegistering(true);
     setRegisterError('');
 
@@ -386,9 +422,9 @@ export default function EventDetailPage() {
                 >
                   Log in to Register
                 </Link>
-              ) : registered ? (
+              ) : registered || alreadyRegistered ? (
                 <div className="w-full py-3 rounded-xl bg-green-50 text-green-600 text-sm font-semibold text-center border border-green-100">
-                  ✓ Registered
+                  ✓ Already Registered
                 </div>
               ) : (
                 <button

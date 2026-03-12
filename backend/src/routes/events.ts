@@ -297,4 +297,31 @@ router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), async (re
   }
 });
 
+// GET /api/events/:id/registration-status
+router.get('/:id/registration-status', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const eventId = req.params.id;
+
+    //console.log('Checking registration status for:', userId, eventId);
+
+    const result = await pool.query(
+      `SELECT registration_id FROM events.registrations
+       WHERE user_id = $1 AND event_id = $2`,
+      [userId, eventId]
+    );
+
+    //console.log('Registration status result:', result.rows);
+
+    res.json({
+      data: { registered: result.rows.length > 0 },
+      error: null,
+    });
+
+  } catch (err: any) {
+    console.error('Registration status error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 export default router;
