@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import dotenv from 'dotenv'
 import eventsRouter from './routes/events';
 import paymentsRouter from './routes/payments';
+import forumRouter from './routes/forum';
 
 dotenv.config()
 
@@ -37,10 +38,11 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/api/events', eventsRouter);
+app.use('/api/forum', forumRouter);
 app.use('/api/payments', paymentsRouter);
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
+  console.log(`✅ Express server running on http://localhost:${PORT}`)
 })
 
 export default app
