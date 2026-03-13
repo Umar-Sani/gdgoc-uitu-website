@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import eventsRouter from './routes/events';
 import paymentsRouter from './routes/payments';
 import forumRouter from './routes/forum';
+import usersRouter from './routes/users';
 import adminRouter from './routes/admin';
 
 dotenv.config()
@@ -41,6 +42,7 @@ app.get('/health', (req, res) => {
 app.use('/api/events', eventsRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
 
 app.listen(PORT, () => {
