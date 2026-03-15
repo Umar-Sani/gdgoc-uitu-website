@@ -7,6 +7,8 @@ import paymentsRouter from './routes/payments';
 import forumRouter from './routes/forum';
 import usersRouter from './routes/users';
 import adminRouter from './routes/admin';
+import cmsRouter from './routes/cms';
+import socialRouter from './routes/social';
 
 dotenv.config()
 
@@ -44,6 +46,8 @@ app.use('/api/forum', forumRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/cms', cmsRouter);
+app.use('/api/social', socialRouter);
 
 app.listen(PORT, () => {
   console.log(`✅ Express server running on http://localhost:${PORT}`)
