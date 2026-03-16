@@ -287,4 +287,32 @@ router.delete('/sponsors/:id', requireAuth, requireRole('admin', 'super_admin'),
   }
 });
 
+// POST /api/cms/contact
+// Public — submit a contact form
+router.post('/contact', async (req: Request, res: Response) => {
+  try {
+    const { full_name, email, subject, message } = req.body;
+
+    if (!full_name || !email || !message) {
+      return res.status(400).json({
+        data: null,
+        error: 'Missing required fields: full_name, email, message',
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO content.contact_submissions (sender_name, sender_email, subject, message)
+      VALUES ($1, $2, $3, $4)
+      RETURNING submission_id, submitted_at`,
+      [full_name.trim(), email.trim().toLowerCase(), subject?.trim() ?? null, message.trim()]
+    );
+
+    res.status(201).json({ data: result.rows[0], error: null });
+
+  } catch (err: any) {
+    console.error('POST /api/cms/contact error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 export default router;
