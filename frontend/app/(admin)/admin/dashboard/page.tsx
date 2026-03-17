@@ -49,17 +49,10 @@ function operationColor(op: string): string {
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 function StatCard({
-  label,
-  value,
-  icon,
-  color,
-  href,
+  label, value, icon, color, href,
 }: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color: string;
-  href: string;
+  label: string; value: string | number;
+  icon: React.ReactNode; color: string; href: string;
 }) {
   return (
     <Link href={href}>
@@ -79,28 +72,53 @@ function StatCard({
   );
 }
 
+// ─── Role Badge ───────────────────────────────────────────────────────────────
+
+function RoleBadge({ role }: { role: string }) {
+  const styles: Record<string, string> = {
+    super_admin: 'bg-red-50 text-red-600 border-red-100',
+    admin:       'bg-orange-50 text-orange-600 border-orange-100',
+    editor:      'bg-blue-50 text-blue-600 border-blue-100',
+  };
+  const labels: Record<string, string> = {
+    super_admin: 'Super Admin',
+    admin:       'Admin',
+    editor:      'Editor',
+  };
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${styles[role] ?? 'bg-gray-50 text-gray-500 border-gray-100'}`}>
+      {labels[role] ?? role}
+    </span>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
-  const { token } = useAuth();
-  const [stats, setStats]   = useState<Stats | null>(null);
+  const { user, token } = useAuth();
+  const [stats, setStats]     = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState('');
+  const [error, setError]     = useState('');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL   = process.env.NEXT_PUBLIC_API_URL;
+  const role      = user?.role_name ?? '';
+  const isSuperAdmin = role === 'super_admin';
+  const isAdmin      = role === 'admin' || isSuperAdmin;
+  const isEditor     = role === 'editor';
 
   useEffect(() => {
+    if (!token) return;
     fetch(`${API_URL}/api/admin/stats`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then((res) => {
+      .then(r => r.json())
+      .then(res => {
         if (res.error) { setError(res.error); return; }
         setStats(res.data);
       })
       .catch(() => setError('Failed to load stats'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   if (loading) {
     return (
@@ -123,10 +141,7 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-500 font-medium">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#4285F4] text-white text-sm font-semibold"
-          >
+          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 rounded-xl bg-[#4285F4] text-white text-sm font-semibold">
             Retry
           </button>
         </div>
@@ -146,23 +161,35 @@ export default function AdminDashboardPage() {
             <div className="flex-1 bg-[#FBBC05]" />
             <div className="flex-1 bg-[#34A853]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Admin Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Overview of your platform</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              {isEditor ? 'Editor Dashboard' : 'Admin Dashboard'}
+            </h1>
+            <RoleBadge role={role} />
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            {isSuperAdmin && 'Full platform access — all features enabled'}
+            {role === 'admin' && 'Admin access — users, events, payments and CMS'}
+            {isEditor && 'Editor access — events and social media management'}
+          </p>
         </div>
 
         {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            label="Total Users"
-            value={stats?.total_users ?? 0}
-            href="/admin/users"
-            color="bg-blue-50"
-            icon={
-              <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            }
-          />
+        {/* Editors only see events and registrations */}
+        <div className={`grid gap-6 mb-8 ${isEditor ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+          {isAdmin && (
+            <StatCard
+              label="Total Users"
+              value={stats?.total_users ?? 0}
+              href="/admin/users"
+              color="bg-blue-50"
+              icon={
+                <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              }
+            />
+          )}
           <StatCard
             label="Published Events"
             value={stats?.published_events ?? 0}
@@ -174,17 +201,19 @@ export default function AdminDashboardPage() {
               </svg>
             }
           />
-          <StatCard
-            label="Total Revenue"
-            value={`PKR ${(stats?.total_revenue ?? 0).toLocaleString()}`}
-            href="/admin/payments"
-            color="bg-yellow-50"
-            icon={
-              <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
-          />
+          {isAdmin && (
+            <StatCard
+              label="Total Revenue"
+              value={`PKR ${(stats?.total_revenue ?? 0).toLocaleString()}`}
+              href="/admin/payments"
+              color="bg-yellow-50"
+              icon={
+                <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+          )}
           <StatCard
             label="Registrations"
             value={stats?.total_registrations ?? 0}
@@ -200,62 +229,89 @@ export default function AdminDashboardPage() {
 
         {/* ── Quick Links ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: 'Manage Users', href: '/admin/users', color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
-            { label: 'Manage Events', href: '/admin/events', color: 'text-green-600 bg-green-50 hover:bg-green-100' },
-            { label: 'Payments', href: '/admin/payments', color: 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' },
-            { label: 'Audit Log', href: '/admin/audit', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
-          ].map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all ${link.color}`}
-            >
-              {link.label}
+          <Link href="/admin/events" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-green-600 bg-green-50 hover:bg-green-100">
+            Manage Events
+          </Link>
+          <Link href="/admin/social" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-pink-600 bg-pink-50 hover:bg-pink-100">
+            Social Media
+          </Link>
+          {isAdmin && (
+            <Link href="/admin/users" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-blue-600 bg-blue-50 hover:bg-blue-100">
+              Manage Users
             </Link>
-          ))}
+          )}
+          {isSuperAdmin && (
+            <Link href="/admin/payments" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-yellow-600 bg-yellow-50 hover:bg-yellow-100">
+              Payments
+            </Link>
+          )}
+          {isSuperAdmin && (
+            <Link href="/admin/audit" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-purple-600 bg-purple-50 hover:bg-purple-100">
+              Audit Log
+            </Link>
+          )}
+          {isAdmin && (
+            <Link href="/admin/cms" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-indigo-600 bg-indigo-50 hover:bg-indigo-100">
+              CMS
+            </Link>
+          )}
         </div>
 
-        {/* ── Recent Activity ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-              Recent Activity
-            </h2>
-            <Link
-              href="/admin/audit"
-              className="text-xs text-blue-500 hover:underline font-medium"
-            >
-              View All →
-            </Link>
-          </div>
-
-          <div className="divide-y divide-gray-50">
-            {stats?.recent_activity.length === 0 ? (
-              <p className="px-6 py-8 text-sm text-gray-400 text-center">No recent activity</p>
-            ) : (
-              stats?.recent_activity.map((activity) => (
-                <div key={activity.log_id} className="px-6 py-4 flex items-center gap-4">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${operationColor(activity.operation)}`}>
-                    {activity.operation}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 truncate">
-                      <span className="font-medium">{activity.table_name}</span>
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      by {activity.changed_by_name}
-                      {activity.changed_by_email ? ` · ${activity.changed_by_email}` : ''}
-                    </p>
+        {/* ── Recent Activity — Admin/SuperAdmin only ── */}
+        {isAdmin && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Recent Activity</h2>
+              {isSuperAdmin && (
+                <Link href="/admin/audit" className="text-xs text-blue-500 hover:underline font-medium">
+                  View All →
+                </Link>
+              )}
+            </div>
+            <div className="divide-y divide-gray-50">
+              {stats?.recent_activity.length === 0 ? (
+                <p className="px-6 py-8 text-sm text-gray-400 text-center">No recent activity</p>
+              ) : (
+                stats?.recent_activity.map(activity => (
+                  <div key={activity.log_id} className="px-6 py-4 flex items-center gap-4">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${operationColor(activity.operation)}`}>
+                      {activity.operation}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">
+                        <span className="font-medium">{activity.table_name}</span>
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        by {activity.changed_by_name}
+                        {activity.changed_by_email ? ` · ${activity.changed_by_email}` : ''}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo(activity.changed_at)}</span>
                   </div>
-                  <span className="text-xs text-gray-400 flex-shrink-0">
-                    {timeAgo(activity.changed_at)}
-                  </span>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ── Editor Info Panel ── */}
+        {isEditor && (
+          <div className="bg-blue-50 rounded-2xl border border-blue-100 p-6">
+            <h2 className="text-sm font-bold text-blue-800 mb-2">Your Access Level</h2>
+            <p className="text-sm text-blue-600 leading-relaxed">
+              As an Editor you can create, edit and delete events and social media posts.
+              Contact a Super Admin if you need additional access.
+            </p>
+            <div className="flex gap-3 mt-4">
+              <Link href="/admin/events" className="px-4 py-2 rounded-xl bg-white border border-blue-200 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-all">
+                Go to Events →
+              </Link>
+              <Link href="/admin/social" className="px-4 py-2 rounded-xl bg-white border border-blue-200 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-all">
+                Go to Social →
+              </Link>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
