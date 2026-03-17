@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useRequireAdmin } from '@/hooks/useRequireAdmin';
 
 type ActivityLog = {
   log_id: string;
@@ -33,6 +34,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function AdminAuditPage() {
+  const { isAdmin } = useRequireAdmin();
   const { token } = useAuth();
 
   const [logs, setLogs]         = useState<ActivityLog[]>([]);
@@ -46,6 +48,17 @@ export default function AdminAuditPage() {
 
   const LIMIT = 50;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-bold text-gray-800">Access Denied</p>
+          <p className="text-sm text-gray-500 mt-1">You don't have permission to view this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);

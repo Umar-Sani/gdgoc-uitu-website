@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useRequireAdmin } from '@/hooks/useRequireAdmin';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +45,7 @@ function getInitials(name: string): string {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminUsersPage() {
+  const { isAdmin } = useRequireAdmin();
   const { token } = useAuth();
 
   const [users, setUsers]       = useState<User[]>([]);
@@ -60,6 +63,17 @@ export default function AdminUsersPage() {
 
   const LIMIT = 20;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-bold text-gray-800">Access Denied</p>
+          <p className="text-sm text-gray-500 mt-1">You don't have permission to view this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Fetch roles ────────────────────────────────────────────────────────────
   useEffect(() => {
