@@ -36,7 +36,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function AdminPaymentsPage() {
-  const { isAdmin } = useRequireAdmin();
+  const { isSuperAdmin } = useRequireAdmin({ superAdminOnly: true });
   const { token } = useAuth();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -51,7 +51,7 @@ export default function AdminPaymentsPage() {
   const LIMIT = 20;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  if (!isAdmin) {
+  if (!isSuperAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

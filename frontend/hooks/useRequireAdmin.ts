@@ -2,17 +2,19 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-export function useRequireAdmin() {
+export function useRequireAdmin({ superAdminOnly = false }: { superAdminOnly?: boolean } = {}) {
   const { user } = useAuth();
   const router = useRouter();
 
-  const isAdmin = user?.role_name === 'admin' || user?.role_name === 'super_admin';
+  const isSuperAdmin = user?.role_name === 'super_admin';
+  const isAdmin = user?.role_name === 'admin' || isSuperAdmin;
+  const hasAccess = superAdminOnly ? isSuperAdmin : isAdmin;
 
   useEffect(() => {
-    if (user && !isAdmin) {
+    if (user && !hasAccess) {
       router.replace('/admin/dashboard');
     }
-  }, [user, isAdmin, router]);
+  }, [user, hasAccess, router]);
 
-  return { isAdmin };
+  return { isAdmin, isSuperAdmin, hasAccess };
 }

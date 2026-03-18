@@ -12,6 +12,7 @@ type NavItem = {
   href: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
 };
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -62,13 +63,13 @@ const Icons = {
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',  href: '/admin/dashboard', icon: Icons.dashboard },
-  { label: 'Events',     href: '/admin/events',    icon: Icons.events },
-  { label: 'CMS',        href: '/admin/cms/homepage', icon: Icons.cms },
-  { label: 'Social',     href: '/admin/social',    icon: Icons.social },
-  { label: 'Users',      href: '/admin/users',     icon: Icons.users,    adminOnly: true },
-  { label: 'Payments',   href: '/admin/payments',  icon: Icons.payments, adminOnly: true },
-  { label: 'Audit Log',  href: '/admin/audit',     icon: Icons.audit,    adminOnly: true },
+  { label: 'Dashboard',  href: '/admin/dashboard',    icon: Icons.dashboard },
+  { label: 'Events',     href: '/admin/events',        icon: Icons.events },
+  { label: 'CMS',        href: '/admin/cms',  icon: Icons.cms,      adminOnly: true },
+  { label: 'Social',     href: '/admin/social',        icon: Icons.social },
+  { label: 'Users',      href: '/admin/users',         icon: Icons.users,    adminOnly: true },
+  { label: 'Payments',   href: '/admin/payments',      icon: Icons.payments, superAdminOnly: true },
+  { label: 'Audit Log',  href: '/admin/audit',         icon: Icons.audit,    superAdminOnly: true },
 ];
 
 // ─── Main Layout ──────────────────────────────────────────────────────────────
@@ -82,8 +83,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const isAdmin = user?.role_name === 'admin' || user?.role_name === 'super_admin';
   const isEditor = user?.role_name === 'editor';
+  const isSuperAdmin = user?.role_name === 'super_admin';
   const hasAccess = isAdmin || isEditor;
-
   // ─── Auth guard ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) {
@@ -95,7 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
     setChecking(false);
-  }, [user]);
+  }, [user, hasAccess]);
 
   if (checking) {
     return (
@@ -105,9 +106,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const visibleNavItems = NAV_ITEMS.filter((item) =>
-    item.adminOnly ? isAdmin : true
-  );
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (item.superAdminOnly) return isSuperAdmin;
+    if (item.adminOnly) return isAdmin;
+    return true;
+  });
 
   function getInitials(name: string): string {
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
