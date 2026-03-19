@@ -61,4 +61,4 @@ export const mockUsers: Record<string, User> = {
   },
 }
 
-export const ACTIVE_MOCK_USER: User = mockUsers.editor
+export const ACTIVE_MOCK_USER: User = mockUsers.admin

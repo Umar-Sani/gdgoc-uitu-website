@@ -315,4 +315,35 @@ router.post('/contact', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/cms/newsletter
+// Public — subscribe to newsletter
+router.post('/newsletter', async (req: Request, res: Response) => {
+  try {
+    const { email, name } = req.body;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        data: null,
+        error: 'A valid email address is required.',
+      });
+    }
+
+    // Upsert — if email exists just reactivate
+    const result = await pool.query(
+      `INSERT INTO content.newsletter_subscribers (email, name)
+       VALUES ($1, $2)
+       ON CONFLICT (email) DO UPDATE
+       SET is_active = TRUE, name = COALESCE($2, newsletter_subscribers.name)
+       RETURNING subscriber_id, email, subscribed_at`,
+      [email.trim().toLowerCase(), name?.trim() ?? null]
+    );
+
+    res.status(201).json({ data: result.rows[0], error: null });
+
+  } catch (err: any) {
+    console.error('POST /api/cms/newsletter error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 export default router;
