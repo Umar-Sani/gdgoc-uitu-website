@@ -32,6 +32,19 @@ type Event = {
   description: string | null;
 };
 
+type FeaturedEvent = {
+  id: string;
+  event_id: string | null;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  event_date: string | null;
+  category: string | null;
+  display_order: number;
+  linked_event_title: string | null;
+  linked_event_status: string | null;
+};
+
 type Thread = {
   thread_id: string;
   title: string;
@@ -196,6 +209,7 @@ export default function HomePage() {
   const [homepage, setHomepage]   = useState<Homepage | null>(null);
   const [events, setEvents]       = useState<Event[]>([]);
   const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null);
+  const [featuredPastEvents, setFeaturedPastEvents] = useState<FeaturedEvent[]>([]);
   const [threads, setThreads]     = useState<Thread[]>([]);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -219,18 +233,20 @@ export default function HomePage() {
     Promise.all([
       fetch(`${API_URL}/api/cms/homepage`).then((r) => r.json()),
       fetch(`${API_URL}/api/events?status=upcoming&limit=4`).then((r) => r.json()),
+      fetch(`${API_URL}/api/cms/featured-events`).then((r) => r.json()),
       fetch(`${API_URL}/api/forum/threads?limit=3&sort=latest`).then((r) => r.json()),
       fetch(`${API_URL}/api/social/posts?limit=3&status=published`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/team`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/sponsors`).then((r) => r.json()),
     ])
-      .then(([homepageRes, eventsRes, threadsRes, socialRes, teamRes, sponsorsRes]) => {
+      .then(([homepageRes, eventsRes, featuredPastRes, threadsRes, socialRes, teamRes, sponsorsRes]) => {
         if (homepageRes.data) setHomepage(homepageRes.data);
         if (eventsRes.data) {
           const allEvents = eventsRes.data;
           setFeaturedEvent(allEvents[0] ?? null);
           setEvents(allEvents.slice(1, 4));
         }
+        if (featuredPastRes.data) setFeaturedPastEvents(featuredPastRes.data)
         if (threadsRes.data) setThreads(threadsRes.data);
         if (socialRes.data) setSocialPosts(socialRes.data);
         if (teamRes.data) setTeamMembers(teamRes.data.slice(0, 4));
@@ -281,8 +297,25 @@ export default function HomePage() {
 
       {/* ── Announcement Banner ── */}
       {homepage?.announcement && (
-        <div className="bg-[#4285F4] text-white text-center text-xs font-medium py-2 px-4">
-          📢 {homepage.announcement}
+        <div className="px-0">
+          <div className="max-w-full">
+            <div className="bg-[#4285F4] bg-gradient-to-r from-[#4285F4] to-indigo-600 p-4 text-center">
+              <div className="flex flex-wrap justify-center items-center gap-3">
+                <p className="text-white text-sm font-medium">
+                  📢 {homepage.announcement}
+                </p>
+                <Link
+                  href="/events"
+                  className="py-1.5 px-3 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full border-2 border-white border-opacity-60 text-white hover:border-opacity-100 hover:bg-white hover:bg-opacity-10 transition-all"
+                >
+                  Learn more
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -357,24 +390,84 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ── Quick Access Cards ── */}
-      <section className="py-12 bg-white border-b border-gray-100">
+      {/* ── About Us Snapshot ── */}
+      <section className="py-20 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: 'Browse Events', desc: 'Workshops, hackathons & more', href: '/events', emoji: '🎯', color: 'hover:border-blue-300 hover:bg-blue-50' },
-              { label: 'Join Forum', desc: 'Ask questions & discuss', href: '/forum', emoji: '💬', color: 'hover:border-green-300 hover:bg-green-50' },
-              { label: 'Meet the Team', desc: 'The people behind GDGOC', href: '/about', emoji: '👥', color: 'hover:border-yellow-300 hover:bg-yellow-50' },
-              { label: 'Contact Us', desc: 'Get in touch with us', href: '/contact', emoji: '✉️', color: 'hover:border-purple-300 hover:bg-purple-50' },
-            ].map((card) => (
-              <Link key={card.href} href={card.href}>
-                <div className={`group p-5 rounded-2xl border border-gray-100 transition-all duration-200 cursor-pointer h-full ${card.color}`}>
-                  <div className="text-2xl mb-3">{card.emoji}</div>
-                  <p className="font-bold text-gray-900 text-sm">{card.label}</p>
-                  <p className="text-xs text-gray-500 mt-1">{card.desc}</p>
-                </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+            {/* Left — Text */}
+            <div>
+              <div className="h-1 w-12 flex mb-4 rounded-full overflow-hidden">
+                <div className="flex-1 bg-[#4285F4]" />
+                <div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" />
+                <div className="flex-1 bg-[#34A853]" />
+              </div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+                Who We Are
+              </p>
+              <h2 className="text-3xl font-bold text-gray-900 tracking-tight leading-tight">
+                A community of{' '}
+                <span className="text-[#4285F4]">student builders</span>{' '}
+                at UIT University.
+              </h2>
+              <p className="mt-4 text-sm text-gray-500 leading-relaxed">
+                GDGOC-UITU is a Google Developer Group on Campus at UIT University Karachi.
+                We bring together students passionate about technology through hands-on workshops,
+                hackathons, and a thriving peer community — all backed by Google.
+              </p>
+              <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+                Whether you're just getting started or already building real projects,
+                there's a place for you here.
+              </p>
+
+              {/* Stat pills */}
+              <div className="flex items-center gap-3 mt-6 flex-wrap">
+                {[
+                  { value: '200+', label: 'Members' },
+                  { value: 'Since 2022', label: 'Est.' },
+                  { value: '10+', label: 'Events/Year' },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="px-4 py-2 rounded-xl bg-blue-50 border border-blue-100 text-center"
+                  >
+                    <p className="text-sm font-bold text-[#4285F4]">{stat.value}</p>
+                    <p className="text-xs text-gray-500">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/about"
+                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all"
+              >
+                Learn More About Us
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
-            ))}
+            </div>
+
+            {/* Right — Feature Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: '🎯', title: 'Workshops', desc: 'Hands-on technical sessions on Flutter, AI/ML, Web Dev and more.' },
+                { icon: '🏆', title: 'Hackathons', desc: '24-hour build competitions with real prizes and industry judges.' },
+                { icon: '💬', title: 'Community', desc: 'A forum for questions, discussions, and peer-to-peer learning.' },
+                { icon: '🚀', title: 'Mentorship', desc: 'Guidance from senior developers and industry professionals.' },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="p-5 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-100 hover:bg-white hover:shadow-md transition-all"
+                >
+                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <p className="font-bold text-gray-900 text-sm mb-1">{item.title}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
       </section>
@@ -535,6 +628,137 @@ export default function HomePage() {
                   </div>
                 </Link>
               ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Featured Past Events ── */}
+      {!loading && featuredPastEvents.length > 0 && (
+        <section className="py-20 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
+                  <div className="flex-1 bg-[#4285F4]" />
+                  <div className="flex-1 bg-[#EA4335]" />
+                  <div className="flex-1 bg-[#FBBC05]" />
+                  <div className="flex-1 bg-[#34A853]" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Our Best Events
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Highlights from our most impactful events
+                </p>
+              </div>
+              <Link
+                href="/events?status=past"
+                className="text-sm font-semibold text-[#4285F4] hover:underline"
+              >
+                View Past Events →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredPastEvents.map((event, index) => {
+                const colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
+                const color = colors[index % colors.length];
+                return (
+                  <div
+                    key={event.id}
+                    className={`group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col ${
+                      event.event_id ? 'cursor-pointer' : ''
+                    }`}
+                    onClick={() => {
+                      if (event.event_id) {
+                        window.location.href = `/events/${event.event_id}`;
+                      }
+                    }}
+                  >
+                    {/* Color accent top bar */}
+                    <div className="h-1.5 w-full" style={{ backgroundColor: color }} />
+
+                    {/* Image or placeholder */}
+                    <div className="relative h-44 overflow-hidden" style={{ backgroundColor: `${color}15` }}>
+                      {event.image_url ? (
+                        <img
+                          src={event.image_url}
+                          alt={event.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="text-center">
+                            <div
+                              className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-2"
+                              style={{ backgroundColor: `${color}25` }}
+                            >
+                              <svg
+                                className="w-8 h-8"
+                                style={{ color }}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Category badge */}
+                      {event.category && (
+                        <div className="absolute top-3 left-3">
+                          <span
+                            className="px-2.5 py-1 rounded-full text-xs font-bold text-white"
+                            style={{ backgroundColor: color }}
+                          >
+                            {event.category}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Linked event badge */}
+                      {event.event_id && (
+                        <div className="absolute top-3 right-3">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white text-gray-700 shadow-sm border border-gray-100">
+                            View Event →
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="font-bold text-gray-900 text-base leading-snug group-hover:text-[#4285F4] transition-colors mb-2">
+                        {event.title}
+                      </h3>
+
+                      {event.description && (
+                        <p className="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">
+                          {event.description}
+                        </p>
+                      )}
+
+                      {event.event_date && (
+                        <div className="flex items-center gap-1.5 mt-4 text-xs text-gray-400">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {new Date(event.event_date).toLocaleDateString('en-PK', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -840,100 +1064,94 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── Newsletter ── */}
-      <section className="py-20 bg-gradient-to-br from-[#4285F4] to-indigo-600">
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold text-white tracking-tight">Stay in the Loop</h2>
-          <p className="mt-3 text-blue-100 text-sm leading-relaxed">
-            Get notified about upcoming events, workshops, and community updates.
-          </p>
-
-          {newsletterSuccess ? (
-            <div className="mt-8 p-5 rounded-2xl bg-white bg-opacity-10 border border-white border-opacity-20">
-              <p className="text-white font-semibold">🎉 You're subscribed!</p>
-              <p className="text-blue-200 text-sm mt-1">We'll keep you updated on everything GDGOC.</p>
-            </div>
-          ) : (
-            <form onSubmit={handleNewsletter} className="mt-8 space-y-3">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="text"
-                  placeholder="Your name (optional)"
-                  value={newsletterName}
-                  onChange={(e) => setNewsletterName(e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-20 text-white placeholder-blue-200 text-sm outline-none focus:bg-opacity-20 transition-all"
-                />
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  required
-                  className="flex-1 px-4 py-3 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-20 text-white placeholder-blue-200 text-sm outline-none focus:bg-opacity-20 transition-all"
-                />
-              </div>
-              {newsletterError && (
-                <p className="text-red-300 text-xs">{newsletterError}</p>
-              )}
-              <button
-                type="submit"
-                disabled={newsletterLoading}
-                className="w-full sm:w-auto px-8 py-3 rounded-xl bg-white text-[#4285F4] font-bold text-sm hover:bg-gray-100 transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {newsletterLoading ? 'Subscribing...' : 'Subscribe for Free'}
-              </button>
-              <p className="text-blue-200 text-xs">No spam. Unsubscribe anytime.</p>
-            </form>
-          )}
-        </div>
-      </section>
-
-      {/* ── What We Do ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden mx-auto">
-              <div className="flex-1 bg-[#4285F4]" />
-              <div className="flex-1 bg-[#EA4335]" />
-              <div className="flex-1 bg-[#FBBC05]" />
-              <div className="flex-1 bg-[#34A853]" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">What We Do</h2>
-            <p className="text-sm text-gray-500 mt-2 max-w-xl mx-auto">
-              We bring together students passionate about technology, innovation, and building things that matter.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: '🎯', title: 'Workshops', desc: 'Hands-on sessions covering Flutter, AI/ML, Web Dev, Cloud and more.' },
-              { icon: '🏆', title: 'Hackathons', desc: '24-hour buildathons where teams compete to solve real problems.' },
-              { icon: '💬', title: 'Community', desc: 'A forum to ask questions, share knowledge and connect with peers.' },
-              { icon: '🚀', title: 'Mentorship', desc: 'Learn from senior developers and industry professionals.' },
-            ].map((item) => (
-              <div key={item.title} className="p-6 rounded-2xl border border-gray-100 hover:border-blue-100 hover:shadow-md transition-all text-center">
-                <div className="text-3xl mb-3">{item.icon}</div>
-                <h3 className="font-bold text-gray-900 text-sm mb-2">{item.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Join CTA ── */}
+      {/* ── Newsletter + Join CTA ── */}
       <section className="py-20 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Ready to Join?</h2>
-          <p className="mt-4 text-gray-500 text-sm leading-relaxed max-w-xl mx-auto">
-            Become part of a growing community of student developers at UIT University. Register for free and start your journey.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register" className="px-8 py-3.5 rounded-xl bg-[#4285F4] text-white font-bold text-sm hover:bg-blue-600 transition-all shadow-lg">
-              Create Free Account
-            </Link>
-            <Link href="/about" className="px-8 py-3.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:border-blue-300 hover:text-blue-600 transition-all">
-              Learn More
-            </Link>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            {/* Join CTA */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex flex-col justify-between">
+              <div>
+                <div className="h-1 w-12 flex mb-4 rounded-full overflow-hidden">
+                  <div className="flex-1 bg-[#4285F4]" />
+                  <div className="flex-1 bg-[#EA4335]" />
+                  <div className="flex-1 bg-[#FBBC05]" />
+                  <div className="flex-1 bg-[#34A853]" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Ready to Join?
+                </h2>
+                <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+                  Become part of a growing community of student developers at UIT University.
+                  Register for free and start your journey today.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 mt-8">
+                <Link
+                  href="/register"
+                  className="px-6 py-3 rounded-xl bg-[#4285F4] text-white font-bold text-sm hover:bg-blue-600 transition-all shadow-md hover:shadow-blue-200 text-center"
+                >
+                  Create Free Account
+                </Link>
+                <Link
+                  href="/about"
+                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:border-blue-300 hover:text-blue-600 transition-all text-center"
+                >
+                  Learn More
+                </Link>
+              </div>
+            </div>
+
+            {/* Newsletter */}
+            <div className="bg-[#4285F4] rounded-2xl p-8 flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-3">
+                  Newsletter
+                </p>
+                <h2 className="text-2xl font-bold text-white tracking-tight">
+                  Stay in the Loop
+                </h2>
+                <p className="mt-3 text-sm text-blue-100 leading-relaxed">
+                  Get notified about upcoming events, workshops, and community updates. No spam, ever.
+                </p>
+              </div>
+
+              {newsletterSuccess ? (
+                <div className="mt-6 p-4 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-20 text-center">
+                  <p className="text-white font-semibold text-sm">🎉 You're subscribed!</p>
+                  <p className="text-blue-200 text-xs mt-1">We'll keep you in the loop.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleNewsletter} className="mt-6 space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Your name (optional)"
+                    value={newsletterName}
+                    onChange={(e) => setNewsletterName(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-25 text-white placeholder-blue-200 text-sm outline-none focus:bg-opacity-20 transition-all"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Your email address"
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-25 text-white placeholder-blue-200 text-sm outline-none focus:bg-opacity-20 transition-all"
+                  />
+                  {newsletterError && (
+                    <p className="text-red-300 text-xs">{newsletterError}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={newsletterLoading}
+                    className="w-full py-2.5 rounded-xl bg-white text-[#4285F4] font-bold text-sm hover:bg-gray-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {newsletterLoading ? 'Subscribing...' : 'Subscribe for Free'}
+                  </button>
+                </form>
+              )}
+            </div>
+
           </div>
         </div>
       </section>

@@ -346,4 +346,149 @@ router.post('/newsletter', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/cms/featured-events
+// Public — fetch active featured events
+router.get('/featured-events', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        fe.id, fe.event_id, fe.title, fe.description,
+        fe.image_url, fe.event_date, fe.category,
+        fe.display_order, fe.is_active, fe.created_at,
+        e.title AS linked_event_title,
+        e.status AS linked_event_status
+       FROM content.featured_events fe
+       LEFT JOIN events.events e ON fe.event_id = e.event_id
+       WHERE fe.is_active = TRUE
+       ORDER BY fe.display_order ASC`
+    );
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    console.error('GET /api/cms/featured-events error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// GET /api/cms/featured-events/all
+// Admin — fetch all featured events including inactive
+router.get('/featured-events/all', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        fe.id, fe.event_id, fe.title, fe.description,
+        fe.image_url, fe.event_date, fe.category,
+        fe.display_order, fe.is_active, fe.created_at,
+        e.title AS linked_event_title
+       FROM content.featured_events fe
+       LEFT JOIN events.events e ON fe.event_id = e.event_id
+       ORDER BY fe.display_order ASC`
+    );
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// POST /api/cms/featured-events
+// Admin — add a featured event
+router.post('/featured-events', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const {
+      event_id, title, description,
+      image_url, event_date, category, display_order,
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ data: null, error: 'Title is required.' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO content.featured_events (
+        event_id, title, description, image_url,
+        event_date, category, display_order, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+      RETURNING *`,
+      [
+        event_id ?? null,
+        title.trim(),
+        description?.trim() ?? null,
+        image_url?.trim() ?? null,
+        event_date ?? null,
+        category?.trim() ?? null,
+        display_order ?? 0,
+      ]
+    );
+
+    res.status(201).json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    console.error('POST /api/cms/featured-events error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// PATCH /api/cms/featured-events/:id
+// Admin — edit a featured event
+router.patch('/featured-events/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const {
+      event_id, title, description,
+      image_url, event_date, category,
+      display_order, is_active,
+    } = req.body;
+
+    const result = await pool.query(
+      `UPDATE content.featured_events SET
+        event_id      = COALESCE($1, event_id),
+        title         = COALESCE($2, title),
+        description   = COALESCE($3, description),
+        image_url     = COALESCE($4, image_url),
+        event_date    = COALESCE($5, event_date),
+        category      = COALESCE($6, category),
+        display_order = COALESCE($7, display_order),
+        is_active     = COALESCE($8, is_active)
+      WHERE id = $9
+      RETURNING *`,
+      [
+        event_id ?? null,
+        title?.trim() ?? null,
+        description?.trim() ?? null,
+        image_url?.trim() ?? null,
+        event_date ?? null,
+        category?.trim() ?? null,
+        display_order ?? null,
+        is_active ?? null,
+        req.params.id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Featured event not found.' });
+    }
+
+    res.json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    console.error('PATCH /api/cms/featured-events/:id error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// DELETE /api/cms/featured-events/:id
+// Admin — remove a featured event
+router.delete('/featured-events/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM content.featured_events WHERE id = $1 RETURNING id`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Featured event not found.' });
+    }
+
+    res.json({ data: { deleted: true }, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 export default router;
