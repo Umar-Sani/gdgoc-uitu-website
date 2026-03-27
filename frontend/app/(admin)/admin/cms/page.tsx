@@ -64,6 +64,12 @@ const CMS_SECTIONS = [
       </svg>
     ),
   },
+  {
+    label: 'Featured Events',
+    desc: 'Manage events shown in the Our Best Events section',
+    href: '/admin/cms/featured-events',
+    icon: '🏆',
+  },
 ];
 
 export default function CmsIndexPage() {

@@ -31,9 +31,11 @@ router.get('/', async (req: Request, res: Response) => {
 
     // Filter by status
     if (status === 'upcoming') {
-      query += ` AND start_datetime > NOW() AND status = 'published'`;
+      // Upcoming = future events that are publicly visible
+      query += ` AND start_datetime >= NOW() AND status = 'published'`;
     } else if (status === 'past') {
-      query += ` AND status = 'completed'`;
+      // Past = already happened events (published or completed)
+      query += ` AND start_datetime < NOW() AND status IN ('published', 'completed')`;
     } else {
       query += ` AND status = $${paramIndex}`;
       params.push(status);
@@ -60,7 +62,8 @@ router.get('/', async (req: Request, res: Response) => {
     const total = parseInt(countResult.rows[0].count);
 
     // Add ordering and pagination
-    query += ` ORDER BY start_datetime ASC`;
+    const sortDirection = status === 'past' ? 'DESC' : 'ASC';
+    query += ` ORDER BY start_datetime ${sortDirection}`;
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(Number(limit), offset);
 
