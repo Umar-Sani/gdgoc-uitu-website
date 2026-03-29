@@ -466,79 +466,90 @@ export default function HomePage() {
       </section>
 
       {/* ── About Us Snapshot ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="py-24 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden border-t-[3px] border-b-[3px] border-black">
+        {/* Abstract Brutalist Grid overlay for dark background */}
+        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
 
             {/* Left — Text */}
-            <div>
-              <div className="h-1 w-12 flex mb-4 rounded-full overflow-hidden">
+            <div className="flex flex-col">
+              <div className="h-1.5 w-16 flex mb-6 rounded-none overflow-hidden border-[1px] border-black shadow-[2px_2px_0_#000]">
                 <div className="flex-1 bg-[#4285F4]" />
                 <div className="flex-1 bg-[#EA4335]" />
                 <div className="flex-1 bg-[#FBBC05]" />
                 <div className="flex-1 bg-[#34A853]" />
               </div>
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+              <p className="text-sm font-black uppercase tracking-widest text-[#34A853] mb-4 bg-white self-start px-3 py-1 border-2 border-black shadow-[2px_2px_0_#000] rotate-[-2deg]">
                 Who We Are
               </p>
-              <h2 className="text-3xl font-bold text-gray-900 tracking-tight leading-tight">
-                A community of{' '}
-                <span className="text-[#4285F4]">student builders</span>{' '}
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tighter uppercase leading-[0.9] mb-6 drop-shadow-[3px_3px_0_rgba(0,0,0,1)]" style={{ WebkitTextStroke: '2px black' }}>
+                A community of <br/>
+                <span className="text-[#FBBC05] inline-block mt-2">student builders</span> <br/>
                 at UIT University.
               </h2>
-              <p className="mt-4 text-sm text-gray-500 leading-relaxed">
-                GDGOC-UITU is a Google Developer Group on Campus at UIT University Karachi.
-                We bring together students passionate about technology through hands-on workshops,
-                hackathons, and a thriving peer community — all backed by Google.
-              </p>
-              <p className="mt-3 text-sm text-gray-500 leading-relaxed">
-                Whether you're just getting started or already building real projects,
-                there's a place for you here.
-              </p>
+              
+              <div className="bg-white border-[3px] border-black shadow-[6px_6px_0_#000] p-6 rounded-2xl transform rotate-[1deg] mb-8">
+                <p className="text-base sm:text-lg font-bold text-black leading-relaxed">
+                  GDGOC-UITU is a Google Developer Group on Campus at UIT University Karachi.
+                  We bring together students passionate about technology through hands-on workshops,
+                  hackathons, and a thriving peer community — all backed by Google.
+                </p>
+                <p className="mt-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Whether you're just getting started or already building real projects, there's a place for you here.
+                </p>
+              </div>
 
               {/* Stat pills */}
-              <div className="flex items-center gap-3 mt-6 flex-wrap">
+              <div className="flex items-center gap-4 flex-wrap mb-10">
                 {[
-                  { value: '200+', label: 'Members' },
-                  { value: 'Since 2022', label: 'Est.' },
-                  { value: '10+', label: 'Events/Year' },
+                  { value: '200+', label: 'Members', color: 'bg-[#4285F4]' },
+                  { value: '2022', label: 'Est.', color: 'bg-[#EA4335]' },
+                  { value: '10+', label: 'Events/Year', color: 'bg-[#34A853]' },
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="px-4 py-2 rounded-xl bg-blue-50 border border-blue-100 text-center"
+                    className={`px-5 py-3 ${stat.color} rounded-xl border-[3px] border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] hover:-translate-y-1 transition-all text-center`}
                   >
-                    <p className="text-sm font-bold text-[#4285F4]">{stat.value}</p>
-                    <p className="text-xs text-gray-500">{stat.label}</p>
+                    <p className="text-2xl font-black text-white tracking-tighter" style={{ WebkitTextStroke: '1.5px black' }}>{stat.value}</p>
+                    <p className="text-xs font-black text-black uppercase tracking-widest mt-1">{stat.label}</p>
                   </div>
                 ))}
               </div>
 
               <Link
                 href="/about"
-                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all"
+                className="inline-flex items-center justify-center gap-3 self-start px-8 py-4 bg-[#FBBC05] rounded-full border-[3px] border-black text-black font-black uppercase tracking-widest shadow-[6px_6px_0_#000] hover:bg-[#EA4335] hover:text-white hover:shadow-[8px_8px_0_#000] hover:-translate-y-1 active:shadow-[2px_2px_0_#000] active:translate-y-1 transition-all group"
               >
                 Learn More About Us
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <svg className="w-5 h-5 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
             </div>
 
             {/* Right — Feature Cards */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
               {[
-                { icon: '🎯', title: 'Workshops', desc: 'Hands-on technical sessions on Flutter, AI/ML, Web Dev and more.' },
-                { icon: '🏆', title: 'Hackathons', desc: '24-hour build competitions with real prizes and industry judges.' },
-                { icon: '💬', title: 'Community', desc: 'A forum for questions, discussions, and peer-to-peer learning.' },
-                { icon: '🚀', title: 'Mentorship', desc: 'Guidance from senior developers and industry professionals.' },
-              ].map((item) => (
+                { icon: '🎯', title: 'Workshops', desc: 'Hands-on technical sessions on Flutter, AI/ML, Web Dev and more.', color: 'bg-[#FBBC05]', textColor: 'text-black', stroke: 'none' },
+                { icon: '🏆', title: 'Hackathons', desc: '24-hour build competitions with real prizes and industry judges.', color: 'bg-[#4285F4]', textColor: 'text-white', stroke: '1px black' },
+                { icon: '💬', title: 'Community', desc: 'A forum for questions, discussions, and peer-to-peer learning.', color: 'bg-[#EA4335]', textColor: 'text-white', stroke: '1px black' },
+                { icon: '🚀', title: 'Mentorship', desc: 'Guidance from senior developers and industry professionals.', color: 'bg-[#34A853]', textColor: 'text-white', stroke: '1px black' },
+              ].map((item, idx) => (
                 <div
                   key={item.title}
-                  className="p-5 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-100 hover:bg-white hover:shadow-md transition-all"
+                  className={`p-6 md:p-8 rounded-2xl ${item.color} border-[3px] border-black shadow-[8px_8px_0_#000] hover:shadow-[12px_12px_0_#000] hover:-translate-y-2 transition-all group ${idx % 2 !== 0 ? 'sm:mt-8' : ''}`}
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
-                  <p className="font-bold text-gray-900 text-sm mb-1">{item.title}</p>
-                  <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+                  <div className="w-14 h-14 bg-white border-[3px] border-black rounded-full flex items-center justify-center text-2xl shadow-[4px_4px_0_#000] mb-5 group-hover:scale-110 transition-transform origin-center">
+                    {item.icon}
+                  </div>
+                  <h3 className={`text-2xl font-black uppercase tracking-tight mb-2 ${item.textColor}`} style={{ WebkitTextStroke: item.stroke }}>
+                    {item.title}
+                  </h3>
+                  <p className={`text-sm font-bold leading-relaxed ${item.textColor === 'text-white' ? 'text-gray-100' : 'text-gray-900'}`}>
+                    {item.desc}
+                  </p>
                 </div>
               ))}
             </div>
