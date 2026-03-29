@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import Magnetic from '../../components/ui/magnetic';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,23 +115,23 @@ const TESTIMONIALS = [
 // ─── Tech Stack ───────────────────────────────────────────────────────────────
 
 const TECHNOLOGIES = [
-  { name: 'Flutter',       color: '#54C5F8', icon: '📱' },
-  { name: 'AI / ML',       color: '#FF7043', icon: '🤖' },
-  { name: 'Web Dev',       color: '#42A5F5', icon: '🌐' },
-  { name: 'Cloud',         color: '#26A69A', icon: '☁️' },
-  { name: 'Android',       color: '#66BB6A', icon: '🤖' },
-  { name: 'Open Source',   color: '#AB47BC', icon: '🔓' },
+  { name: 'Flutter', color: '#54C5F8', icon: '📱' },
+  { name: 'AI / ML', color: '#FF7043', icon: '🤖' },
+  { name: 'Web Dev', color: '#42A5F5', icon: '🌐' },
+  { name: 'Cloud', color: '#26A69A', icon: '☁️' },
+  { name: 'Android', color: '#66BB6A', icon: '🤖' },
+  { name: 'Open Source', color: '#AB47BC', icon: '🔓' },
   { name: 'Cybersecurity', color: '#EF5350', icon: '🔒' },
-  { name: 'DevOps',        color: '#78909C', icon: '⚙️' },
+  { name: 'DevOps', color: '#78909C', icon: '⚙️' },
 ];
 
 // ─── Platform Colors ──────────────────────────────────────────────────────────
 
 const PLATFORM_CONFIG: Record<string, { color: string; label: string }> = {
   instagram: { color: '#E1306C', label: 'Instagram' },
-  twitter:   { color: '#1DA1F2', label: 'Twitter' },
-  linkedin:  { color: '#0A66C2', label: 'LinkedIn' },
-  facebook:  { color: '#1877F2', label: 'Facebook' },
+  twitter: { color: '#1DA1F2', label: 'Twitter' },
+  linkedin: { color: '#0A66C2', label: 'LinkedIn' },
+  facebook: { color: '#1877F2', label: 'Facebook' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -206,22 +208,40 @@ function StatCounter({ value, label }: { value: number; label: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [homepage, setHomepage]   = useState<Homepage | null>(null);
-  const [events, setEvents]       = useState<Event[]>([]);
+  const [wordIndex, setWordIndex] = useState(0);
+  const [atTop, setAtTop] = useState(true);
+  const words = ["BUILD", "SHIP", "CONNECT", "COMPETE", "LEVEL UP", "INNOVATE", "HACK", "CREATE", "LEAD"];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % words.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Hide announcement banner the moment user scrolls
+  useEffect(() => {
+    const handleScroll = () => setAtTop(window.scrollY < 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const [homepage, setHomepage] = useState<Homepage | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null);
   const [featuredPastEvents, setFeaturedPastEvents] = useState<FeaturedEvent[]>([]);
-  const [threads, setThreads]     = useState<Thread[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [sponsors, setSponsors]   = useState<Sponsor[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Newsletter state
   const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterName, setNewsletterName]   = useState('');
+  const [newsletterName, setNewsletterName] = useState('');
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterSuccess, setNewsletterSuccess] = useState(false);
-  const [newsletterError, setNewsletterError]     = useState('');
+  const [newsletterError, setNewsletterError] = useState('');
 
   // Testimonial carousel
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -296,98 +316,172 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
 
       {/* ── Announcement Banner ── */}
-      {homepage?.announcement && (
-        <div className="px-0">
-          <div className="max-w-full">
-            <div className="bg-[#4285F4] bg-gradient-to-r from-[#4285F4] to-indigo-600 p-4 text-center">
-              <div className="flex flex-wrap justify-center items-center gap-3">
-                <p className="text-white text-sm font-medium">
-                  📢 {homepage.announcement}
-                </p>
-                <Link
-                  href="/events"
-                  className="py-1.5 px-3 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full border-2 border-white border-opacity-60 text-white hover:border-opacity-100 hover:bg-white hover:bg-opacity-10 transition-all"
-                >
-                  Learn more
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Hero ── */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-blue-400 blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-indigo-400 blur-3xl" />
-        </div>
-
-        <div className="h-1 w-full flex">
-          <div className="flex-1 bg-[#4285F4]" />
-          <div className="flex-1 bg-[#EA4335]" />
-          <div className="flex-1 bg-[#FBBC05]" />
-          <div className="flex-1 bg-[#34A853]" />
-        </div>
-
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white bg-opacity-10 border border-white border-opacity-20 mb-8">
-            <svg viewBox="0 0 24 24" className="w-5 h-5">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            <span className="text-white text-xs font-semibold tracking-wide">
-              Google Developer Groups on Campus
-            </span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight">
-            {loading ? (
-              <span className="animate-pulse bg-white bg-opacity-20 rounded-xl inline-block w-96 h-14" />
-            ) : (
-              homepage?.hero_title ?? 'Welcome to GDGOC-UITU'
-            )}
-          </h1>
-
-          <p className="mt-6 text-lg text-blue-200 max-w-2xl mx-auto leading-relaxed">
-            {loading ? (
-              <span className="animate-pulse bg-white bg-opacity-10 rounded-xl inline-block w-full h-6" />
-            ) : (
-              homepage?.hero_subtitle ?? 'Building the next generation of developers at UIT University Karachi.'
-            )}
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href={homepage?.hero_cta_url ?? '/events'}
-              className="px-8 py-3.5 rounded-xl bg-white text-gray-900 font-bold text-sm hover:bg-gray-100 transition-all shadow-lg"
-            >
-              {homepage?.hero_cta_text ?? 'Explore Events'}
-            </Link>
-            <Link
-              href="/register"
-              className="px-8 py-3.5 rounded-xl border border-white border-opacity-30 text-white font-semibold text-sm hover:bg-white hover:bg-opacity-10 transition-all"
-            >
-              Join the Community
-            </Link>
-          </div>
-        </div>
-
-        {/* Stats */}
-        {!loading && homepage && (
-          <div className="relative border-t border-white border-opacity-10">
-            <div className="max-w-3xl mx-auto px-4 py-10 grid grid-cols-3 gap-8">
-              <StatCounter value={homepage.stats_members} label="Community Members" />
-              <StatCounter value={homepage.stats_events} label="Events Hosted" />
-              <StatCounter value={homepage.stats_projects} label="Projects Built" />
+      {/* Outer keeps its bg always; inner content fades on scroll */}
+      <div>
+        {homepage?.announcement && (
+          <div className="bg-[#4285F4] bg-gradient-to-r from-[#4285F4] to-indigo-600 p-4 text-center">
+            <div className={`flex flex-wrap justify-center items-center gap-3 transition-opacity duration-300 ease-in-out ${atTop ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <p className="text-white text-sm font-medium">
+                📢 {homepage.announcement}
+              </p>
+              <Link
+                href="/events"
+                className="py-1.5 px-3 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full border-2 border-white border-opacity-60 text-white hover:border-opacity-100 hover:bg-white hover:bg-opacity-10 transition-all"
+              >
+                Learn more
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
           </div>
         )}
+      </div>
+
+
+      {/* ── Brutalist Grid Hero ── */}
+      <section className="relative bg-[#F4F4F0] min-h-[90vh] pt-16 pb-16 flex flex-col items-center justify-center overflow-hidden border-b-4 border-foreground">
+
+        {/* Background Grid */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(to right, #00000015 1px, transparent 1px), linear-gradient(to bottom, #00000015 1px, transparent 1px)',
+            backgroundSize: '100px 100px',
+            backgroundPosition: 'center'
+          }}
+        />
+
+        {/* Floating Abstract Elements */}
+        {/* Star Top Left */}
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-20 left-[12%] w-16 h-16 hidden md:block"
+        >
+          <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="6"><path d="M100 0L125 75L200 100L125 125L100 200L75 125L0 100L75 75Z" fill="transparent" /></svg>
+        </motion.div>
+
+        {/* Orange Splat Top Right */}
+        <motion.div
+          animate={{ scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-20 right-[18%] w-16 h-16 text-[#FF5A25] drop-shadow-[4px_4px_0_rgba(0,0,0,0.1)] hidden md:block"
+        >
+          <svg viewBox="0 0 200 200" fill="currentColor"><path d="M108.5 2C130.5 -4 153.5 6 166.5 24C179.5 42 182.5 67 194.5 89C206.5 111 227.5 130 219.5 151C211.5 172 174.5 185 151.5 197C128.5 209 119.5 220 98.5 220C77.5 220 64.5 209 43.5 195C22.5 181 3.5 164 0.5 142C-2.5 120 7.5 93 14.5 70C21.5 47 25.5 28 41.5 14C57.5 0 86.5 8 108.5 2Z" /></svg>
+        </motion.div>
+
+        {/* Green shape Middle Left */}
+        <motion.div
+          initial={{ x: -10 }} animate={{ x: 10 }} transition={{ duration: 3, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+          className="absolute bottom-32 left-[20%] hidden md:block w-12 h-10 drop-shadow-[2px_2px_0_#000]"
+        >
+          <div className="flex">
+            <div className="w-6 h-12 bg-[#00A651] rounded-l-full"></div>
+            <div className="w-6 h-12 bg-[#00A651] rounded-l-full -ml-[0.1rem]"></div>
+            <div className="w-6 h-12 bg-[#00A651] rounded-l-full -ml-[0.1rem]"></div>
+          </div>
+        </motion.div>
+
+        {/* Red Globe Bottom Left */}
+        <motion.div
+          animate={{ rotate: -360 }}
+          transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+          className="absolute bottom-16 left-[28%] w-10 h-10 rounded-full border-2 border-foreground bg-[#FF4C4C] shadow-brutal hidden md:block"
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full text-foreground opacity-60"><path d="M50 0 A 50 50 0 1 0 100 50" fill="none" stroke="currentColor" strokeWidth="3" /><line x1="0" y1="50" x2="100" y2="50" stroke="currentColor" strokeWidth="3" /><line x1="50" y1="0" x2="50" y2="100" stroke="currentColor" strokeWidth="3" /><ellipse cx="50" cy="50" rx="20" ry="50" fill="none" stroke="currentColor" strokeWidth="3" /></svg>
+        </motion.div>
+
+        {/* Disha Card (Bottom Left) */}
+        <motion.div
+          initial={{ rotate: -5, y: 50, opacity: 0 }}
+          animate={{ rotate: -5, y: 0, opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="absolute bottom-10 left-[10%] hidden lg:block"
+        >
+          <div className="w-20 bg-[#FFED00] border-2 border-foreground rounded-xl shadow-brutal overflow-hidden">
+            <div className="h-20 bg-[#FFED00] flex items-center justify-center relative">
+              <div className="absolute inset-0 flex items-center justify-center"><svg width="40" height="40" viewBox="0 0 200 200"><path fill="#FF4C4C" d="M100 0L125 75L200 100L125 125L100 200L75 125L0 100L75 75Z" /></svg></div>
+              <div className="relative z-10 w-16 h-16 rounded-full overflow-hidden border-2 border-foreground bg-white">
+                <img src="https://i.pravatar.cc/150?img=47" className="w-full h-full object-cover" alt="Student" />
+              </div>
+            </div>
+            <div className="bg-[#00A651] py-1 text-center border-t-2 border-foreground text-white font-black tracking-widest text-xs">DISHA</div>
+          </div>
+        </motion.div>
+
+        {/* Elya Card (Bottom Right) */}
+        <motion.div
+          initial={{ rotate: 10, y: 50, opacity: 0 }}
+          animate={{ rotate: 10, y: 0, opacity: 1 }}
+          transition={{ delay: 0.9 }}
+          className="absolute bottom-12 right-[10%] hidden lg:block"
+        >
+          <div className="w-24 bg-[#FF4C4C] border-2 border-foreground rounded-t-full rounded-b-xl shadow-brutal overflow-hidden pt-3 px-2 pb-2">
+            <div className="h-24 bg-[#FF4C4C] rounded-t-full flex items-center justify-center relative">
+              <div className="absolute text-yellow-300 top-2 text-xl">✦</div>
+              <div className="relative z-10 w-20 h-22 overflow-hidden rounded-b-xl">
+                <img src="https://i.pravatar.cc/150?img=11" className="w-full h-full object-cover grayscale" alt="Student" />
+              </div>
+            </div>
+            <div className="text-center text-white font-black tracking-widest text-xs mt-2 mb-1">ELYA</div>
+          </div>
+        </motion.div>
+
+
+        <div className="relative z-10 max-w-[900px] mx-auto px-4 text-center flex flex-col items-center mt-6">
+
+          <h1 className="text-[2rem] sm:text-[2.75rem] md:text-[3.5rem] font-black uppercase tracking-tighter text-foreground leading-[0.9] flex flex-col items-center select-none w-full">
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
+              COME TO LEARN.
+            </motion.span>
+
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="flex flex-wrap justify-center items-center gap-x-2 sm:gap-x-3 mt-3 sm:mt-4 max-w-full">
+              <span>STAY TO</span>
+              <span className="text-[#be5cff] drop-shadow-[2px_2px_0_#000] inline-flex items-center relative h-[1.2em] min-w-[180px] sm:min-w-[260px] md:min-w-[320px] overflow-hidden">
+                <AnimatePresence mode="popLayout">
+                  <motion.span
+                    key={wordIndex}
+                    initial={{ y: "100%", opacity: 0 }}
+                    animate={{ y: "0%", opacity: 1 }}
+                    exit={{ y: "-100%", opacity: 0 }}
+                    transition={{ duration: 0.4, type: "spring", stiffness: 100 }}
+                    className="absolute left-0 bottom-[0.05em] text-left whitespace-nowrap"
+                  >
+                    {words[wordIndex]}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+            </motion.span>
+          </h1>
+
+          <motion.p
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+            className="mt-6 text-base sm:text-lg font-normal max-w-xl mx-auto text-gray-500 tracking-wide relative z-10 text-center bg-[#F4F4F0] bg-opacity-80 px-4 py-1"
+          >
+            Real projects. Real people. Real fun.
+          </motion.p>
+
+          <motion.div
+            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.6, type: 'spring' }}
+            className="mt-6 relative z-10 flex justify-center"
+          >
+            <Magnetic>
+              <Link
+                href="/events"
+                className="inline-flex items-center gap-4 px-2 py-2 pr-2 pl-6 sm:pl-8 bg-[#F4F4F0] border-[3px] border-foreground rounded-full shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] hover:-translate-y-1 hover:-translate-x-1 active:shadow-none active:translate-y-1 active:translate-x-1 transition-all group"
+              >
+                <span className="font-black uppercase tracking-widest text-base sm:text-lg text-foreground">
+                  EXPLORE EVENTS
+                </span>
+                <span className="bg-[#FFED00] border-2 border-foreground px-4 py-2 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-full text-foreground group-hover:bg-[#FF4C4C] group-hover:text-white transition-colors">
+                  FREE TO JOIN
+                </span>
+              </Link>
+            </Magnetic>
+          </motion.div>
+
+        </div>
       </section>
 
       {/* ── About Us Snapshot ── */}
@@ -668,9 +762,8 @@ export default function HomePage() {
                 return (
                   <div
                     key={event.id}
-                    className={`group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col ${
-                      event.event_id ? 'cursor-pointer' : ''
-                    }`}
+                    className={`group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col ${event.event_id ? 'cursor-pointer' : ''
+                      }`}
                     onClick={() => {
                       if (event.event_id) {
                         window.location.href = `/events/${event.event_id}`;
@@ -879,9 +972,8 @@ export default function HomePage() {
             {TESTIMONIALS.map((t, i) => (
               <div
                 key={t.id}
-                className={`transition-all duration-500 ${
-                  i === activeTestimonial ? 'opacity-100 translate-y-0' : 'opacity-0 absolute inset-0 translate-y-4'
-                }`}
+                className={`transition-all duration-500 ${i === activeTestimonial ? 'opacity-100 translate-y-0' : 'opacity-0 absolute inset-0 translate-y-4'
+                  }`}
               >
                 <div className="bg-white bg-opacity-10 border border-white border-opacity-10 rounded-2xl p-8">
                   <p className="text-lg text-white leading-relaxed italic">
@@ -907,9 +999,8 @@ export default function HomePage() {
               <button
                 key={i}
                 onClick={() => setActiveTestimonial(i)}
-                className={`rounded-full transition-all ${
-                  i === activeTestimonial ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-white bg-opacity-30'
-                }`}
+                className={`rounded-full transition-all ${i === activeTestimonial ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-white bg-opacity-30'
+                  }`}
               />
             ))}
           </div>
@@ -1163,10 +1254,10 @@ export default function HomePage() {
             <div className="sm:col-span-2">
               <div className="flex items-center gap-2 mb-3">
                 <svg viewBox="0 0 24 24" className="w-6 h-6">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                 </svg>
                 <span className="text-white font-bold text-sm">GDGOC-UITU</span>
               </div>
