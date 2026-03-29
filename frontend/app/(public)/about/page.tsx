@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { BrutalistMemberCard, TeamMember } from '../../../components/ui/BrutalistMemberCard';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,20 +14,7 @@ type AboutSection = {
   display_order: number;
 };
 
-type TeamMember = {
-  member_id: string;
-  full_name: string;
-  role_title: string;
-  bio: string | null;
-  avatar_url: string | null;
-  linkedin_url: string | null;
-  github_url: string | null;
-  display_order: number;
-  section: string;
-  team_name: string | null;
-  tenure_year: string | null;
-  is_active: boolean;
-};
+// Imported TeamMember from components
 
 type Sponsor = {
   sponsor_id: string;
@@ -40,66 +28,12 @@ type Sponsor = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getInitials(name: string): string {
-  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-}
-
 const TIER_CONFIG: Record<string, { label: string; color: string }> = {
   platinum: { label: 'Platinum', color: 'bg-slate-100 border-slate-300 text-slate-700' },
   gold:     { label: 'Gold',     color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
   silver:   { label: 'Silver',   color: 'bg-gray-50 border-gray-200 text-gray-600' },
   bronze:   { label: 'Bronze',   color: 'bg-orange-50 border-orange-200 text-orange-700' },
 };
-
-// ─── Member Card ──────────────────────────────────────────────────────────────
-
-function MemberCard({ member, size = 'md' }: { member: TeamMember; size?: 'lg' | 'md' | 'sm' }) {
-  const avatarSize = size === 'lg' ? 'w-24 h-24 text-2xl' : size === 'md' ? 'w-16 h-16 text-lg' : 'w-12 h-12 text-sm';
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all p-5 text-center flex flex-col items-center">
-      <div className={`${avatarSize} rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold overflow-hidden mb-3 flex-shrink-0`}>
-        {member.avatar_url
-          ? <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
-          : getInitials(member.full_name)
-        }
-      </div>
-      <p className="font-bold text-gray-900 text-sm">{member.full_name}</p>
-      <p className="text-xs font-semibold text-[#4285F4] mt-0.5">{member.role_title}</p>
-      {member.bio && (
-        <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2">{member.bio}</p>
-      )}
-      {(member.linkedin_url || member.github_url) && (
-        <div className="flex items-center justify-center gap-2 mt-3">
-          {member.linkedin_url && (
-            <a
-              href={member.linkedin_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-              </svg>
-            </a>
-          )}
-          {member.github_url && (
-            <a
-              href={member.github_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-              </svg>
-            </a>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Section Header ───────────────────────────────────────────────────────────
 
@@ -157,7 +91,7 @@ export default function AboutPage() {
   const membersByTeam = teamNames.reduce((acc, team) => {
     acc[team] = teamMembers
       .filter((m) => m.team_name === team)
-      .sort((a, b) => a.display_order - b.display_order);
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
     return acc;
   }, {} as Record<string, TeamMember[]>);
 
@@ -236,59 +170,62 @@ export default function AboutPage() {
       </section>
 
       {/* ── Team ── */}
-      <section id="team" className="py-20 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader title="Our Team" subtitle="The people who make GDGOC-UITU happen" />
+      <section id="team" className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-60 pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
+          <SectionHeader title="Our Team" subtitle="The builders and organizers running the show." />
 
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 animate-pulse">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 bg-gray-200 rounded-2xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 animate-pulse">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-64 bg-gray-200 rounded-2xl border-[3px] border-black" />
               ))}
             </div>
           ) : (
-            <div className="space-y-16">
+            <div className="space-y-20">
 
               {/* GDG Lead */}
               {gdgLead.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#4285F4] flex items-center justify-center text-white text-xs">👑</span>
+                  <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
+                    <span className="w-6 h-6 rounded-full bg-[#EA4335] border-2 border-black flex items-center justify-center text-white text-xs shadow-[2px_2px_0_#000]">👑</span>
                     GDG Lead
                   </h3>
-                  <div className="flex justify-center">
-                    <div className="w-full max-w-xs">
-                      <MemberCard member={gdgLead[0]} size="lg" />
+                  <div className="flex">
+                    <div className="w-full md:w-1/2">
+                      <BrutalistMemberCard member={gdgLead[0]} index={0} />
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Co-Leads and their Teams */}
-              {teamNames.map((teamName) => {
+              {teamNames.map((teamName, teamIdx) => {
                 const coLead = coLeads.find((m) => m.team_name === teamName);
                 const members = membersByTeam[teamName] ?? [];
+                
+                // We combine the co-lead and team members to map them uniformly
+                const allTeamMembers = coLead ? [coLead, ...members] : members;
+
                 return (
                   <div key={teamName}>
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                      <span className="w-2 h-2 rounded-full bg-[#4285F4]" />
+                    <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
+                      <span className="w-4 h-4 rounded-none bg-[#4285F4] border-2 border-black shadow-[2px_2px_0_#000]" />
                       {teamName}
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                      {/* Co-lead first */}
-                      {coLead && (
-                        <div className="relative">
-                          <div className="absolute -top-2 -right-2 z-10">
-                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#4285F4] text-white">
-                              Lead
-                            </span>
-                          </div>
-                          <MemberCard member={coLead} size="md" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14">
+                      {allTeamMembers.map((member, idx) => (
+                        <div key={member.member_id} className="relative h-full">
+                          {member.role_title.toLowerCase().includes('lead') && (
+                            <div className="absolute -top-4 -right-2 md:-right-4 z-30">
+                              <span className="px-4 py-1 border-[3px] border-black text-xs font-black bg-[#FFED00] text-black uppercase shadow-[4px_4px_0_#000] rotate-3 block">
+                                Lead
+                              </span>
+                            </div>
+                          )}
+                          <BrutalistMemberCard member={member} index={teamIdx + idx} />
                         </div>
-                      )}
-                      {/* Team members */}
-                      {members.map((member) => (
-                        <MemberCard key={member.member_id} member={member} size="md" />
                       ))}
                     </div>
                   </div>
@@ -298,15 +235,15 @@ export default function AboutPage() {
               {/* Mentors */}
               {mentors.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#34A853] flex items-center justify-center text-white text-xs">🎓</span>
+                  <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
+                    <span className="w-6 h-6 rounded-full bg-[#34A853] border-2 border-black flex items-center justify-center text-white text-xs shadow-[2px_2px_0_#000]">🎓</span>
                     Mentors
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14">
                     {[...mentors]
-                      .sort((a, b) => a.display_order - b.display_order)
-                      .map((member) => (
-                        <MemberCard key={member.member_id} member={member} size="md" />
+                      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+                      .map((member, idx) => (
+                        <BrutalistMemberCard key={member.member_id} member={member} index={idx + 1} />
                       ))}
                   </div>
                 </div>
@@ -315,23 +252,23 @@ export default function AboutPage() {
               {/* Past Leaders */}
               {pastLeaders.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#FBBC05] flex items-center justify-center text-white text-xs">⭐</span>
+                  <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
+                    <span className="w-6 h-6 rounded-full bg-[#FBBC05] border-2 border-black flex items-center justify-center text-white text-xs shadow-[2px_2px_0_#000]">⭐</span>
                     Past Leaders
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14">
                     {[...pastLeaders]
-                      .sort((a, b) => a.display_order - b.display_order)
-                      .map((member) => (
-                        <div key={member.member_id} className="relative">
+                      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+                      .map((member, idx) => (
+                        <div key={member.member_id} className="relative h-full">
                           {member.tenure_year && (
-                            <div className="absolute -top-2 -right-2 z-10">
-                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#FBBC05] text-gray-800">
+                            <div className="absolute -top-4 -right-2 md:-right-4 z-30">
+                              <span className="px-3 py-1 border-[3px] border-black text-[10px] font-black bg-[#FBBC05] text-black uppercase shadow-[4px_4px_0_#000] rotate-2 block">
                                 {member.tenure_year}
                               </span>
                             </div>
                           )}
-                          <MemberCard member={member} size="md" />
+                          <BrutalistMemberCard member={member} index={idx} />
                         </div>
                       ))}
                   </div>

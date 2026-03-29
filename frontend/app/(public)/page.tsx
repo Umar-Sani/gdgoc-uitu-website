@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import Magnetic from '../../components/ui/magnetic';
-
+import { BrutalistMemberCard } from '../../components/ui/BrutalistMemberCard';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Homepage = {
@@ -209,21 +209,13 @@ function StatCounter({ value, label }: { value: number; label: string }) {
 
 export default function HomePage() {
   const [wordIndex, setWordIndex] = useState(0);
-  const [atTop, setAtTop] = useState(true);
-  const words = ["BUILD", "SHIP", "CONNECT", "COMPETE", "LEVEL UP", "INNOVATE", "HACK", "CREATE", "LEAD"];
+  const words = ["BUILD", "SHIP", "GROW", "LEAD", "HACK", "CODE", "WIN", "SHINE"];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % words.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Hide announcement banner the moment user scrolls
-  useEffect(() => {
-    const handleScroll = () => setAtTop(window.scrollY < 10);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const [homepage, setHomepage] = useState<Homepage | null>(null);
@@ -315,32 +307,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
 
-      {/* ── Announcement Banner ── */}
-      {/* Outer keeps its bg always; inner content fades on scroll */}
-      <div>
-        {homepage?.announcement && (
-          <div className="bg-[#4285F4] bg-gradient-to-r from-[#4285F4] to-indigo-600 p-4 text-center">
-            <div className={`flex flex-wrap justify-center items-center gap-3 transition-opacity duration-300 ease-in-out ${atTop ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <p className="text-white text-sm font-medium">
-                📢 {homepage.announcement}
-              </p>
-              <Link
-                href="/events"
-                className="py-1.5 px-3 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full border-2 border-white border-opacity-60 text-white hover:border-opacity-100 hover:bg-white hover:bg-opacity-10 transition-all"
-              >
-                Learn more
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-
-
       {/* ── Brutalist Grid Hero ── */}
-      <section className="relative bg-[#F4F4F0] min-h-[90vh] pt-16 pb-16 flex flex-col items-center justify-center overflow-hidden border-b-4 border-foreground">
+      <section className="relative bg-[#F4F4F0] min-h-screen pt-16 pb-16 flex flex-col items-center justify-center overflow-hidden border-b-4 border-foreground">
 
         {/* Background Grid */}
         <div
@@ -354,99 +322,112 @@ export default function HomePage() {
 
         {/* Floating Abstract Elements */}
         {/* Star Top Left */}
-        <motion.div
+        {/* <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
           className="absolute top-20 left-[12%] w-16 h-16 hidden md:block"
         >
           <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="6"><path d="M100 0L125 75L200 100L125 125L100 200L75 125L0 100L75 75Z" fill="transparent" /></svg>
-        </motion.div>
+        </motion.div> */}
 
-        {/* Orange Splat Top Right */}
-        <motion.div
+        {/* Yellow Splat Top Right */}
+        {/* <motion.div
           animate={{ scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-20 right-[18%] w-16 h-16 text-[#FF5A25] drop-shadow-[4px_4px_0_rgba(0,0,0,0.1)] hidden md:block"
+          className="absolute top-20 right-[18%] w-16 h-16 text-[#FBBC05] drop-shadow-[4px_4px_0_rgba(0,0,0,0.1)] hidden md:block"
         >
           <svg viewBox="0 0 200 200" fill="currentColor"><path d="M108.5 2C130.5 -4 153.5 6 166.5 24C179.5 42 182.5 67 194.5 89C206.5 111 227.5 130 219.5 151C211.5 172 174.5 185 151.5 197C128.5 209 119.5 220 98.5 220C77.5 220 64.5 209 43.5 195C22.5 181 3.5 164 0.5 142C-2.5 120 7.5 93 14.5 70C21.5 47 25.5 28 41.5 14C57.5 0 86.5 8 108.5 2Z" /></svg>
-        </motion.div>
+        </motion.div> */}
 
         {/* Green shape Middle Left */}
-        <motion.div
+        {/* <motion.div
           initial={{ x: -10 }} animate={{ x: 10 }} transition={{ duration: 3, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
           className="absolute bottom-32 left-[20%] hidden md:block w-12 h-10 drop-shadow-[2px_2px_0_#000]"
         >
           <div className="flex">
-            <div className="w-6 h-12 bg-[#00A651] rounded-l-full"></div>
-            <div className="w-6 h-12 bg-[#00A651] rounded-l-full -ml-[0.1rem]"></div>
-            <div className="w-6 h-12 bg-[#00A651] rounded-l-full -ml-[0.1rem]"></div>
+            <div className="w-6 h-12 bg-[#34A853] rounded-l-full"></div>
+            <div className="w-6 h-12 bg-[#34A853] rounded-l-full -ml-[0.1rem]"></div>
+            <div className="w-6 h-12 bg-[#34A853] rounded-l-full -ml-[0.1rem]"></div>
           </div>
-        </motion.div>
+        </motion.div> */}
 
-        {/* Red Globe Bottom Left */}
-        <motion.div
+        {/* Blue Globe Bottom Left */}
+        {/* <motion.div
           animate={{ rotate: -360 }}
           transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
-          className="absolute bottom-16 left-[28%] w-10 h-10 rounded-full border-2 border-foreground bg-[#FF4C4C] shadow-brutal hidden md:block"
+          className="absolute bottom-16 left-[28%] w-10 h-10 rounded-full border-2 border-foreground bg-[#4285F4] shadow-brutal hidden md:block"
         >
           <svg viewBox="0 0 100 100" className="w-full h-full text-foreground opacity-60"><path d="M50 0 A 50 50 0 1 0 100 50" fill="none" stroke="currentColor" strokeWidth="3" /><line x1="0" y1="50" x2="100" y2="50" stroke="currentColor" strokeWidth="3" /><line x1="50" y1="0" x2="50" y2="100" stroke="currentColor" strokeWidth="3" /><ellipse cx="50" cy="50" rx="20" ry="50" fill="none" stroke="currentColor" strokeWidth="3" /></svg>
-        </motion.div>
+        </motion.div> */}
 
         {/* Disha Card (Bottom Left) */}
-        <motion.div
+        {/* <motion.div
           initial={{ rotate: -5, y: 50, opacity: 0 }}
           animate={{ rotate: -5, y: 0, opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="absolute bottom-10 left-[10%] hidden lg:block"
         >
-          <div className="w-20 bg-[#FFED00] border-2 border-foreground rounded-xl shadow-brutal overflow-hidden">
-            <div className="h-20 bg-[#FFED00] flex items-center justify-center relative">
-              <div className="absolute inset-0 flex items-center justify-center"><svg width="40" height="40" viewBox="0 0 200 200"><path fill="#FF4C4C" d="M100 0L125 75L200 100L125 125L100 200L75 125L0 100L75 75Z" /></svg></div>
+          <div className="w-20 bg-[#FBBC05] border-2 border-foreground rounded-xl shadow-brutal overflow-hidden">
+            <div className="h-20 bg-[#FBBC05] flex items-center justify-center relative">
+              <div className="absolute inset-0 flex items-center justify-center"><svg width="40" height="40" viewBox="0 0 200 200"><path fill="#EA4335" d="M100 0L125 75L200 100L125 125L100 200L75 125L0 100L75 75Z" /></svg></div>
               <div className="relative z-10 w-16 h-16 rounded-full overflow-hidden border-2 border-foreground bg-white">
                 <img src="https://i.pravatar.cc/150?img=47" className="w-full h-full object-cover" alt="Student" />
               </div>
             </div>
-            <div className="bg-[#00A651] py-1 text-center border-t-2 border-foreground text-white font-black tracking-widest text-xs">DISHA</div>
+            <div className="bg-[#34A853] py-1 text-center border-t-2 border-foreground text-white font-black tracking-widest text-xs">DISHA</div>
           </div>
-        </motion.div>
+        </motion.div> */}
 
         {/* Elya Card (Bottom Right) */}
-        <motion.div
+        {/* <motion.div
           initial={{ rotate: 10, y: 50, opacity: 0 }}
           animate={{ rotate: 10, y: 0, opacity: 1 }}
           transition={{ delay: 0.9 }}
           className="absolute bottom-12 right-[10%] hidden lg:block"
         >
-          <div className="w-24 bg-[#FF4C4C] border-2 border-foreground rounded-t-full rounded-b-xl shadow-brutal overflow-hidden pt-3 px-2 pb-2">
-            <div className="h-24 bg-[#FF4C4C] rounded-t-full flex items-center justify-center relative">
-              <div className="absolute text-yellow-300 top-2 text-xl">✦</div>
+          <div className="w-24 bg-[#EA4335] border-2 border-foreground rounded-t-full rounded-b-xl shadow-brutal overflow-hidden pt-3 px-2 pb-2">
+            <div className="h-24 bg-[#EA4335] rounded-t-full flex items-center justify-center relative">
+              <div className="absolute text-[#FBBC05] top-2 text-xl">✦</div>
               <div className="relative z-10 w-20 h-22 overflow-hidden rounded-b-xl">
                 <img src="https://i.pravatar.cc/150?img=11" className="w-full h-full object-cover grayscale" alt="Student" />
               </div>
             </div>
             <div className="text-center text-white font-black tracking-widest text-xs mt-2 mb-1">ELYA</div>
           </div>
-        </motion.div>
+        </motion.div> */}
 
 
         <div className="relative z-10 max-w-[900px] mx-auto px-4 text-center flex flex-col items-center mt-6">
 
-          <h1 className="text-[2rem] sm:text-[2.75rem] md:text-[3.5rem] font-black uppercase tracking-tighter text-foreground leading-[0.9] flex flex-col items-center select-none w-full">
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
-              COME TO LEARN.
+          <h1 className="text-[3rem] sm:text-[4rem] md:text-[5.5rem] font-black uppercase tracking-tighter text-foreground leading-[0.0] select-none w-full grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4 mb-[-1rem] sm:mb-[-2rem] md:mb-[-3rem]">
+            {/* Line 1: COME | TO | LEARN. */}
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-right">
+              COME
+            </motion.span>
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-center">
+              TO
+            </motion.span>
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-left">
+              LEARN.
             </motion.span>
 
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="flex flex-wrap justify-center items-center gap-x-2 sm:gap-x-3 mt-3 sm:mt-4 max-w-full">
-              <span>STAY TO</span>
-              <span className="text-[#be5cff] drop-shadow-[2px_2px_0_#000] inline-flex items-center relative h-[1.2em] min-w-[180px] sm:min-w-[260px] md:min-w-[320px] overflow-hidden">
+            {/* Line 2: STAY | TO | [ANIMATED] */}
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-right">
+              STAY
+            </motion.span>
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center">
+              TO
+            </motion.span>
+            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-left flex items-center h-full w-full">
+              <span className="flex items-center relative h-[1.7em] w-full overflow-hidden" style={{ color: ['#EA4335', '#4285F4', '#FBBC05', '#34A853'][wordIndex % 4] }}>
                 <AnimatePresence mode="popLayout">
                   <motion.span
                     key={wordIndex}
                     initial={{ y: "100%", opacity: 0 }}
                     animate={{ y: "0%", opacity: 1 }}
                     exit={{ y: "-100%", opacity: 0 }}
-                    transition={{ duration: 0.4, type: "spring", stiffness: 100 }}
-                    className="absolute left-0 bottom-[0.05em] text-left whitespace-nowrap"
+                    transition={{ duration: 0.4, stiffness: 100 }}
+                    className="absolute inset-0 flex items-center justify-start whitespace-nowrap leading-none pt-[0.0em]"
                   >
                     {words[wordIndex]}
                   </motion.span>
@@ -474,7 +455,7 @@ export default function HomePage() {
                 <span className="font-black uppercase tracking-widest text-base sm:text-lg text-foreground">
                   EXPLORE EVENTS
                 </span>
-                <span className="bg-[#FFED00] border-2 border-foreground px-4 py-2 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-full text-foreground group-hover:bg-[#FF4C4C] group-hover:text-white transition-colors">
+                <span className="bg-[#FBBC05] border-2 border-foreground px-4 py-2 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-full text-foreground group-hover:bg-[#4285F4] group-hover:text-white transition-colors">
                   FREE TO JOIN
                 </span>
               </Link>
@@ -1078,45 +1059,48 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── Team Preview ── */}
+      {/* ── Brutalist Team Preview ── */}
       {!loading && teamMembers.length > 0 && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                  <div className="flex-1 bg-[#4285F4]" />
-                  <div className="flex-1 bg-[#EA4335]" />
-                  <div className="flex-1 bg-[#FBBC05]" />
-                  <div className="flex-1 bg-[#34A853]" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Meet the Team</h2>
-                <p className="text-sm text-gray-500 mt-1">The people behind GDGOC-UITU</p>
+        <section className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
+          {/* Subtle grid background */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-60 pointer-events-none" />
+
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
+
+            {/* Brutalist Section Header */}
+            <div className="flex flex-col items-center justify-center mb-20 text-center">
+              <h2 className="text-[3.5rem] sm:text-[5rem] font-black uppercase tracking-tighter text-foreground leading-[0.8] mb-6">
+                MEET THE <span className="text-[#EA4335]">TEAM</span>
+              </h2>
+              <div className="inline-block bg-[#FFED00] border-[3px] border-black px-5 py-2 -rotate-2 shadow-[6px_6px_0_#000]">
+                <p className="font-bold text-sm sm:text-base uppercase tracking-wider">The builders behind GDGOC-UITU!</p>
               </div>
-              <Link href="/about" className="text-sm font-semibold text-[#4285F4] hover:underline">
-                View All →
+            </div>
+
+            {/* Brutalist 2-Column Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 max-w-4xl mx-auto">
+              {teamMembers
+                .sort((a, b) => a.display_order - b.display_order)
+                .slice(0, 2)
+                .map((member, idx) => (
+                  <BrutalistMemberCard
+                    key={member.member_id}
+                    member={member}
+                    index={idx}
+                    actionLabel="VIEW PROFILE"
+                    actionHref="/about"
+                  />
+                ))}
+            </div>
+
+            {/* View All Team Link */}
+            <div className="mt-16 flex justify-center">
+              <Link href="/about" className="inline-flex items-center gap-3 text-2xl sm:text-3xl font-black uppercase border-b-[4px] border-black pb-1 hover:text-[#EA4335] hover:border-[#EA4335] transition-colors group">
+                MEET THE FULL TEAM
+                <span className="group-hover:translate-x-3 transition-transform">→</span>
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              {teamMembers
-                .sort((a, b) => a.display_order - b.display_order)
-                .map((member) => (
-                  <div key={member.member_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all p-5 text-center">
-                    <div className="w-16 h-16 rounded-full mx-auto mb-3 bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg overflow-hidden">
-                      {member.avatar_url
-                        ? <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
-                        : getInitials(member.full_name)
-                      }
-                    </div>
-                    <p className="font-bold text-gray-900 text-sm">{member.full_name}</p>
-                    <p className="text-xs text-[#4285F4] mt-0.5">{member.role_title}</p>
-                    {member.bio && (
-                      <p className="text-xs text-gray-500 mt-2 line-clamp-2">{member.bio}</p>
-                    )}
-                  </div>
-                ))}
-            </div>
           </div>
         </section>
       )}
