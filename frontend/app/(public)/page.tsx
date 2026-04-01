@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, AnimatePresence } from 'framer-motion';
 import Magnetic from '../../components/ui/magnetic';
+import MascotBanner from '../../components/ui/MascotBanner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -208,6 +209,8 @@ function StatCounter({ value, label }: { value: number; label: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+
+
   const [wordIndex, setWordIndex] = useState(0);
   const [atTop, setAtTop] = useState(true);
   const words = ["BUILD", "SHIP", "CONNECT", "COMPETE", "LEVEL UP", "INNOVATE", "HACK", "CREATE", "LEAD"];
@@ -235,6 +238,7 @@ export default function HomePage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
+
 
   // Newsletter state
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -315,28 +319,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
 
-      {/* ── Announcement Banner ── */}
-      {/* Outer keeps its bg always; inner content fades on scroll */}
-      <div>
-        {homepage?.announcement && (
-          <div className="bg-[#4285F4] bg-gradient-to-r from-[#4285F4] to-indigo-600 p-4 text-center">
-            <div className={`flex flex-wrap justify-center items-center gap-3 transition-opacity duration-300 ease-in-out ${atTop ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <p className="text-white text-sm font-medium">
-                📢 {homepage.announcement}
-              </p>
-              <Link
-                href="/events"
-                className="py-1.5 px-3 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full border-2 border-white border-opacity-60 text-white hover:border-opacity-100 hover:bg-white hover:bg-opacity-10 transition-all"
-              >
-                Learn more
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* ── Announcement Banner & Mascot ── */}
+      <MascotBanner announcement={homepage?.announcement ?? null} />
 
 
       {/* ── Brutalist Grid Hero ── */}
@@ -410,23 +394,7 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* Elya Card (Bottom Right) */}
-        <motion.div
-          initial={{ rotate: 10, y: 50, opacity: 0 }}
-          animate={{ rotate: 10, y: 0, opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="absolute bottom-12 right-[10%] hidden lg:block"
-        >
-          <div className="w-24 bg-[#FF4C4C] border-2 border-foreground rounded-t-full rounded-b-xl shadow-brutal overflow-hidden pt-3 px-2 pb-2">
-            <div className="h-24 bg-[#FF4C4C] rounded-t-full flex items-center justify-center relative">
-              <div className="absolute text-yellow-300 top-2 text-xl">✦</div>
-              <div className="relative z-10 w-20 h-22 overflow-hidden rounded-b-xl">
-                <img src="https://i.pravatar.cc/150?img=11" className="w-full h-full object-cover grayscale" alt="Student" />
-              </div>
-            </div>
-            <div className="text-center text-white font-black tracking-widest text-xs mt-2 mb-1">ELYA</div>
-          </div>
-        </motion.div>
+
 
 
         <div className="relative z-10 max-w-[900px] mx-auto px-4 text-center flex flex-col items-center mt-6">
