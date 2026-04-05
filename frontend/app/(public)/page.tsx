@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring, useMotionTemplate, animate } from 'framer-motion';
 import Magnetic from '../../components/ui/magnetic';
 import { BrutalistMemberCard } from '../../components/ui/BrutalistMemberCard';
+import { Antonio } from 'next/font/google';
+
+const antonio = Antonio({ subsets: ['latin'] });
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Homepage = {
@@ -205,11 +208,217 @@ function StatCounter({ value, label }: { value: number; label: string }) {
   );
 }
 
+// ─── Component: Buttery Smooth Interpolated Pooled Trail ────────────────────
+
+const LIQUID_SPLATS = [
+  "M -10 0 C -10 -5.5 -5.5 -10 0 -10 C 5.5 -10 10 -5.5 10 0 C 10 5.5 5.5 10 0 10 C -5.5 10 -10 5.5 -10 0 Z", // Circle
+  "M -12 -2 C -12 -8 0 -15 8 -8 C 16 -1 15 10 5 12 C -5 14 -12 4 -12 -2 Z", // Organic blob 1
+  "M -8 -10 C 2 -15 15 -5 10 5 C 5 15 -10 15 -12 2 C -14 -11 -18 -5 -8 -10 Z", // Organic blob 2
+  "M -10 -10 C -5 -15 5 -15 10 -10 C 15 -5 15 5 10 10 C 5 15 -5 15 -10 10 C -15 5 -15 -5 -10 -10 Z" // Organic blob 3
+];
+
+function InkMaskOverlay() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Object pooling for buttery smooth, zero-latency 144Hz continuous interpolation tracking
+  const SPLAT_COUNT = 80;
+  const xs = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(-1000))).current;
+  const ys = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(-1000))).current;
+  const scales = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(0))).current;
+  const rots = useRef(Array.from({ length: SPLAT_COUNT }, () => Math.random() * 360)).current;
+  const paths = useRef(Array.from({ length: SPLAT_COUNT }, () => Math.floor(Math.random() * LIQUID_SPLATS.length))).current;
+
+  useEffect(() => {
+    let lastX = -1;
+    let lastY = -1;
+    let poolIdx = 0;
+
+    const triggerSplash = (x: number, y: number, isAuto = false) => {
+      poolIdx = (poolIdx + 1) % SPLAT_COUNT;
+      xs[poolIdx].set(x);
+      ys[poolIdx].set(y);
+
+      const targetScale = isAuto ? 45.0 : (Math.random() * 3.0 + 8.0);
+      const sweepDur = isAuto ? 5.0 : (Math.random() * 1.0 + 4.0);
+
+      animate(scales[poolIdx], [0, targetScale, targetScale * 0.9, 0], {
+        duration: sweepDur,
+        times: [0, 0.1, 0.2, 1],
+        ease: ["easeOut", "easeInOut", "easeIn"]
+      });
+    };
+
+    const handleMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const currX = e.clientX;
+      const currY = e.clientY;
+
+      const insideHero = e.clientY >= rect.top && e.clientY <= rect.bottom && e.clientX >= rect.left && e.clientX <= rect.right;
+      if (!insideHero) {
+        lastX = -1; // Reset when leaving wrapper
+        return;
+      }
+
+      if (lastX === -1) {
+        lastX = currX;
+        lastY = currY;
+      }
+
+      const dx = currX - lastX;
+      const dy = currY - lastY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Interpolate one drop every 10 pixels to guarantee an unbroken solid fluid line even during rapid mouse flinging
+      const steps = Math.max(1, Math.floor(dist / 10));
+
+      for (let i = 1; i <= steps; i++) {
+        const nx = lastX + dx * (i / steps);
+        const ny = lastY + dy * (i / steps);
+        triggerSplash(nx, ny);
+      }
+
+      lastX = currX;
+      lastY = currY;
+    };
+
+    // Auto-splash every 5 seconds with a horizontal "scanning" sweep
+    const autoInterval = setInterval(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+
+      const sweepSteps = 25; // Higher density for a solid continuous line
+      const sweepDuration = 1200; // Duration of one horizontal sweep in ms
+
+      // Phase 1: Top-Third Sweep (Left to Right)
+      const topY = rect.top + rect.height * 0.25;
+      for (let i = 0; i <= sweepSteps; i++) {
+        setTimeout(() => {
+          const xPos = rect.left + (rect.width * i / sweepSteps);
+          triggerSplash(xPos, topY, true);
+        }, i * (sweepDuration / sweepSteps));
+      }
+
+      // Phase 2: Bottom-Third Sweep (Right to Left) - Starts after Phase 1 finishes
+      const bottomY = rect.top + rect.height * 0.75;
+      for (let i = 0; i <= sweepSteps; i++) {
+        setTimeout(() => {
+          const xPos = rect.right - (rect.width * i / sweepSteps);
+          triggerSplash(xPos, bottomY, true);
+        }, sweepDuration + (i * (sweepDuration / sweepSteps)) + 200);
+      }
+    }, 10000);
+
+    // window.addEventListener('mousemove', handleMove);
+    return () => {
+      // window.removeEventListener('mousemove', handleMove);
+      clearInterval(autoInterval);
+    };
+  }, []);
+
+  return (
+    <div ref={containerRef} className="absolute inset-0 z-[5] pointer-events-none overflow-hidden" style={{ WebkitMaskImage: 'url(#ink-mask)', maskImage: 'url(#ink-mask)' }}>
+
+      {/* ── Hidden Mask Stickers ── */}
+      <img src="/images/Android Guy Standing Still.png" alt="Android Standing Shadow" className="absolute left-4 sm:left-12 lg:left-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 -rotate-6" />
+      <img src="/images/Android WOMAN Standing Still.png" alt="Android Society Shadow" className="absolute right-4 sm:right-12 lg:right-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 rotate-6" />
+
+      {/* ── Main Center Logo ── */}
+      <img src="/images/google-developers-seeklogo.svg" alt="Mask Reveal Image" className="w-full h-full object-contain p-10 md:p-32 opacity-100 drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] relative z-10" />
+
+      {/* Invisible dynamic mask definition */}
+      {/* Invisible dynamic mask definitions (Full screen SVG but transparent/non-interactive) */}
+      <svg className="fixed top-0 left-0 w-full h-full pointer-events-none z-[1001] opacity-0">
+        <defs>
+          <mask id="ink-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100vw" height="100vh">
+            <rect width="100%" height="100%" fill="black" />
+            <g filter="url(#gooey)">
+              {xs.map((_, i) => (
+                <motion.path
+                  key={i}
+                  d={LIQUID_SPLATS[paths[i]]}
+                  fill="white" // White reveals the mask contents
+                  style={{
+                    x: xs[i],
+                    y: ys[i],
+                    scale: scales[i],
+                    rotate: rots[i],
+                    originX: 0,
+                    originY: 0
+                  }}
+                />
+              ))}
+            </g>
+          </mask>
+          <filter id="gooey">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 60 -25" result="gooey" />
+          </filter>
+
+          <mask id="hide-text-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100vw" height="100vh">
+            {/* White background: everything visible by default */}
+            <rect width="100%" height="100%" fill="white" />
+            {/* Black splashes: hide everything under them */}
+            <g filter="url(#gooey)">
+              {xs.map((_, i) => (
+                <motion.path
+                  key={i}
+                  d={LIQUID_SPLATS[paths[i]]}
+                  fill="black"
+                  style={{
+                    x: xs[i],
+                    y: ys[i],
+                    scale: scales[i],
+                    rotate: rots[i],
+                    originX: 0,
+                    originY: 0
+                  }}
+                />
+              ))}
+            </g>
+          </mask>
+        </defs>
+      </svg>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
+
+const FEATURE_SLIDES = [
+  {
+    id: 'workshops',
+    title: 'WORKSHOPS',
+    description: 'Hands-on technical sessions on Flutter, AI/ML, Web Dev and more designed to take you from zero to builder.',
+    image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=2070&auto=format&fit=crop',
+    color: '#FBBC05'
+  },
+  {
+    id: 'hackathons',
+    title: 'HACKATHONS',
+    description: 'Intense 24-hour build competitions where you can turn ideas into reality and win real ecosystem prizes.',
+    image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=2070&auto=format&fit=crop',
+    color: '#EA4335'
+  },
+  {
+    id: 'community',
+    title: 'COMMUNITY',
+    description: 'A global network of passionate students learning together, helping each other, and growing together.',
+    image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop',
+    color: '#4285F4'
+  }
+];
+
+const SOCIAL_LINKS = [
+  { platform: 'Instagram', url: 'https://instagram.com/gdgocuitu', icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.668-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z' },
+  { platform: 'LinkedIn', url: 'https://linkedin.com/company/gdgocuitu', icon: 'M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z' },
+  { platform: 'Linktree', url: 'https://linktr.ee/gdgocuitu', icon: 'M14.54 11.53c.63-.44 1.05-1.15 1.05-1.95 0-1.32-1.07-2.39-2.39-2.39h-4.3v4.34H11.5c.8 0 1.51-.42 1.95-1.05.44.63 1.15 1.05 1.95 1.05h2.59v-2.59h-2.59c-.8 0-1.51.42-1.95 1.05-.44-.63-1.15-1.05-1.95-1.05h-2.59v4.34h4.3c1.32 0 2.39-1.07 2.39-2.39 0-.8-.42-1.51-1.05-1.95zm-3.04-1.42h-1.3v-1.3h1.3c.36 0 .65.29.65.65s-.29.65-.65.65zm1.3 1.42c.36 0 .65.29.65.65s-.29.65-.65.65h-1.3v-1.3h1.3zM24 12c0-6.627-5.373-12-12-12S0 5.373 0 12s5.373 12 12 12 12-5.373 12-12zm-2 0c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z' }
+];
 
 export default function HomePage() {
   const [wordIndex, setWordIndex] = useState(0);
   const words = ["BUILD", "SHIP", "GROW", "LEAD", "HACK", "CODE", "WIN", "SHINE"];
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -218,6 +427,14 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeatureIndex((prev) => (prev + 1) % FEATURE_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ─── CMS Data ──────────────────────────────────────────────────────────────
   const [homepage, setHomepage] = useState<Homepage | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null);
@@ -228,6 +445,21 @@ export default function HomePage() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Identity section ref for scroll-masking
+  const identitySectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: identitySectionRef,
+    offset: ["start end", "center center"]
+  });
+
+  const waveRevealY = useTransform(scrollYProgress, [0, 1], ["20%", "0%"]);
+  const waveOpacity = useTransform(scrollYProgress, [0, 0.4], [0, 1]);
+
+  // Scroll hooks for parallax wavy transition
+  const { scrollY } = useScroll();
+  const waveY = useTransform(scrollY, [0, 800], [0, -100]);
+  const waveYReverse = useTransform(scrollY, [0, 800], [0, 100]);
+
   // Newsletter state
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterName, setNewsletterName] = useState('');
@@ -237,6 +469,9 @@ export default function HomePage() {
 
   // Testimonial carousel
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+
+  // ─── Unified Events Hover State ─────────────────────────────────────────────
+  const [activeEventIndex, setActiveEventIndex] = useState(0);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -307,18 +542,24 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
 
-      {/* ── Brutalist Grid Hero ── */}
-      <section className="relative bg-[#F4F4F0] min-h-screen pt-16 pb-16 flex flex-col items-center justify-center overflow-hidden border-b-4 border-foreground">
+      {/* ── Brutalist Grid Hero (with Advanced Ink Trail) ── */}
+      <section
+        className="relative bg-[#F4F4F0] min-h-screen py-16 flex flex-col items-center justify-center overflow-hidden"
+      >
 
-        {/* Background Grid */}
+        {/* Base Background Grid */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: 'linear-gradient(to right, #00000015 1px, transparent 1px), linear-gradient(to bottom, #00000015 1px, transparent 1px)',
             backgroundSize: '100px 100px',
-            backgroundPosition: 'center'
+            backgroundPosition: '0 0'
           }}
         />
+
+        {/* ── Ink Splat Trail Reveal Overlay ───────── */}
+        <InkMaskOverlay />
+        {/* ──────────────────────────────────────────── */}
 
         {/* Floating Abstract Elements */}
         {/* Star Top Left */}
@@ -399,7 +640,10 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-[900px] mx-auto px-4 text-center flex flex-col items-center mt-6">
 
-          <h1 className="text-[3rem] sm:text-[4rem] md:text-[5.5rem] font-black uppercase tracking-tighter text-foreground leading-[0.0] select-none w-full grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4 mb-[-1rem] sm:mb-[-2rem] md:mb-[-3rem]">
+          <h1
+            style={{ WebkitMaskImage: 'url(#hide-text-mask)', maskImage: 'url(#hide-text-mask)' }}
+            className={`text-[3rem] sm:text-[4rem] md:text-[5.5rem] font-black uppercase tracking-tighter text-foreground leading-[0.4] py-8 select-none w-full grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4 mb-[-2rem] sm:mb-[-3rem] md:mb-[-4rem] ${antonio.className}`}
+          >
             {/* Line 1: COME | TO | LEARN. */}
             <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-right">
               COME
@@ -438,7 +682,8 @@ export default function HomePage() {
 
           <motion.p
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-            className="mt-6 text-base sm:text-lg font-normal max-w-xl mx-auto text-gray-500 tracking-wide relative z-10 text-center bg-[#F4F4F0] bg-opacity-80 px-4 py-1"
+            style={{ WebkitMaskImage: 'url(#hide-text-mask)', maskImage: 'url(#hide-text-mask)' }}
+            className="mt-6 text-base sm:text-lg font-normal max-w-xl mx-auto text-gray-700 tracking-wide relative z-10 text-center px-4 py-1"
           >
             Real projects. Real people. Real fun.
           </motion.p>
@@ -461,263 +706,287 @@ export default function HomePage() {
               </Link>
             </Magnetic>
           </motion.div>
-
         </div>
       </section>
 
-      {/* ── About Us Snapshot ── */}
-      <section className="py-24 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden border-t-[3px] border-b-[3px] border-black">
-        {/* Abstract Brutalist Grid overlay for dark background */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+      <motion.section 
+        ref={identitySectionRef}
+        style={{ 
+          opacity: waveOpacity,
+          translateY: waveRevealY,
+          clipPath: "ellipse(150% 100% at 50% 100%)" 
+        }}
+        className="min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden pt-48 pb-32 md:pt-64 md:pb-40 z-[20] -mt-32"
+      >
+        {/* Abstract Brutalist Grid overlay synced to 100px Hero grid (origin top-left) */}
+        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left"></div>
+        
+        {/* High-Performance Wavy Mask Reveal Logic */}
+        <div className="absolute top-0 left-0 right-0 h-32 overflow-hidden -translate-y-full pointer-events-none">
+          <svg viewBox="0 0 1440 320" className="w-full h-full fill-slate-900 scale-y-[-1]">
+             <path d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,144C672,139,768,181,864,186.7C960,192,1056,160,1152,144C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
+          </svg>
+        </div>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 relative z-10 w-full">
+          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
 
-            {/* Left — Text */}
-            <div className="flex flex-col">
-              <div className="h-1.5 w-16 flex mb-6 rounded-none overflow-hidden border-[1px] border-black shadow-[2px_2px_0_#000]">
+            {/* Left Column: Identity */}
+            <div className="w-full lg:w-[40%] flex flex-col items-center lg:items-start text-center lg:text-left">
+              <div className="h-2 w-24 flex mb-8 rounded-none overflow-hidden border-2 border-black shadow-[3px_3px_0_#000]">
                 <div className="flex-1 bg-[#4285F4]" />
                 <div className="flex-1 bg-[#EA4335]" />
                 <div className="flex-1 bg-[#FBBC05]" />
                 <div className="flex-1 bg-[#34A853]" />
               </div>
-              <p className="text-sm font-black uppercase tracking-widest text-[#34A853] mb-4 bg-white self-start px-3 py-1 border-2 border-black shadow-[2px_2px_0_#000] rotate-[-2deg]">
-                Who We Are
-              </p>
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tighter uppercase leading-[0.9] mb-6 drop-shadow-[3px_3px_0_rgba(0,0,0,1)]" style={{ WebkitTextStroke: '2px black' }}>
-                A community of <br/>
-                <span className="text-[#FBBC05] inline-block mt-2">student builders</span> <br/>
-                at UIT University.
-              </h2>
               
-              <div className="bg-white border-[3px] border-black shadow-[6px_6px_0_#000] p-6 rounded-2xl transform rotate-[1deg] mb-8">
-                <p className="text-base sm:text-lg font-bold text-black leading-relaxed">
-                  GDGOC-UITU is a Google Developer Group on Campus at UIT University Karachi.
-                  We bring together students passionate about technology through hands-on workshops,
-                  hackathons, and a thriving peer community — all backed by Google.
+              <h2 className={`text-4xl sm:text-5xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.85] mb-6 ${antonio.className}`}>
+                <span className="text-white">WHO</span><br />
+                <span className="text-[#34A853]">WE ARE</span>
+              </h2>
+
+              <div className="max-w-md space-y-4 mb-8">
+                <p className="text-lg sm:text-xl font-bold text-white leading-tight italic">
+                  "A community of student builders at UIT University Karachi."
                 </p>
-                <p className="mt-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                  Whether you're just getting started or already building real projects, there's a place for you here.
+                <p className="text-sm font-medium text-gray-300 leading-relaxed">
+                  GDGOC-UITU is a Google Developer Group on Campus where passion meets technology. We bridge the gap between theory and practice through high-impact workshops, competitive hackathons, and a peer-driven learning ecosystem.
                 </p>
               </div>
 
-              {/* Stat pills */}
-              <div className="flex items-center gap-4 flex-wrap mb-10">
-                {[
-                  { value: '200+', label: 'Members', color: 'bg-[#4285F4]' },
-                  { value: '2022', label: 'Est.', color: 'bg-[#EA4335]' },
-                  { value: '10+', label: 'Events/Year', color: 'bg-[#34A853]' },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className={`px-5 py-3 ${stat.color} rounded-xl border-[3px] border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] hover:-translate-y-1 transition-all text-center`}
+              {/* Social Links Row */}
+              <div className="flex items-center gap-3 mb-8">
+                {SOCIAL_LINKS.map((social) => (
+                  <a
+                    key={social.platform}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-white border-[2.5px] border-black rounded-lg flex items-center justify-center hover:bg-[#FFED00] hover:-translate-y-1 hover:-translate-x-1 shadow-[3px_3px_0_#000] hover:shadow-[5px_5px_0_#000] active:shadow-none active:translate-y-1 active:translate-x-1 transition-all group"
+                    title={social.platform}
                   >
-                    <p className="text-2xl font-black text-white tracking-tighter" style={{ WebkitTextStroke: '1.5px black' }}>{stat.value}</p>
-                    <p className="text-xs font-black text-black uppercase tracking-widest mt-1">{stat.label}</p>
-                  </div>
+                    <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
+                      <path d={social.icon} />
+                    </svg>
+                  </a>
                 ))}
               </div>
 
               <Link
                 href="/about"
-                className="inline-flex items-center justify-center gap-3 self-start px-8 py-4 bg-[#FBBC05] rounded-full border-[3px] border-black text-black font-black uppercase tracking-widest shadow-[6px_6px_0_#000] hover:bg-[#EA4335] hover:text-white hover:shadow-[8px_8px_0_#000] hover:-translate-y-1 active:shadow-[2px_2px_0_#000] active:translate-y-1 transition-all group"
+                className="inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-[#FBBC05] rounded-full border-[3px] border-black text-black font-black uppercase tracking-widest shadow-[6px_6px_0_#000] hover:bg-[#EA4335] hover:text-white hover:shadow-[8px_8px_0_#000] hover:-translate-y-1 active:shadow-[2px_2px_0_#000] active:translate-y-1 transition-all group text-sm"
               >
                 Learn More About Us
                 <svg className="w-5 h-5 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
             </div>
 
-            {/* Right — Feature Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
-              {[
-                { icon: '🎯', title: 'Workshops', desc: 'Hands-on technical sessions on Flutter, AI/ML, Web Dev and more.', color: 'bg-[#FBBC05]', textColor: 'text-black', stroke: 'none' },
-                { icon: '🏆', title: 'Hackathons', desc: '24-hour build competitions with real prizes and industry judges.', color: 'bg-[#4285F4]', textColor: 'text-white', stroke: '1px black' },
-                { icon: '💬', title: 'Community', desc: 'A forum for questions, discussions, and peer-to-peer learning.', color: 'bg-[#EA4335]', textColor: 'text-white', stroke: '1px black' },
-                { icon: '🚀', title: 'Mentorship', desc: 'Guidance from senior developers and industry professionals.', color: 'bg-[#34A853]', textColor: 'text-white', stroke: '1px black' },
-              ].map((item, idx) => (
-                <div
-                  key={item.title}
-                  className={`p-6 md:p-8 rounded-2xl ${item.color} border-[3px] border-black shadow-[8px_8px_0_#000] hover:shadow-[12px_12px_0_#000] hover:-translate-y-2 transition-all group ${idx % 2 !== 0 ? 'sm:mt-8' : ''}`}
-                >
-                  <div className="w-14 h-14 bg-white border-[3px] border-black rounded-full flex items-center justify-center text-2xl shadow-[4px_4px_0_#000] mb-5 group-hover:scale-110 transition-transform origin-center">
-                    {item.icon}
-                  </div>
-                  <h3 className={`text-2xl font-black uppercase tracking-tight mb-2 ${item.textColor}`} style={{ WebkitTextStroke: item.stroke }}>
-                    {item.title}
-                  </h3>
-                  <p className={`text-sm font-bold leading-relaxed ${item.textColor === 'text-white' ? 'text-gray-100' : 'text-gray-900'}`}>
-                    {item.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {/* Right Column: High-Impact Carousel */}
+            <div className="w-full lg:w-[55%] relative flex flex-col items-center">
+              <div className="relative w-full aspect-[4/3] sm:aspect-video lg:aspect-[1.4/1] bg-white border-[3px] border-black rounded-[2.5rem] overflow-hidden shadow-[16px_16px_0_#000] group">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeFeatureIndex}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0"
+                  >
+                    <img 
+                      src={FEATURE_SLIDES[activeFeatureIndex].image} 
+                      alt={FEATURE_SLIDES[activeFeatureIndex].title} 
+                      className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+                    />
+                    
+                    {/* Dark Overlay for Text Readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                    
+                    {/* Content Inside Image */}
+                    <div className="absolute bottom-10 left-10 right-10 z-20">
+                      <motion.div
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <span 
+                          className="inline-block px-4 py-1.5 rounded-full border-2 border-black text-black text-xs font-black uppercase tracking-widest mb-4 shadow-[4px_4px_0_#000]"
+                          style={{ backgroundColor: FEATURE_SLIDES[activeFeatureIndex].color }}
+                        >
+                          CORE PILLAR
+                        </span>
+                        <h3 className={`text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-3 ${antonio.className}`}>
+                          {FEATURE_SLIDES[activeFeatureIndex].title}
+                        </h3>
+                        <p className="max-w-md text-base sm:text-lg font-bold text-gray-200 leading-tight">
+                          {FEATURE_SLIDES[activeFeatureIndex].description}
+                        </p>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
 
+                {/* Progress Indicators */}
+                <div className="absolute top-10 left-10 right-10 flex gap-2 z-30">
+                  {FEATURE_SLIDES.map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden"
+                    >
+                      <motion.div
+                        className="h-full bg-white"
+                        initial={{ width: "0%" }}
+                        animate={{ 
+                          width: i === activeFeatureIndex ? "100%" : i < activeFeatureIndex ? "100%" : "0%" 
+                        }}
+                        transition={{ duration: i === activeFeatureIndex ? 5 : 0.5, ease: "linear" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Centering Helper (Invisible on Desktop, Spacing on Mobile) */}
+            </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ── Featured Event ── */}
-      {!loading && featuredEvent && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mb-8">
-              <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                <div className="flex-1 bg-[#4285F4]" />
-                <div className="flex-1 bg-[#EA4335]" />
-                <div className="flex-1 bg-[#FBBC05]" />
-                <div className="flex-1 bg-[#34A853]" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Featured Event</h2>
-              <p className="text-sm text-gray-500 mt-1">Don't miss our next big event</p>
-            </div>
+      {/* ── Upcoming Events: Sticky Reveal ── */}
+      {!loading && (featuredEvent || events.length > 0) && (() => {
+        const combinedEvents = [...(featuredEvent ? [featuredEvent] : []), ...events].filter((e, idx, self) => self.findIndex(t => t.event_id === e.event_id) === idx);
+        const activeHoverEvent = combinedEvents[activeEventIndex] || combinedEvents[0];
 
-            <Link href={`/events/${featuredEvent.event_id}`}>
-              <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-2">
+        if (combinedEvents.length === 0) return null;
 
-                  {/* Banner */}
-                  <div className="relative h-56 lg:h-full min-h-56 bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
-                    {featuredEvent.banner_url && (
-                      <img
-                        src={featuredEvent.banner_url}
-                        alt={featuredEvent.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent opacity-40" />
-                    <div className="absolute top-4 left-4 flex gap-2">
-                      {featuredEvent.is_free ? (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white">FREE</span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-white text-gray-800">PKR {featuredEvent.ticket_price?.toLocaleString()}</span>
-                      )}
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-black bg-opacity-40 text-white capitalize">
-                        {featuredEvent.event_type}
+        return (
+          <section className="pt-12 pb-32 bg-[#000] relative border-b-[3px] border-black text-white">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 w-full flex flex-col md:flex-row gap-16 lg:gap-24">
+              
+              {/* Left Column: Sticky Reveal Card */}
+              <div className="w-full md:w-[45%] md:sticky md:top-28 self-start h-fit">
+                {/* The Sticky Image Reveal */}
+                <Link href={`/events/${activeHoverEvent?.event_id}`} className="block relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] w-full max-h-[calc(100vh-160px)] bg-[#111] border-[4px] border-white/10 rounded-[3rem] overflow-hidden group shadow-[20px_20px_60px_rgba(0,0,0,0.8)]">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={activeHoverEvent?.event_id}
+                      src={activeHoverEvent?.banner_url || "https://placehold.co/600x800/EA4335/FFF?text=GDG+EVENT"}
+                      initial={{ opacity: 0, scale: 1.1, filter: "grayscale(1) contrast(1.2)" }}
+                      animate={{ opacity: 1, scale: 1, filter: "grayscale(0) contrast(1)" }}
+                      exit={{ opacity: 0, scale: 0.95, filter: "grayscale(1)" }}
+                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                  </AnimatePresence>
+                  
+                  {/* Image Overlays */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none" />
+                  
+                  <div className="absolute bottom-8 left-8 right-8 z-20">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="px-4 py-1.5 bg-[#FBBC05] text-black text-xs font-black uppercase tracking-widest rounded-full border-2 border-black">
+                        {activeHoverEvent?.category_name || 'General'}
+                      </span>
+                      <span className="text-white/60 text-xs font-black uppercase tracking-widest px-1">
+                        {activeHoverEvent?.is_free ? 'Free' : 'Premium'}
                       </span>
                     </div>
+                    <h3 className={`text-3xl sm:text-4xl font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className}`}>
+                      {activeHoverEvent?.title}
+                    </h3>
                   </div>
 
-                  {/* Content */}
-                  <div className="p-8 flex flex-col justify-between">
-                    <div>
-                      {featuredEvent.category_name && (
-                        <span className="text-xs font-bold text-[#4285F4] uppercase tracking-wide">
-                          {featuredEvent.category_name}
-                        </span>
-                      )}
-                      <h3 className="text-2xl font-bold text-gray-900 mt-2 leading-tight group-hover:text-blue-600 transition-colors">
-                        {featuredEvent.title}
-                      </h3>
-                      {featuredEvent.description && (
-                        <p className="text-sm text-gray-500 mt-3 leading-relaxed line-clamp-3">
-                          {featuredEvent.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mt-6 space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <svg className="w-4 h-4 text-[#4285F4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        {formatDate(featuredEvent.start_datetime)} · {formatTime(featuredEvent.start_datetime)}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <svg className="w-4 h-4 text-[#4285F4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        </svg>
-                        {featuredEvent.venue ?? 'Online'}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <svg className="w-4 h-4 text-[#4285F4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {featuredEvent.seats_available} seats available
-                      </div>
-
-                      <div className="pt-2">
-                        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#4285F4] text-white text-sm font-semibold group-hover:bg-blue-600 transition-all shadow-md">
-                          {featuredEvent.is_free ? 'Register for Free' : `Get Ticket · PKR ${featuredEvent.ticket_price?.toLocaleString()}`}
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {/* ── Upcoming Events Grid ── */}
-      {!loading && events.length > 0 && (
-        <section className="py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                  <div className="flex-1 bg-[#4285F4]" />
-                  <div className="flex-1 bg-[#EA4335]" />
-                  <div className="flex-1 bg-[#FBBC05]" />
-                  <div className="flex-1 bg-[#34A853]" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">More Upcoming Events</h2>
-              </div>
-              <Link href="/events" className="text-sm font-semibold text-[#4285F4] hover:underline">
-                View All →
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <Link key={event.event_id} href={`/events/${event.event_id}`}>
-                  <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-blue-100 transition-all overflow-hidden h-full flex flex-col">
-                    <div className="relative h-36 bg-gradient-to-br from-blue-500 to-indigo-600">
-                      {event.banner_url && (
-                        <img src={event.banner_url} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                      )}
-                      <div className="absolute top-3 left-3">
-                        {event.is_free
-                          ? <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-500 text-white">FREE</span>
-                          : <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-white text-gray-800">PKR {event.ticket_price?.toLocaleString()}</span>
-                        }
-                      </div>
-                    </div>
-                    <div className="p-4 flex flex-col flex-1">
-                      {event.category_name && (
-                        <span className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">{event.category_name}</span>
-                      )}
-                      <h3 className="font-bold text-gray-900 text-sm leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
-                        {event.title}
-                      </h3>
-                      <div className="flex-1" />
-                      <div className="text-xs text-gray-500 space-y-1 mt-2">
-                        <div className="flex items-center gap-1.5">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          {formatDate(event.start_datetime)}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          </svg>
-                          {event.venue ?? 'Online'}
-                        </div>
-                      </div>
-                    </div>
+                  {/* Absolute date badge */}
+                  <div className="absolute top-8 right-8 bg-[#EA4335] border-[3px] border-black rounded-3xl w-24 h-24 flex flex-col items-center justify-center shadow-[6px_6px_0_#000] -rotate-6 group-hover:rotate-0 transition-transform duration-500">
+                    <span className="text-xs font-black text-white uppercase mb-1">
+                      {activeHoverEvent?.start_datetime ? new Date(activeHoverEvent.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
+                    </span>
+                    <span className="text-4xl font-black text-white leading-none tracking-tighter">
+                      {activeHoverEvent?.start_datetime ? new Date(activeHoverEvent.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
+                    </span>
                   </div>
                 </Link>
-              ))}
+              </div>
+
+              {/* Right Column: Scrolling Event List */}
+              <div className="w-full md:w-[55%] flex flex-col pt-4 md:pt-8 lg:pt-12 pb-16">
+                {/* Mobile/Right-column Header (duplicated for balance) */}
+                <div className="space-y-6 mb-20">
+                  <h2 className={`text-5xl sm:text-7xl lg:text-[7.5rem] font-black uppercase tracking-tighter leading-[0.8] ${antonio.className}`}>
+                    <span className="text-[#FBBC05] italic drop-shadow-[4px_4px_0_#fff]">UPCOMING!</span><br />
+                    <span className="text-white">EVENTS?</span>
+                  </h2>
+                  <p className="text-gray-400 text-lg font-bold tracking-tight max-w-sm">
+                    Don't miss out on the most impactful technical sessions in the city.
+                  </p>
+                  
+                  <Link 
+                    href="/events" 
+                    className="inline-flex h-14 items-center px-8 bg-[#FBBC05] border-[3px] border-black rounded-full text-black text-sm font-black uppercase tracking-widest shadow-[6px_6px_0_#fff] hover:shadow-[3px_3px_0_#fff] hover:translate-x-1 hover:translate-y-1 transition-all group"
+                  >
+                    View All Events
+                    <svg className="w-5 h-5 ml-3 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+
+                <div className="flex flex-col border-t-[1px] border-white/20">
+                  {combinedEvents.map((event, idx) => (
+                    <Link
+                      key={event.event_id}
+                      href={`/events/${event.event_id}`}
+                      onMouseEnter={() => setActiveEventIndex(idx)}
+                      onFocus={() => setActiveEventIndex(idx)}
+                      className="group relative flex flex-col sm:flex-row sm:items-center justify-between py-10 sm:py-14 border-b-[1px] border-white/20 hover:bg-white/[0.03] transition-colors cursor-pointer group/item text-white"
+                    >
+                      <div className="space-y-4 max-w-[80%]">
+                        <div className="flex items-center gap-4">
+                          <span className="text-[#FBBC05] text-xs font-black uppercase tracking-[0.2em]">
+                            {event.category_name || 'Tech'}
+                          </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                          <span className="text-white/40 text-xs font-black uppercase tracking-[0.2em]">
+                           {event.venue || 'Online'}
+                          </span>
+                        </div>
+                        
+                        <h3 className={`text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight leading-[0.85] group-hover/item:text-[#FBBC05] transition-colors ${antonio.className} ${activeEventIndex === idx ? 'text-[#FBBC05]' : 'text-white'}`}>
+                          {event.title}
+                        </h3>
+                      </div>
+
+                      {/* Right Hand: Action & Arrow */}
+                      <div className="flex flex-col items-end gap-6 mt-8 sm:mt-0">
+                         <div className="w-12 h-12 rounded-full border-2 border-white/20 flex items-center justify-center text-white group-hover/item:border-[#FBBC05] group-hover/item:text-[#FBBC05] transition-all group-hover/item:-translate-y-1 group-hover/item:translate-x-1">
+                           <svg className="w-6 h-6 rotate-[-45deg] group-hover/item:rotate-0 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" />
+                           </svg>
+                         </div>
+                         <div className="text-white/20 text-[10px] font-black uppercase tracking-[0.4em] group-hover/item:text-white/60 transition-colors">
+                           View Event &nbsp;→
+                         </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                
+                {/* Bottom CTA */}
+                <div className="py-20 flex flex-col items-center text-center space-y-8 border-t-[1px] border-white/20 mt-10">
+                   <h4 className={`text-4xl font-black text-white italic uppercase tracking-tighter ${antonio.className}`}>
+                      Want to host an event?
+                   </h4>
+                   <Link href="/about" className="text-[#FBBC05] font-black uppercase tracking-widest text-sm hover:underline underline-offset-8 decoration-2">
+                     Get in touch with the lead →
+                   </Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* ── Featured Past Events ── */}
       {!loading && featuredPastEvents.length > 0 && (
@@ -732,7 +1001,7 @@ export default function HomePage() {
                   <div className="flex-1 bg-[#FBBC05]" />
                   <div className="flex-1 bg-[#34A853]" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>
                   Our Best Events
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
@@ -818,7 +1087,7 @@ export default function HomePage() {
 
                     {/* Content */}
                     <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-bold text-gray-900 text-base leading-snug group-hover:text-[#4285F4] transition-colors mb-2">
+                      <h3 className={`font-bold text-gray-900 text-base leading-snug group-hover:text-[#4285F4] transition-colors mb-2 ${antonio.className}`}>
                         {event.title}
                       </h3>
 
@@ -859,7 +1128,7 @@ export default function HomePage() {
               <div className="flex-1 bg-[#FBBC05]" />
               <div className="flex-1 bg-[#34A853]" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Technologies We Cover</h2>
+            <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>Technologies We Cover</h2>
             <p className="text-sm text-gray-500 mt-2">From mobile to cloud — we cover the full stack</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -878,76 +1147,78 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* ── Latest Forum Discussions ── */}
-      {!loading && threads.length > 0 && (
-        <section className="py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                  <div className="flex-1 bg-[#4285F4]" />
-                  <div className="flex-1 bg-[#EA4335]" />
-                  <div className="flex-1 bg-[#FBBC05]" />
-                  <div className="flex-1 bg-[#34A853]" />
+      {
+        !loading && threads.length > 0 && (
+          <section className="py-20 bg-white">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
+                    <div className="flex-1 bg-[#4285F4]" />
+                    <div className="flex-1 bg-[#EA4335]" />
+                    <div className="flex-1 bg-[#FBBC05]" />
+                    <div className="flex-1 bg-[#34A853]" />
+                  </div>
+                  <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>Latest Discussions</h2>
+                  <p className="text-sm text-gray-500 mt-1">Join the conversation in our community forum</p>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Latest Discussions</h2>
-                <p className="text-sm text-gray-500 mt-1">Join the conversation in our community forum</p>
+                <Link href="/forum" className="text-sm font-semibold text-[#4285F4] hover:underline">
+                  View All →
+                </Link>
               </div>
-              <Link href="/forum" className="text-sm font-semibold text-[#4285F4] hover:underline">
-                View All →
-              </Link>
-            </div>
 
-            <div className="space-y-3">
-              {threads.map((thread) => (
-                <Link key={thread.thread_id} href={`/forum/${thread.thread_id}`}>
-                  <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all p-5">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                        {getInitials(thread.author_name || 'U')}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span
-                            className="px-2 py-0.5 rounded-full text-xs font-semibold text-white"
-                            style={{ backgroundColor: `#${thread.category_color}` }}
-                          >
-                            {thread.category_name}
-                          </span>
-                          <span className="text-xs text-gray-400">{timeAgo(thread.created_at)}</span>
+              <div className="space-y-3">
+                {threads.map((thread) => (
+                  <Link key={thread.thread_id} href={`/forum/${thread.thread_id}`}>
+                    <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          {getInitials(thread.author_name || 'U')}
                         </div>
-                        <h3 className="font-semibold text-gray-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1">
-                          {thread.title}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">{thread.body_preview}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                          <span>{thread.author_name}</span>
-                          <span>{thread.reply_count} replies</span>
-                          <span>{thread.upvote_count} upvotes</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className="px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                              style={{ backgroundColor: `#${thread.category_color}` }}
+                            >
+                              {thread.category_name}
+                            </span>
+                            <span className="text-xs text-gray-400">{timeAgo(thread.created_at)}</span>
+                          </div>
+                          <h3 className="font-semibold text-gray-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1">
+                            {thread.title}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-1">{thread.body_preview}</p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                            <span>{thread.author_name}</span>
+                            <span>{thread.reply_count} replies</span>
+                            <span>{thread.upvote_count} upvotes</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
 
-            <div className="mt-6 text-center">
-              <Link
-                href="/forum/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Start a Discussion
-              </Link>
+              <div className="mt-6 text-center">
+                <Link
+                  href="/forum/new"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Start a Discussion
+                </Link>
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )
+      }
 
       {/* ── Testimonials ── */}
       <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
@@ -958,7 +1229,7 @@ export default function HomePage() {
             <div className="flex-1 bg-[#FBBC05]" />
             <div className="flex-1 bg-[#34A853]" />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight mb-12">What Our Members Say</h2>
+          <h2 className={`text-2xl font-bold text-white tracking-tight mb-12 ${antonio.className}`}>What Our Members Say</h2>
 
           <div className="relative">
             {TESTIMONIALS.map((t, i) => (
@@ -1000,155 +1271,161 @@ export default function HomePage() {
       </section>
 
       {/* ── Social Media Feed ── */}
-      {!loading && socialPosts.length > 0 && (
-        <section className="py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                  <div className="flex-1 bg-[#4285F4]" />
-                  <div className="flex-1 bg-[#EA4335]" />
-                  <div className="flex-1 bg-[#FBBC05]" />
-                  <div className="flex-1 bg-[#34A853]" />
+      {
+        !loading && socialPosts.length > 0 && (
+          <section className="py-20 bg-white">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
+                    <div className="flex-1 bg-[#4285F4]" />
+                    <div className="flex-1 bg-[#EA4335]" />
+                    <div className="flex-1 bg-[#FBBC05]" />
+                    <div className="flex-1 bg-[#34A853]" />
+                  </div>
+                  <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>From Our Socials</h2>
+                  <p className="text-sm text-gray-500 mt-1">Stay up to date with what we're sharing</p>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">From Our Socials</h2>
-                <p className="text-sm text-gray-500 mt-1">Stay up to date with what we're sharing</p>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {socialPosts.map((post) => {
-                const config = PLATFORM_CONFIG[post.platform] ?? { color: '#4285F4', label: post.platform };
-                return (
-                  <div key={post.post_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {socialPosts.map((post) => {
+                  const config = PLATFORM_CONFIG[post.platform] ?? { color: '#4285F4', label: post.platform };
+                  return (
+                    <div key={post.post_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
 
-                    {/* Media */}
-                    {post.media_urls && post.media_urls.length > 0 && (
-                      <div className="h-48 bg-gray-100 overflow-hidden">
-                        <img
-                          src={post.media_urls[0]}
-                          alt="Post media"
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      </div>
-                    )}
-
-                    <div className="p-4 flex flex-col flex-1">
-                      {/* Platform badge */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span
-                          className="px-2.5 py-1 rounded-full text-xs font-bold text-white capitalize"
-                          style={{ backgroundColor: config.color }}
-                        >
-                          {config.label}
-                        </span>
-                        {post.posted_at && (
-                          <span className="text-xs text-gray-400">{timeAgo(post.posted_at)}</span>
-                        )}
-                      </div>
-
-                      {/* Caption */}
-                      <p className="text-sm text-gray-700 leading-relaxed line-clamp-3 flex-1">
-                        {post.caption}
-                      </p>
-
-                      {/* Hashtags */}
-                      {post.hashtags && post.hashtags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-3">
-                          {post.hashtags.slice(0, 3).map((tag) => (
-                            <span key={tag} className="text-xs text-blue-500">#{tag}</span>
-                          ))}
+                      {/* Media */}
+                      {post.media_urls && post.media_urls.length > 0 && (
+                        <div className="h-48 bg-gray-100 overflow-hidden">
+                          <img
+                            src={post.media_urls[0]}
+                            alt="Post media"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
                         </div>
                       )}
+
+                      <div className="p-4 flex flex-col flex-1">
+                        {/* Platform badge */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <span
+                            className="px-2.5 py-1 rounded-full text-xs font-bold text-white capitalize"
+                            style={{ backgroundColor: config.color }}
+                          >
+                            {config.label}
+                          </span>
+                          {post.posted_at && (
+                            <span className="text-xs text-gray-400">{timeAgo(post.posted_at)}</span>
+                          )}
+                        </div>
+
+                        {/* Caption */}
+                        <p className="text-sm text-gray-700 leading-relaxed line-clamp-3 flex-1">
+                          {post.caption}
+                        </p>
+
+                        {/* Hashtags */}
+                        {post.hashtags && post.hashtags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-3">
+                            {post.hashtags.slice(0, 3).map((tag) => (
+                              <span key={tag} className="text-xs text-blue-500">#{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Brutalist Team Preview ── */}
-      {!loading && teamMembers.length > 0 && (
-        <section className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
-          {/* Subtle grid background */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-60 pointer-events-none" />
-
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
-
-            {/* Brutalist Section Header */}
-            <div className="flex flex-col items-center justify-center mb-20 text-center">
-              <h2 className="text-[3.5rem] sm:text-[5rem] font-black uppercase tracking-tighter text-foreground leading-[0.8] mb-6">
-                MEET THE <span className="text-[#EA4335]">TEAM</span>
-              </h2>
-              <div className="inline-block bg-[#FFED00] border-[3px] border-black px-5 py-2 -rotate-2 shadow-[6px_6px_0_#000]">
-                <p className="font-bold text-sm sm:text-base uppercase tracking-wider">The builders behind GDGOC-UITU!</p>
+                  );
+                })}
               </div>
             </div>
+          </section>
+        )
+      }
 
-            {/* Brutalist 2-Column Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 max-w-4xl mx-auto">
-              {teamMembers
-                .sort((a, b) => a.display_order - b.display_order)
-                .slice(0, 2)
-                .map((member, idx) => (
-                  <BrutalistMemberCard
-                    key={member.member_id}
-                    member={member}
-                    index={idx}
-                    actionLabel="VIEW PROFILE"
-                    actionHref="/about"
-                  />
-                ))}
+      {/* ── Brutalist Team Preview ── */}
+      {
+        !loading && teamMembers.length > 0 && (
+          <section className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
+            {/* Subtle grid background */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-60 pointer-events-none" />
+
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
+
+              {/* Brutalist Section Header */}
+              <div className="flex flex-col items-center justify-center mb-20 text-center">
+                <h2 className={`text-[3.5rem] sm:text-[5rem] font-black uppercase tracking-tighter text-foreground leading-[0.8] mb-6 ${antonio.className}`}>
+                  MEET THE <span className="text-[#EA4335]">TEAM</span>
+                </h2>
+                <div className="inline-block bg-[#FFED00] border-[3px] border-black px-5 py-2 -rotate-2 shadow-[6px_6px_0_#000]">
+                  <p className="font-bold text-sm sm:text-base uppercase tracking-wider">The builders behind GDGOC-UITU!</p>
+                </div>
+              </div>
+
+              {/* Brutalist 2-Column Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 max-w-4xl mx-auto">
+                {teamMembers
+                  .sort((a, b) => a.display_order - b.display_order)
+                  .slice(0, 2)
+                  .map((member, idx) => (
+                    <BrutalistMemberCard
+                      key={member.member_id}
+                      member={member}
+                      index={idx}
+                      actionLabel="VIEW PROFILE"
+                      actionHref="/about"
+                    />
+                  ))}
+              </div>
+
+              {/* View All Team Link */}
+              <div className="mt-16 flex justify-center">
+                <Link href="/about" className="inline-flex items-center gap-3 text-2xl sm:text-3xl font-black uppercase border-b-[4px] border-black pb-1 hover:text-[#EA4335] hover:border-[#EA4335] transition-colors group">
+                  MEET THE FULL TEAM
+                  <span className="group-hover:translate-x-3 transition-transform">→</span>
+                </Link>
+              </div>
+
             </div>
-
-            {/* View All Team Link */}
-            <div className="mt-16 flex justify-center">
-              <Link href="/about" className="inline-flex items-center gap-3 text-2xl sm:text-3xl font-black uppercase border-b-[4px] border-black pb-1 hover:text-[#EA4335] hover:border-[#EA4335] transition-colors group">
-                MEET THE FULL TEAM
-                <span className="group-hover:translate-x-3 transition-transform">→</span>
-              </Link>
-            </div>
-
-          </div>
-        </section>
-      )}
+          </section>
+        )
+      }
 
       {/* ── Sponsors Strip ── */}
-      {!loading && sponsors.length > 0 && (
-        <section className="py-14 bg-white border-t border-gray-100">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-8">
-              Supported By
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-8">
-              {sponsors.map((sponsor) => (
-                <a
-                  key={sponsor.sponsor_id}
-                  href={sponsor.website_url ?? '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group"
-                >
-                  {sponsor.logo_url ? (
-                    <img
-                      src={sponsor.logo_url}
-                      alt={sponsor.name}
-                      className="h-10 w-auto object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all"
-                    />
-                  ) : (
-                    <span className="text-sm font-bold text-gray-400 group-hover:text-gray-700 transition-colors">
-                      {sponsor.name}
-                    </span>
-                  )}
-                </a>
-              ))}
+      {
+        !loading && sponsors.length > 0 && (
+          <section className="py-14 bg-white border-t border-gray-100">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-8">
+                Supported By
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-8">
+                {sponsors.map((sponsor) => (
+                  <a
+                    key={sponsor.sponsor_id}
+                    href={sponsor.website_url ?? '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group"
+                  >
+                    {sponsor.logo_url ? (
+                      <img
+                        src={sponsor.logo_url}
+                        alt={sponsor.name}
+                        className="h-10 w-auto object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-gray-400 group-hover:text-gray-700 transition-colors">
+                        {sponsor.name}
+                      </span>
+                    )}
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )
+      }
 
       {/* ── Newsletter + Join CTA ── */}
       <section className="py-20 bg-gray-50 border-t border-gray-100">
@@ -1164,7 +1441,7 @@ export default function HomePage() {
                   <div className="flex-1 bg-[#FBBC05]" />
                   <div className="flex-1 bg-[#34A853]" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>
                   Ready to Join?
                 </h2>
                 <p className="mt-3 text-sm text-gray-500 leading-relaxed">
@@ -1194,7 +1471,7 @@ export default function HomePage() {
                 <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-3">
                   Newsletter
                 </p>
-                <h2 className="text-2xl font-bold text-white tracking-tight">
+                <h2 className={`text-2xl font-bold text-white tracking-tight ${antonio.className}`}>
                   Stay in the Loop
                 </h2>
                 <p className="mt-3 text-sm text-blue-100 leading-relaxed">
@@ -1247,14 +1524,12 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 mb-10">
             <div className="sm:col-span-2">
-              <div className="flex items-center gap-2 mb-3">
-                <svg viewBox="0 0 24 24" className="w-6 h-6">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                <span className="text-white font-bold text-sm">GDGOC-UITU</span>
+              <div className="flex items-center mb-3">
+                <img
+                  src="/images/GDGOC-UITU%20LOGO(1).png"
+                  alt="GDGOC-UITU Logo"
+                  className="h-10 w-auto object-contain"
+                />
               </div>
               <p className="text-xs leading-relaxed max-w-xs">
                 Google Developer Groups on Campus at UIT University Karachi. Building the next generation of developers.
@@ -1305,6 +1580,6 @@ export default function HomePage() {
         </div>
       </footer>
 
-    </div>
+    </div >
   );
 }
