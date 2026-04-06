@@ -68,8 +68,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
       {/* ── Navbar: always fixed, transitions top offset + styles ── */}
       <div
-        className={`fixed z-50 flex justify-center pointer-events-none transition-all duration-700 ease-[0.16,1,0.3,1] ${
-          ghost
+        className={`fixed z-50 flex justify-center pointer-events-none transition-all duration-700 ease-[0.16,1,0.3,1] ${ghost
             ? 'top-0 left-0 right-0 px-0'
             : 'top-4 md:top-6 left-0 right-0 px-4 md:px-6'
           } ${isVisible ? 'opacity-100' : 'opacity-0'}`}
@@ -103,7 +102,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             {/* Center Column — Logo (Absolutely positioned) */}
             <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center hover:-translate-y-0.5 transition-transform group">
               <img
-                src="/images/GOGOC-UITU LOGO (uitu).svg"
+                src="/images/logodark.png"
                 alt="GDGOC-UITU Logo"
                 className="h-8 md:h-10 w-auto object-contain"
               />

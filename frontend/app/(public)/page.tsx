@@ -222,13 +222,19 @@ function InkMaskOverlay() {
 
   // Object pooling for buttery smooth, zero-latency 144Hz continuous interpolation tracking
   const SPLAT_COUNT = 80;
+  const [mounted, setMounted] = useState(false);
   const xs = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(-1000))).current;
   const ys = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(-1000))).current;
   const scales = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(0))).current;
-  const rots = useRef(Array.from({ length: SPLAT_COUNT }, () => Math.random() * 360)).current;
-  const paths = useRef(Array.from({ length: SPLAT_COUNT }, () => Math.floor(Math.random() * LIQUID_SPLATS.length))).current;
+  const rots = useRef(Array.from({ length: SPLAT_COUNT }, () => 0)).current;
+  const paths = useRef(Array.from({ length: SPLAT_COUNT }, () => 0)).current;
 
   useEffect(() => {
+    setMounted(true);
+    // Initialize random values on mount to avoid hydration mismatch
+    rots.forEach((_, i) => rots[i] = Math.random() * 360);
+    paths.forEach((_, i) => paths[i] = Math.floor(Math.random() * LIQUID_SPLATS.length));
+
     let lastX = -1;
     let lastY = -1;
     let poolIdx = 0;
@@ -333,7 +339,7 @@ function InkMaskOverlay() {
           <mask id="ink-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100vw" height="100vh">
             <rect width="100%" height="100%" fill="black" />
             <g filter="url(#gooey)">
-              {xs.map((_, i) => (
+              {mounted && xs.map((_, i) => (
                 <motion.path
                   key={i}
                   d={LIQUID_SPLATS[paths[i]]}
@@ -360,7 +366,7 @@ function InkMaskOverlay() {
             <rect width="100%" height="100%" fill="white" />
             {/* Black splashes: hide everything under them */}
             <g filter="url(#gooey)">
-              {xs.map((_, i) => (
+              {mounted && xs.map((_, i) => (
                 <motion.path
                   key={i}
                   d={LIQUID_SPLATS[paths[i]]}
@@ -380,6 +386,365 @@ function InkMaskOverlay() {
         </defs>
       </svg>
     </div>
+  );
+}
+
+// ─── Identity Section Component (Extracted for hydration/ref stability) ──────
+
+function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex: number, wordIndex: number }) {
+  const identitySectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: identitySectionRef,
+    offset: ["start end", "center center"]
+  });
+
+  const waveRevealY = useTransform(scrollYProgress, [0, 1], ["20%", "0%"]);
+  const waveOpacity = useTransform(scrollYProgress, [0, 0.4], [0, 1]);
+
+  const words = ['BUILDERS', 'INNOVATORS', 'CREATORS', 'LEADERS'];
+  const SOCIAL_LINKS = [
+    { platform: 'instagram', url: 'https://instagram.com/gdgocuitu', icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
+    { platform: 'twitter', url: 'https://twitter.com/gdgocuitu', icon: 'M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.84 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z' },
+    { platform: 'linkedin', url: 'https://linkedin.com/company/gdgocuitu', icon: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z' },
+    { platform: 'facebook', url: 'https://facebook.com/gdgocuitu', icon: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+  ];
+
+  return (
+    <motion.section
+      ref={identitySectionRef}
+      style={{
+        opacity: waveOpacity,
+        translateY: waveRevealY,
+        clipPath: "ellipse(150% 100% at 50% 100%)"
+      }}
+      className="min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden pt-48 pb-32 md:pt-64 md:pb-40 z-[20] -mt-32"
+    >
+      {/* Abstract Brutalist Grid overlay synced to 100px Hero grid (origin top-left) */}
+      <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left"></div>
+
+      {/* High-Performance Wavy Mask Reveal Logic */}
+      <div className="absolute top-0 left-0 right-0 h-32 overflow-hidden -translate-y-full pointer-events-none">
+        <svg viewBox="0 0 1440 320" className="w-full h-full fill-slate-900 scale-y-[-1]">
+          <path d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,144C672,139,768,181,864,186.7C960,192,1056,160,1152,144C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
+        </svg>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 relative z-10 w-full">
+        <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+
+          {/* Left Column: Identity */}
+          <div className="w-full lg:w-[40%] flex flex-col items-center lg:items-start text-center lg:text-left">
+            <div className="h-2 w-24 flex mb-8 rounded-none overflow-hidden border-2 border-black shadow-[3px_3px_0_#000]">
+              <div className="flex-1 bg-[#4285F4]" />
+              <div className="flex-1 bg-[#EA4335]" />
+              <div className="flex-1 bg-[#FBBC05]" />
+              <div className="flex-1 bg-[#34A853]" />
+            </div>
+
+            <h2 className={`text-4xl sm:text-5xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.85] mb-6 ${antonio.className}`}>
+              <span className="text-white">WHO</span><br />
+              <span className="text-[#34A853]">WE ARE</span>
+            </h2>
+
+            <div className="max-w-md space-y-4 mb-8">
+              <p className="text-lg sm:text-xl font-bold text-white leading-tight italic">
+                "A community of student builders at UIT University Karachi."
+              </p>
+              <p className="text-sm font-medium text-gray-300 leading-relaxed">
+                GDGOC-UITU is a Google Developer Group on Campus where passion meets technology. We bridge the gap between theory and practice through high-impact workshops, competitive hackathons, and a peer-driven learning ecosystem.
+              </p>
+            </div>
+
+            {/* Social Links Row */}
+            <div className="flex items-center gap-3 mb-8">
+              {SOCIAL_LINKS.map((social) => (
+                <a
+                  key={social.platform}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-white border-[2.5px] border-black rounded-lg flex items-center justify-center hover:bg-[#FFED00] hover:-translate-y-1 hover:-translate-x-1 shadow-[3px_3px_0_#000] hover:shadow-[5px_5px_0_#000] active:shadow-none active:translate-y-1 active:translate-x-1 transition-all group"
+                  title={social.platform}
+                >
+                  <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
+                    <path d={social.icon} />
+                  </svg>
+                </a>
+              ))}
+            </div>
+
+            <Link
+              href="/about"
+              className="inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-[#FBBC05] rounded-full border-[3px] border-black text-black font-black uppercase tracking-widest shadow-[6px_6px_0_#000] hover:bg-[#EA4335] hover:text-white hover:shadow-[8px_8px_0_#000] hover:-translate-y-1 active:shadow-[2px_2px_0_#000] active:translate-y-1 transition-all group text-sm"
+            >
+              Learn More About Us
+              <svg className="w-5 h-5 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+
+          {/* Right Column: High-Impact Carousel */}
+          <div className="w-full lg:w-[55%] relative flex flex-col items-center">
+            <div className="relative w-full aspect-[4/3] sm:aspect-video lg:aspect-[1.4/1] bg-white border-[3px] border-black rounded-[2.5rem] overflow-hidden shadow-[16px_16px_0_#000] group">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeFeatureIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute inset-0"
+                >
+                  <img
+                    src={FEATURE_SLIDES[activeFeatureIndex].image}
+                    alt={FEATURE_SLIDES[activeFeatureIndex].title}
+                    className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+                  />
+
+                  {/* Dark Overlay for Text Readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+                  {/* Content Inside Image */}
+                  <div className="absolute bottom-10 left-10 right-10 z-20">
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <span
+                        className="inline-block px-4 py-1.5 rounded-full border-2 border-black text-black text-xs font-black uppercase tracking-widest mb-4 shadow-[4px_4px_0_#000]"
+                        style={{ backgroundColor: FEATURE_SLIDES[activeFeatureIndex].color }}
+                      >
+                        CORE PILLAR
+                      </span>
+                      <h3 className={`text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-3 ${antonio.className}`}>
+                        {FEATURE_SLIDES[activeFeatureIndex].title}
+                      </h3>
+                      <p className="max-w-md text-base sm:text-lg font-bold text-gray-200 leading-tight">
+                        {FEATURE_SLIDES[activeFeatureIndex].description}
+                      </p>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Progress Indicators */}
+              <div className="absolute top-10 left-10 right-10 flex gap-2 z-30">
+                {FEATURE_SLIDES.map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden"
+                  >
+                    <motion.div
+                      className="h-full bg-white"
+                      initial={{ width: "0%" }}
+                      animate={{
+                        width: i === activeFeatureIndex ? "100%" : i < activeFeatureIndex ? "100%" : "0%"
+                      }}
+                      transition={{ duration: i === activeFeatureIndex ? 5 : 0.5, ease: "linear" }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Centering Helper (Invisible on Desktop, Spacing on Mobile) */}
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+// ─── Upcoming Events Component (Extracted to fix hydration/ref issues) ───────
+
+function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: Event[], featuredEvent: Event | null, isMobile: boolean }) {
+  const eventsSectionRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [scrollRange, setScrollRange] = useState(0);
+
+  useEffect(() => {
+    const updateScrollRange = () => {
+      if (trackRef.current) {
+        setScrollRange(trackRef.current.scrollWidth - window.innerWidth);
+      }
+    };
+    updateScrollRange();
+
+    // Slight delay to ensure content layout is complete before measuring
+    setTimeout(updateScrollRange, 100);
+
+    window.addEventListener('resize', updateScrollRange);
+    return () => window.removeEventListener('resize', updateScrollRange);
+  }, [events, featuredEvent]);
+
+  const { scrollYProgress } = useScroll({
+    target: eventsSectionRef,
+    offset: ["start start", "end end"]
+  });
+
+  // Calculate pixel translation instead of using CSS Calc (which breaks Framer Motion spring physics)
+  const x = useTransform(scrollYProgress, [0, 1], [0, scrollRange > 0 ? -scrollRange : 0]);
+  const springX = useSpring(x, { stiffness: 100, damping: 30, restDelta: 0.001 });
+
+  const combinedEvents = [...(featuredEvent ? [featuredEvent] : []), ...events].filter((e, idx, self) => self.findIndex(t => t.event_id === e.event_id) === idx);
+
+  // Extend the vertical scroll height based on number of items if needed, or simply let CSS handle it
+  // 400vh is usually enough for 5-6 cards. We'll give it 500vh to ensure enough scroll room.
+  return (
+    <section ref={eventsSectionRef as any} className="h-auto md:h-[500vh] bg-[#F4F4F0] relative overflow-clip border-b-[3px] border-slate-900">
+      {/* Background Grid synced to Hero */}
+      <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left z-0"></div>
+
+      <div className="relative md:sticky top-0 h-auto md:h-[100vh] flex items-center overflow-hidden z-10 w-full py-24 md:py-0">
+        <motion.div
+          ref={trackRef as any}
+          style={{ x: isMobile ? 0 : springX }}
+          className="flex flex-col md:flex-row flex-nowrap items-center space-y-16 md:space-y-0 md:space-x-24 px-6 md:px-0 w-full md:w-max"
+        >
+          {/* ── Slide 1: Intro (Centered Full Screen) ── */}
+          <div className="flex-shrink-0 w-full md:w-[100vw] flex flex-col items-center justify-center text-center">
+            <div className="space-y-8 flex flex-col items-center">
+              <div className="h-1.5 w-20 bg-[#4285F4] rounded-full" />
+              <h2 className={`text-6xl sm:text-7xl lg:text-[7rem] font-black uppercase tracking-tighter leading-[0.85] ${antonio.className}`}>
+                <span className="text-[#4285F4]">UPCOMING!</span><br />
+                <span className="text-slate-900">EVENTS?</span>
+              </h2>
+              <p className="text-gray-600 text-xl font-bold tracking-tight max-w-sm">
+                Don't miss out on the most impactful technical sessions in the city.
+              </p>
+
+              <Link
+                href="/events"
+                className="inline-flex h-16 items-center bg-white rounded-full text-slate-900 text-sm font-black uppercase tracking-widest hover:-translate-y-1 transition-transform border-[3px] border-slate-900 shadow-[6px_6px_0_#0f172a] p-1.5 group mx-auto"
+              >
+                <span className="px-6">Explore More</span>
+                <div className="h-full px-4 bg-[#4285F4] border-[2px] border-slate-900 rounded-full flex items-center justify-center text-xs shadow-[2px_2px_0_#0f172a] group-hover:bg-[#34A853] text-white transition-colors uppercase leading-none">
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* ── Slide 2..N: Event Cards ── */}
+          {combinedEvents.map((event, idx) => (
+            <motion.div
+              key={event.event_id}
+              className="flex-shrink-0 w-full md:w-[360px]"
+            >
+              <Link href={`/events/${event.event_id}`} className="group block relative aspect-[4/5] bg-slate-900 border-[3px] border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300">
+                {/* Image Background */}
+                <div className="absolute inset-0">
+                  <img
+                    src={event.banner_url || "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
+                    alt={event.title}
+                    className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700"
+                  />
+                  {/* Gradient for base text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+                </div>
+
+                {/* Top Elements (Always visible) */}
+                <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-10">
+                  <div className="flex flex-col gap-2">
+                    <span className="px-3 py-1 bg-[#4285F4] text-white text-[10px] font-black uppercase tracking-widest rounded-full border-2 border-slate-900 shadow-[2px_2px_0_#0f172a]">
+                      {event.category_name || 'General'}
+                    </span>
+                  </div>
+
+                  <div className="bg-[#EA4335] border-2 border-slate-900 rounded-xl w-14 h-14 flex flex-col items-center justify-center shadow-[4px_4px_0_#0f172a] rotate-3 group-hover:rotate-0 transition-transform">
+                    <span className="text-[9px] font-black text-white uppercase leading-none mt-1">
+                      {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
+                    </span>
+                    <span className="text-xl font-black text-white leading-none">
+                      {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Content Area */}
+                <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col justify-end z-20 h-full">
+                  {/* Title & Details Container */}
+                  <div className="transform translate-y-36 group-hover:translate-y-0 transition-transform duration-500 ease-out flex flex-col">
+
+                    <h3 className={`text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className} line-clamp-2`}>
+                      {event.title}
+                    </h3>
+
+                    <div className="w-12 h-1 bg-[#FBBC05] mt-4 mb-4 opacity-100 group-hover:opacity-0 transition-opacity duration-300" />
+
+                    {/* Hidden Details (Reveal on Hover) */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs font-bold text-gray-300 mb-6 border-t-2 border-white/20 pt-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Time</span>
+                          <span className="text-white">{event.start_datetime ? formatTime(event.start_datetime) : 'TBA'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Location</span>
+                          <span className="text-white truncate pr-2" title={event.venue || 'Online'}>{event.venue || 'Online'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Entry</span>
+                          <span className="text-white">{event.is_free ? 'Free' : `Rs. ${event.ticket_price || 0}`}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Status</span>
+                          <span className={event.seats_available > 0 ? 'text-[#34A853]' : 'text-[#EA4335]'}>
+                            {event.seats_available > 0 ? `${event.seats_available} Seats` : 'Sold Out'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs font-black text-white uppercase tracking-widest pt-3 border-t-2 border-white/10">
+                        <span className="flex items-center gap-2">VIEW DETAILS <div className="w-8 h-[2px] bg-white transition-all group-hover:w-12 group-hover:bg-[#4285F4]" /></span>
+                        <span className="text-[#FBBC05] flex items-center group/rsvp">RSVP <svg className="w-4 h-4 ml-1 group-hover/rsvp:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" /></svg></span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+
+          {/* ── Slide Final: CTA ── */}
+          <div className="flex-shrink-0 w-full md:w-[360px]">
+            <div className="relative p-10 md:p-12 bg-[#F4F4F0] border-[3px] border-slate-900 rounded-[2rem] shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300 space-y-8 aspect-[4/5] flex flex-col justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#4285F4] border-2 border-slate-900 flex items-center justify-center shadow-[4px_4px_0_#0f172a]">
+                <svg className="w-8 h-8 text-white rotate-[-45deg]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" />
+                </svg>
+              </div>
+              <div>
+                <h4 className={`text-4xl font-black text-slate-900 italic uppercase tracking-tighter leading-[0.9] mb-4 ${antonio.className}`}>
+                  Want to host<br />an event?
+                </h4>
+                <p className="text-gray-600 font-bold max-w-xs leading-snug">
+                  Have an idea for a workshop or talk? Let's make it happen. Reach out to our leads.
+                </p>
+              </div>
+              <Link
+                href="/about"
+                className="inline-flex h-12 w-max items-center px-6 bg-slate-900 text-[#F4F4F0] border-[2px] border-slate-900 rounded-full text-xs font-black uppercase tracking-widest hover:bg-[#FBBC05] hover:text-slate-900 transition-all shadow-[4px_4px_0_#4285F4] group"
+              >
+                Get in touch
+                <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+
+          {/* Spacer to center the last card at the end of scroll */}
+          {!isMobile && <div className="flex-shrink-0 w-[calc(50vw-180px)]" />}
+
+        </motion.div>
+      </div>
+    </section>
   );
 }
 
@@ -446,14 +811,16 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   // Identity section ref for scroll-masking
-  const identitySectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: identitySectionRef,
-    offset: ["start end", "center center"]
-  });
+  // (Now handled inside IdentitySection component)
 
-  const waveRevealY = useTransform(scrollYProgress, [0, 1], ["20%", "0%"]);
-  const waveOpacity = useTransform(scrollYProgress, [0, 0.4], [0, 1]);
+  // Mobile detection for horizontal scroll
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Scroll hooks for parallax wavy transition
   const { scrollY } = useScroll();
@@ -558,7 +925,7 @@ export default function HomePage() {
         />
 
         {/* ── Ink Splat Trail Reveal Overlay ───────── */}
-        <InkMaskOverlay />
+        {/* <InkMaskOverlay /> */}
         {/* ──────────────────────────────────────────── */}
 
         {/* Floating Abstract Elements */}
@@ -641,8 +1008,7 @@ export default function HomePage() {
         <div className="relative z-10 max-w-[900px] mx-auto px-4 text-center flex flex-col items-center mt-6">
 
           <h1
-            style={{ WebkitMaskImage: 'url(#hide-text-mask)', maskImage: 'url(#hide-text-mask)' }}
-            className={`text-[3rem] sm:text-[4rem] md:text-[5.5rem] font-black uppercase tracking-tighter text-foreground leading-[0.4] py-8 select-none w-full grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4 mb-[-2rem] sm:mb-[-3rem] md:mb-[-4rem] ${antonio.className}`}
+            className={`text-[3rem] sm:text-[4rem] md:text-[5.5rem] font-black uppercase tracking-tighter text-foreground leading-[1.0] py-8 select-none w-full grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4 mb-[-1.5rem] sm:mb-[-2rem] md:mb-[-3rem] ${antonio.className}`}
           >
             {/* Line 1: COME | TO | LEARN. */}
             <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-right">
@@ -663,14 +1029,32 @@ export default function HomePage() {
               TO
             </motion.span>
             <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-left flex items-center h-full w-full">
-              <span className="flex items-center relative h-[1.7em] w-full overflow-hidden" style={{ color: ['#EA4335', '#4285F4', '#FBBC05', '#34A853'][wordIndex % 4] }}>
+              <span className="flex items-center relative h-[1.1em] w-full overflow-hidden">
                 <AnimatePresence mode="popLayout">
                   <motion.span
                     key={wordIndex}
-                    initial={{ y: "100%", opacity: 0 }}
-                    animate={{ y: "0%", opacity: 1 }}
-                    exit={{ y: "-100%", opacity: 0 }}
-                    transition={{ duration: 0.4, stiffness: 100 }}
+                    initial={{ y: "100%" }}
+                    animate={{ 
+                      y: "0%",
+                      "--pulse": ["10%", "50%", "10%"]
+                    } as any}
+                    exit={{ y: "-100%" }}
+                    transition={{ 
+                      y: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+                      "--pulse": { duration: 3, repeat: Infinity, ease: "easeInOut" }
+                    }}
+                    style={{ 
+                      backgroundImage: [
+                        "linear-gradient(90deg, #ff7c70 0%, #EA4335 var(--pulse), #c53026 100%)", // Red
+                        "linear-gradient(90deg, #7aaaff 0%, #4285F4 var(--pulse), #3474d4 100%)", // Blue
+                        "linear-gradient(90deg, #ffe066 0%, #FBBC05 var(--pulse), #e6ad00 100%)", // Yellow
+                        "linear-gradient(90deg, #69e88d 0%, #34A853 var(--pulse), #288a44 100%)"  // Green
+                      ][wordIndex % 4],
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      color: "transparent"
+                    }}
                     className="absolute inset-0 flex items-center justify-start whitespace-nowrap leading-none pt-[0.0em]"
                   >
                     {words[wordIndex]}
@@ -682,7 +1066,6 @@ export default function HomePage() {
 
           <motion.p
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-            style={{ WebkitMaskImage: 'url(#hide-text-mask)', maskImage: 'url(#hide-text-mask)' }}
             className="mt-6 text-base sm:text-lg font-normal max-w-xl mx-auto text-gray-700 tracking-wide relative z-10 text-center px-4 py-1"
           >
             Real projects. Real people. Real fun.
@@ -709,284 +1092,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      <motion.section 
-        ref={identitySectionRef}
-        style={{ 
-          opacity: waveOpacity,
-          translateY: waveRevealY,
-          clipPath: "ellipse(150% 100% at 50% 100%)" 
-        }}
-        className="min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden pt-48 pb-32 md:pt-64 md:pb-40 z-[20] -mt-32"
-      >
-        {/* Abstract Brutalist Grid overlay synced to 100px Hero grid (origin top-left) */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left"></div>
-        
-        {/* High-Performance Wavy Mask Reveal Logic */}
-        <div className="absolute top-0 left-0 right-0 h-32 overflow-hidden -translate-y-full pointer-events-none">
-          <svg viewBox="0 0 1440 320" className="w-full h-full fill-slate-900 scale-y-[-1]">
-             <path d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,144C672,139,768,181,864,186.7C960,192,1056,160,1152,144C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
-          </svg>
-        </div>
+      {/* ── Who We Are: Identity Reveal ── */}
+      <IdentitySection
+        activeFeatureIndex={activeFeatureIndex}
+        wordIndex={wordIndex}
+      />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 relative z-10 w-full">
-          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
-
-            {/* Left Column: Identity */}
-            <div className="w-full lg:w-[40%] flex flex-col items-center lg:items-start text-center lg:text-left">
-              <div className="h-2 w-24 flex mb-8 rounded-none overflow-hidden border-2 border-black shadow-[3px_3px_0_#000]">
-                <div className="flex-1 bg-[#4285F4]" />
-                <div className="flex-1 bg-[#EA4335]" />
-                <div className="flex-1 bg-[#FBBC05]" />
-                <div className="flex-1 bg-[#34A853]" />
-              </div>
-              
-              <h2 className={`text-4xl sm:text-5xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.85] mb-6 ${antonio.className}`}>
-                <span className="text-white">WHO</span><br />
-                <span className="text-[#34A853]">WE ARE</span>
-              </h2>
-
-              <div className="max-w-md space-y-4 mb-8">
-                <p className="text-lg sm:text-xl font-bold text-white leading-tight italic">
-                  "A community of student builders at UIT University Karachi."
-                </p>
-                <p className="text-sm font-medium text-gray-300 leading-relaxed">
-                  GDGOC-UITU is a Google Developer Group on Campus where passion meets technology. We bridge the gap between theory and practice through high-impact workshops, competitive hackathons, and a peer-driven learning ecosystem.
-                </p>
-              </div>
-
-              {/* Social Links Row */}
-              <div className="flex items-center gap-3 mb-8">
-                {SOCIAL_LINKS.map((social) => (
-                  <a
-                    key={social.platform}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 bg-white border-[2.5px] border-black rounded-lg flex items-center justify-center hover:bg-[#FFED00] hover:-translate-y-1 hover:-translate-x-1 shadow-[3px_3px_0_#000] hover:shadow-[5px_5px_0_#000] active:shadow-none active:translate-y-1 active:translate-x-1 transition-all group"
-                    title={social.platform}
-                  >
-                    <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
-                      <path d={social.icon} />
-                    </svg>
-                  </a>
-                ))}
-              </div>
-
-              <Link
-                href="/about"
-                className="inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-[#FBBC05] rounded-full border-[3px] border-black text-black font-black uppercase tracking-widest shadow-[6px_6px_0_#000] hover:bg-[#EA4335] hover:text-white hover:shadow-[8px_8px_0_#000] hover:-translate-y-1 active:shadow-[2px_2px_0_#000] active:translate-y-1 transition-all group text-sm"
-              >
-                Learn More About Us
-                <svg className="w-5 h-5 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-
-            {/* Right Column: High-Impact Carousel */}
-            <div className="w-full lg:w-[55%] relative flex flex-col items-center">
-              <div className="relative w-full aspect-[4/3] sm:aspect-video lg:aspect-[1.4/1] bg-white border-[3px] border-black rounded-[2.5rem] overflow-hidden shadow-[16px_16px_0_#000] group">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeFeatureIndex}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0"
-                  >
-                    <img 
-                      src={FEATURE_SLIDES[activeFeatureIndex].image} 
-                      alt={FEATURE_SLIDES[activeFeatureIndex].title} 
-                      className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-                    />
-                    
-                    {/* Dark Overlay for Text Readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-                    
-                    {/* Content Inside Image */}
-                    <div className="absolute bottom-10 left-10 right-10 z-20">
-                      <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <span 
-                          className="inline-block px-4 py-1.5 rounded-full border-2 border-black text-black text-xs font-black uppercase tracking-widest mb-4 shadow-[4px_4px_0_#000]"
-                          style={{ backgroundColor: FEATURE_SLIDES[activeFeatureIndex].color }}
-                        >
-                          CORE PILLAR
-                        </span>
-                        <h3 className={`text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-3 ${antonio.className}`}>
-                          {FEATURE_SLIDES[activeFeatureIndex].title}
-                        </h3>
-                        <p className="max-w-md text-base sm:text-lg font-bold text-gray-200 leading-tight">
-                          {FEATURE_SLIDES[activeFeatureIndex].description}
-                        </p>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-
-                {/* Progress Indicators */}
-                <div className="absolute top-10 left-10 right-10 flex gap-2 z-30">
-                  {FEATURE_SLIDES.map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden"
-                    >
-                      <motion.div
-                        className="h-full bg-white"
-                        initial={{ width: "0%" }}
-                        animate={{ 
-                          width: i === activeFeatureIndex ? "100%" : i < activeFeatureIndex ? "100%" : "0%" 
-                        }}
-                        transition={{ duration: i === activeFeatureIndex ? 5 : 0.5, ease: "linear" }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Centering Helper (Invisible on Desktop, Spacing on Mobile) */}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* ── Upcoming Events: Sticky Reveal ── */}
-      {!loading && (featuredEvent || events.length > 0) && (() => {
-        const combinedEvents = [...(featuredEvent ? [featuredEvent] : []), ...events].filter((e, idx, self) => self.findIndex(t => t.event_id === e.event_id) === idx);
-        const activeHoverEvent = combinedEvents[activeEventIndex] || combinedEvents[0];
-
-        if (combinedEvents.length === 0) return null;
-
-        return (
-          <section className="pt-12 pb-32 bg-[#000] relative border-b-[3px] border-black text-white">
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 w-full flex flex-col md:flex-row gap-16 lg:gap-24">
-              
-              {/* Left Column: Sticky Reveal Card */}
-              <div className="w-full md:w-[45%] md:sticky md:top-28 self-start h-fit">
-                {/* The Sticky Image Reveal */}
-                <Link href={`/events/${activeHoverEvent?.event_id}`} className="block relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] w-full max-h-[calc(100vh-160px)] bg-[#111] border-[4px] border-white/10 rounded-[3rem] overflow-hidden group shadow-[20px_20px_60px_rgba(0,0,0,0.8)]">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={activeHoverEvent?.event_id}
-                      src={activeHoverEvent?.banner_url || "https://placehold.co/600x800/EA4335/FFF?text=GDG+EVENT"}
-                      initial={{ opacity: 0, scale: 1.1, filter: "grayscale(1) contrast(1.2)" }}
-                      animate={{ opacity: 1, scale: 1, filter: "grayscale(0) contrast(1)" }}
-                      exit={{ opacity: 0, scale: 0.95, filter: "grayscale(1)" }}
-                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                  </AnimatePresence>
-                  
-                  {/* Image Overlays */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none" />
-                  
-                  <div className="absolute bottom-8 left-8 right-8 z-20">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="px-4 py-1.5 bg-[#FBBC05] text-black text-xs font-black uppercase tracking-widest rounded-full border-2 border-black">
-                        {activeHoverEvent?.category_name || 'General'}
-                      </span>
-                      <span className="text-white/60 text-xs font-black uppercase tracking-widest px-1">
-                        {activeHoverEvent?.is_free ? 'Free' : 'Premium'}
-                      </span>
-                    </div>
-                    <h3 className={`text-3xl sm:text-4xl font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className}`}>
-                      {activeHoverEvent?.title}
-                    </h3>
-                  </div>
-
-                  {/* Absolute date badge */}
-                  <div className="absolute top-8 right-8 bg-[#EA4335] border-[3px] border-black rounded-3xl w-24 h-24 flex flex-col items-center justify-center shadow-[6px_6px_0_#000] -rotate-6 group-hover:rotate-0 transition-transform duration-500">
-                    <span className="text-xs font-black text-white uppercase mb-1">
-                      {activeHoverEvent?.start_datetime ? new Date(activeHoverEvent.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
-                    </span>
-                    <span className="text-4xl font-black text-white leading-none tracking-tighter">
-                      {activeHoverEvent?.start_datetime ? new Date(activeHoverEvent.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
-                    </span>
-                  </div>
-                </Link>
-              </div>
-
-              {/* Right Column: Scrolling Event List */}
-              <div className="w-full md:w-[55%] flex flex-col pt-4 md:pt-8 lg:pt-12 pb-16">
-                {/* Mobile/Right-column Header (duplicated for balance) */}
-                <div className="space-y-6 mb-20">
-                  <h2 className={`text-5xl sm:text-7xl lg:text-[7.5rem] font-black uppercase tracking-tighter leading-[0.8] ${antonio.className}`}>
-                    <span className="text-[#FBBC05] italic drop-shadow-[4px_4px_0_#fff]">UPCOMING!</span><br />
-                    <span className="text-white">EVENTS?</span>
-                  </h2>
-                  <p className="text-gray-400 text-lg font-bold tracking-tight max-w-sm">
-                    Don't miss out on the most impactful technical sessions in the city.
-                  </p>
-                  
-                  <Link 
-                    href="/events" 
-                    className="inline-flex h-14 items-center px-8 bg-[#FBBC05] border-[3px] border-black rounded-full text-black text-sm font-black uppercase tracking-widest shadow-[6px_6px_0_#fff] hover:shadow-[3px_3px_0_#fff] hover:translate-x-1 hover:translate-y-1 transition-all group"
-                  >
-                    View All Events
-                    <svg className="w-5 h-5 ml-3 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-
-                <div className="flex flex-col border-t-[1px] border-white/20">
-                  {combinedEvents.map((event, idx) => (
-                    <Link
-                      key={event.event_id}
-                      href={`/events/${event.event_id}`}
-                      onMouseEnter={() => setActiveEventIndex(idx)}
-                      onFocus={() => setActiveEventIndex(idx)}
-                      className="group relative flex flex-col sm:flex-row sm:items-center justify-between py-10 sm:py-14 border-b-[1px] border-white/20 hover:bg-white/[0.03] transition-colors cursor-pointer group/item text-white"
-                    >
-                      <div className="space-y-4 max-w-[80%]">
-                        <div className="flex items-center gap-4">
-                          <span className="text-[#FBBC05] text-xs font-black uppercase tracking-[0.2em]">
-                            {event.category_name || 'Tech'}
-                          </span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                          <span className="text-white/40 text-xs font-black uppercase tracking-[0.2em]">
-                           {event.venue || 'Online'}
-                          </span>
-                        </div>
-                        
-                        <h3 className={`text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight leading-[0.85] group-hover/item:text-[#FBBC05] transition-colors ${antonio.className} ${activeEventIndex === idx ? 'text-[#FBBC05]' : 'text-white'}`}>
-                          {event.title}
-                        </h3>
-                      </div>
-
-                      {/* Right Hand: Action & Arrow */}
-                      <div className="flex flex-col items-end gap-6 mt-8 sm:mt-0">
-                         <div className="w-12 h-12 rounded-full border-2 border-white/20 flex items-center justify-center text-white group-hover/item:border-[#FBBC05] group-hover/item:text-[#FBBC05] transition-all group-hover/item:-translate-y-1 group-hover/item:translate-x-1">
-                           <svg className="w-6 h-6 rotate-[-45deg] group-hover/item:rotate-0 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" />
-                           </svg>
-                         </div>
-                         <div className="text-white/20 text-[10px] font-black uppercase tracking-[0.4em] group-hover/item:text-white/60 transition-colors">
-                           View Event &nbsp;→
-                         </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                
-                {/* Bottom CTA */}
-                <div className="py-20 flex flex-col items-center text-center space-y-8 border-t-[1px] border-white/20 mt-10">
-                   <h4 className={`text-4xl font-black text-white italic uppercase tracking-tighter ${antonio.className}`}>
-                      Want to host an event?
-                   </h4>
-                   <Link href="/about" className="text-[#FBBC05] font-black uppercase tracking-widest text-sm hover:underline underline-offset-8 decoration-2">
-                     Get in touch with the lead →
-                   </Link>
-                </div>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
+      {/* ── Upcoming Events: Horizontal Scroll Reveal ── */}
+      {!loading && (featuredEvent || events.length > 0) && (
+        <EventsHorizontalScroll
+          events={events}
+          featuredEvent={featuredEvent}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* ── Featured Past Events ── */}
       {!loading && featuredPastEvents.length > 0 && (
