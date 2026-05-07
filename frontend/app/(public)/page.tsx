@@ -398,7 +398,7 @@ function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex
     offset: ["start end", "center center"]
   });
 
-  const waveRevealY = useTransform(scrollYProgress, [0, 1], ["20%", "0%"]);
+
   const waveOpacity = useTransform(scrollYProgress, [0, 0.4], [0, 1]);
 
   const words = ['BUILDERS', 'INNOVATORS', 'CREATORS', 'LEADERS'];
@@ -413,21 +413,14 @@ function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex
     <motion.section
       ref={identitySectionRef}
       style={{
-        opacity: waveOpacity,
-        translateY: waveRevealY,
-        clipPath: "ellipse(150% 100% at 50% 100%)"
+        opacity: waveOpacity
       }}
-      className="min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden pt-48 pb-32 md:pt-64 md:pb-40 z-[20] -mt-32"
+      className="min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden py-24 md:py-32 z-[20]"
     >
       {/* Abstract Brutalist Grid overlay synced to 100px Hero grid (origin top-left) */}
       <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left"></div>
 
-      {/* High-Performance Wavy Mask Reveal Logic */}
-      <div className="absolute top-0 left-0 right-0 h-32 overflow-hidden -translate-y-full pointer-events-none">
-        <svg viewBox="0 0 1440 320" className="w-full h-full fill-slate-900 scale-y-[-1]">
-          <path d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,144C672,139,768,181,864,186.7C960,192,1056,160,1152,144C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
-        </svg>
-      </div>
+
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 relative z-10 w-full">
         <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
@@ -584,9 +577,8 @@ function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: E
     offset: ["start start", "end end"]
   });
 
-  // Calculate pixel translation instead of using CSS Calc (which breaks Framer Motion spring physics)
+  // With Lenis handling global smooth scroll, we don't need a Spring here. It would cause rubber-banding.
   const x = useTransform(scrollYProgress, [0, 1], [0, scrollRange > 0 ? -scrollRange : 0]);
-  const springX = useSpring(x, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
   const combinedEvents = [...(featuredEvent ? [featuredEvent] : []), ...events].filter((e, idx, self) => self.findIndex(t => t.event_id === e.event_id) === idx);
 
@@ -600,7 +592,7 @@ function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: E
       <div className="relative md:sticky top-0 h-auto md:h-[100vh] flex items-center overflow-hidden z-10 w-full py-24 md:py-0">
         <motion.div
           ref={trackRef as any}
-          style={{ x: isMobile ? 0 : springX }}
+          style={{ x: isMobile ? 0 : x }}
           className="flex flex-col md:flex-row flex-nowrap items-center space-y-16 md:space-y-0 md:space-x-24 px-6 md:px-0 w-full md:w-max"
         >
           {/* ── Slide 1: Intro (Centered Full Screen) ── */}

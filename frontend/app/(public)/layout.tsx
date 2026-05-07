@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import SmoothScroll from '@/components/ui/smooth-scroll';
 
 const NAV_LINKS = [
   { label: 'Events', href: '/events' },
@@ -242,7 +243,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       {/* ── Page Content ── */}
       {/* Padding is CONSTANT — never changes on scroll, preventing layout jitter. */}
       <main className="flex-1">
-        {children}
+        <SmoothScroll>
+          {children}
+        </SmoothScroll>
       </main>
 
     </div>
