@@ -2,12 +2,19 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring, useMotionTemplate, animate } from 'framer-motion';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 import Magnetic from '../../components/ui/magnetic';
 import { BrutalistMemberCard } from '../../components/ui/BrutalistMemberCard';
 import { Antonio } from 'next/font/google';
 
 const antonio = Antonio({ subsets: ['latin'] });
+
+// Register GSAP Plugins
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Homepage = {
@@ -219,84 +226,49 @@ const LIQUID_SPLATS = [
 
 function InkMaskOverlay() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const splatRefs = useRef<(SVGPathElement | null)[]>([]);
 
-  // Object pooling for buttery smooth, zero-latency 144Hz continuous interpolation tracking
+  // Object pooling for buttery smooth, zero-latency tracking
   const SPLAT_COUNT = 80;
   const [mounted, setMounted] = useState(false);
-  const xs = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(-1000))).current;
-  const ys = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(-1000))).current;
-  const scales = useRef(Array.from({ length: SPLAT_COUNT }, () => useMotionValue(0))).current;
-  const rots = useRef(Array.from({ length: SPLAT_COUNT }, () => 0)).current;
-  const paths = useRef(Array.from({ length: SPLAT_COUNT }, () => 0)).current;
+  const paths = useRef(Array.from({ length: SPLAT_COUNT }, () => Math.floor(Math.random() * LIQUID_SPLATS.length))).current;
+  const rots = useRef(Array.from({ length: SPLAT_COUNT }, () => Math.random() * 360)).current;
 
   useEffect(() => {
     setMounted(true);
-    // Initialize random values on mount to avoid hydration mismatch
-    rots.forEach((_, i) => rots[i] = Math.random() * 360);
-    paths.forEach((_, i) => paths[i] = Math.floor(Math.random() * LIQUID_SPLATS.length));
-
-    let lastX = -1;
-    let lastY = -1;
     let poolIdx = 0;
 
     const triggerSplash = (x: number, y: number, isAuto = false) => {
       poolIdx = (poolIdx + 1) % SPLAT_COUNT;
-      xs[poolIdx].set(x);
-      ys[poolIdx].set(y);
+      const el = splatRefs.current[poolIdx];
+      if (!el) return;
 
       const targetScale = isAuto ? 45.0 : (Math.random() * 3.0 + 8.0);
       const sweepDur = isAuto ? 5.0 : (Math.random() * 1.0 + 4.0);
 
-      animate(scales[poolIdx], [0, targetScale, targetScale * 0.9, 0], {
-        duration: sweepDur,
-        times: [0, 0.1, 0.2, 1],
-        ease: ["easeOut", "easeInOut", "easeIn"]
+      // Reset and animate using GSAP
+      gsap.set(el, { x, y, scale: 0, rotate: rots[poolIdx] });
+      gsap.to(el, {
+        scale: targetScale,
+        duration: sweepDur * 0.1,
+        ease: "power2.out",
+        onComplete: () => {
+          gsap.to(el, {
+            scale: 0,
+            duration: sweepDur * 0.8,
+            ease: "power2.in",
+            delay: sweepDur * 0.1
+          });
+        }
       });
     };
 
-    const handleMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const currX = e.clientX;
-      const currY = e.clientY;
-
-      const insideHero = e.clientY >= rect.top && e.clientY <= rect.bottom && e.clientX >= rect.left && e.clientX <= rect.right;
-      if (!insideHero) {
-        lastX = -1; // Reset when leaving wrapper
-        return;
-      }
-
-      if (lastX === -1) {
-        lastX = currX;
-        lastY = currY;
-      }
-
-      const dx = currX - lastX;
-      const dy = currY - lastY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      // Interpolate one drop every 10 pixels to guarantee an unbroken solid fluid line even during rapid mouse flinging
-      const steps = Math.max(1, Math.floor(dist / 10));
-
-      for (let i = 1; i <= steps; i++) {
-        const nx = lastX + dx * (i / steps);
-        const ny = lastY + dy * (i / steps);
-        triggerSplash(nx, ny);
-      }
-
-      lastX = currX;
-      lastY = currY;
-    };
-
-    // Auto-splash every 5 seconds with a horizontal "scanning" sweep
     const autoInterval = setInterval(() => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
+      const sweepSteps = 25;
+      const sweepDuration = 1200;
 
-      const sweepSteps = 25; // Higher density for a solid continuous line
-      const sweepDuration = 1200; // Duration of one horizontal sweep in ms
-
-      // Phase 1: Top-Third Sweep (Left to Right)
       const topY = rect.top + rect.height * 0.25;
       for (let i = 0; i <= sweepSteps; i++) {
         setTimeout(() => {
@@ -305,7 +277,6 @@ function InkMaskOverlay() {
         }, i * (sweepDuration / sweepSteps));
       }
 
-      // Phase 2: Bottom-Third Sweep (Right to Left) - Starts after Phase 1 finishes
       const bottomY = rect.top + rect.height * 0.75;
       for (let i = 0; i <= sweepSteps; i++) {
         setTimeout(() => {
@@ -315,16 +286,11 @@ function InkMaskOverlay() {
       }
     }, 10000);
 
-    // window.addEventListener('mousemove', handleMove);
-    return () => {
-      // window.removeEventListener('mousemove', handleMove);
-      clearInterval(autoInterval);
-    };
+    return () => clearInterval(autoInterval);
   }, []);
 
   return (
     <div ref={containerRef} className="absolute inset-0 z-[5] pointer-events-none overflow-hidden" style={{ WebkitMaskImage: 'url(#ink-mask)', maskImage: 'url(#ink-mask)' }}>
-
       {/* ── Hidden Mask Stickers ── */}
       <img src="/images/Android Guy Standing Still.png" alt="Android Standing Shadow" className="absolute left-4 sm:left-12 lg:left-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 -rotate-6" />
       <img src="/images/Android WOMAN Standing Still.png" alt="Android Society Shadow" className="absolute right-4 sm:right-12 lg:right-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 rotate-6" />
@@ -332,26 +298,18 @@ function InkMaskOverlay() {
       {/* ── Main Center Logo ── */}
       <img src="/images/google-developers-seeklogo.svg" alt="Mask Reveal Image" className="w-full h-full object-contain p-10 md:p-32 opacity-100 drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] relative z-10" />
 
-      {/* Invisible dynamic mask definition */}
-      {/* Invisible dynamic mask definitions (Full screen SVG but transparent/non-interactive) */}
       <svg className="fixed top-0 left-0 w-full h-full pointer-events-none z-[1001] opacity-0">
         <defs>
           <mask id="ink-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100vw" height="100vh">
             <rect width="100%" height="100%" fill="black" />
             <g filter="url(#gooey)">
-              {mounted && xs.map((_, i) => (
-                <motion.path
+              {mounted && Array.from({ length: SPLAT_COUNT }).map((_, i) => (
+                <path
                   key={i}
+                  ref={(el) => { splatRefs.current[i] = el; }}
                   d={LIQUID_SPLATS[paths[i]]}
-                  fill="white" // White reveals the mask contents
-                  style={{
-                    x: xs[i],
-                    y: ys[i],
-                    scale: scales[i],
-                    rotate: rots[i],
-                    originX: 0,
-                    originY: 0
-                  }}
+                  fill="white"
+                  style={{ transformOrigin: 'center' }}
                 />
               ))}
             </g>
@@ -360,29 +318,6 @@ function InkMaskOverlay() {
             <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
             <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 60 -25" result="gooey" />
           </filter>
-
-          <mask id="hide-text-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100vw" height="100vh">
-            {/* White background: everything visible by default */}
-            <rect width="100%" height="100%" fill="white" />
-            {/* Black splashes: hide everything under them */}
-            <g filter="url(#gooey)">
-              {mounted && xs.map((_, i) => (
-                <motion.path
-                  key={i}
-                  d={LIQUID_SPLATS[paths[i]]}
-                  fill="black"
-                  style={{
-                    x: xs[i],
-                    y: ys[i],
-                    scale: scales[i],
-                    rotate: rots[i],
-                    originX: 0,
-                    originY: 0
-                  }}
-                />
-              ))}
-            </g>
-          </mask>
         </defs>
       </svg>
     </div>
@@ -393,13 +328,19 @@ function InkMaskOverlay() {
 
 function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex: number, wordIndex: number }) {
   const identitySectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: identitySectionRef,
-    offset: ["start end", "center center"]
-  });
 
-
-  const waveOpacity = useTransform(scrollYProgress, [0, 0.4], [0, 1]);
+  useGSAP(() => {
+    gsap.from(identitySectionRef.current, {
+      opacity: 0,
+      y: 100,
+      scrollTrigger: {
+        trigger: identitySectionRef.current,
+        start: "top bottom",
+        end: "center center",
+        scrub: true
+      }
+    });
+  }, { scope: identitySectionRef });
 
   const words = ['BUILDERS', 'INNOVATORS', 'CREATORS', 'LEADERS'];
   const SOCIAL_LINKS = [
@@ -410,17 +351,12 @@ function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex
   ];
 
   return (
-    <motion.section
+    <section
       ref={identitySectionRef}
-      style={{
-        opacity: waveOpacity
-      }}
       className="min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden py-24 md:py-32 z-[20]"
     >
       {/* Abstract Brutalist Grid overlay synced to 100px Hero grid (origin top-left) */}
       <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left"></div>
-
-
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 relative z-10 w-full">
         <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
@@ -480,47 +416,39 @@ function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex
           {/* Right Column: High-Impact Carousel */}
           <div className="w-full lg:w-[55%] relative flex flex-col items-center">
             <div className="relative w-full aspect-[4/3] sm:aspect-video lg:aspect-[1.4/1] bg-white border-[3px] border-black rounded-[2.5rem] overflow-hidden shadow-[16px_16px_0_#000] group">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeFeatureIndex}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  className="absolute inset-0"
-                >
-                  <img
-                    src={FEATURE_SLIDES[activeFeatureIndex].image}
-                    alt={FEATURE_SLIDES[activeFeatureIndex].title}
-                    className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-                  />
+              <div className="absolute inset-0 carousel-container">
+                {FEATURE_SLIDES.map((slide, index) => (
+                  <div
+                    key={slide.id}
+                    className={`absolute inset-0 transition-opacity duration-700 ${index === activeFeatureIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                  >
+                    <img
+                      src={slide.image}
+                      alt={slide.title}
+                      className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-transform duration-700 group-hover:scale-105"
+                    />
 
-                  {/* Dark Overlay for Text Readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                    {/* Dark Overlay for Text Readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
-                  {/* Content Inside Image */}
-                  <div className="absolute bottom-10 left-10 right-10 z-20">
-                    <motion.div
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                    >
+                    {/* Content Inside Image */}
+                    <div className={`absolute bottom-10 left-10 right-10 z-20 transition-all duration-700 delay-300 ${index === activeFeatureIndex ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
                       <span
                         className="inline-block px-4 py-1.5 rounded-full border-2 border-black text-black text-xs font-black uppercase tracking-widest mb-4 shadow-[4px_4px_0_#000]"
-                        style={{ backgroundColor: FEATURE_SLIDES[activeFeatureIndex].color }}
+                        style={{ backgroundColor: slide.color }}
                       >
                         CORE PILLAR
                       </span>
                       <h3 className={`text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-3 ${antonio.className}`}>
-                        {FEATURE_SLIDES[activeFeatureIndex].title}
+                        {slide.title}
                       </h3>
                       <p className="max-w-md text-base sm:text-lg font-bold text-gray-200 leading-tight">
-                        {FEATURE_SLIDES[activeFeatureIndex].description}
+                        {slide.description}
                       </p>
-                    </motion.div>
+                    </div>
                   </div>
-                </motion.div>
-              </AnimatePresence>
+                ))}
+              </div>
 
               {/* Progress Indicators */}
               <div className="absolute top-10 left-10 right-10 flex gap-2 z-30">
@@ -529,70 +457,80 @@ function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex
                     key={i}
                     className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden"
                   >
-                    <motion.div
-                      className="h-full bg-white"
-                      initial={{ width: "0%" }}
-                      animate={{
-                        width: i === activeFeatureIndex ? "100%" : i < activeFeatureIndex ? "100%" : "0%"
+                    <div
+                      className="h-full bg-white transition-all duration-500"
+                      style={{ 
+                        width: i === activeFeatureIndex ? "100%" : i < activeFeatureIndex ? "100%" : "0%",
+                        transitionDuration: i === activeFeatureIndex ? "5s" : "0.5s",
+                        transitionTimingFunction: "linear"
                       }}
-                      transition={{ duration: i === activeFeatureIndex ? 5 : 0.5, ease: "linear" }}
                     />
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Centering Helper (Invisible on Desktop, Spacing on Mobile) */}
           </div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }
 
 // ─── Upcoming Events Component (Extracted to fix hydration/ref issues) ───────
 
 function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: Event[], featuredEvent: Event | null, isMobile: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const eventsSectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const [scrollRange, setScrollRange] = useState(0);
 
-  useEffect(() => {
-    const updateScrollRange = () => {
-      if (trackRef.current) {
-        setScrollRange(trackRef.current.scrollWidth - window.innerWidth);
-      }
+  useGSAP(() => {
+    if (isMobile || !trackRef.current || !eventsSectionRef.current) return;
+
+    const track = trackRef.current;
+    const section = eventsSectionRef.current;
+
+    const getScrollAmount = () => {
+      const trackWidth = track.scrollWidth;
+      return Math.max(0, trackWidth - window.innerWidth);
     };
-    updateScrollRange();
 
-    // Slight delay to ensure content layout is complete before measuring
-    setTimeout(updateScrollRange, 100);
+    const st = ScrollTrigger.create({
+      trigger: section,
+      pin: true,
+      start: "top top",
+      end: () => `+=${getScrollAmount()}`,
+      scrub: 1,
+      invalidateOnRefresh: true,
+      animation: gsap.to(track, {
+        x: () => -getScrollAmount(),
+        ease: "none",
+      })
+    });
 
-    window.addEventListener('resize', updateScrollRange);
-    return () => window.removeEventListener('resize', updateScrollRange);
-  }, [events, featuredEvent]);
+    // Force a strict refresh after layout paint to prevent blank sections
+    const timeout = setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 100);
 
-  const { scrollYProgress } = useScroll({
-    target: eventsSectionRef,
-    offset: ["start start", "end end"]
-  });
-
-  // With Lenis handling global smooth scroll, we don't need a Spring here. It would cause rubber-banding.
-  const x = useTransform(scrollYProgress, [0, 1], [0, scrollRange > 0 ? -scrollRange : 0]);
+    return () => {
+      clearTimeout(timeout);
+      st.kill();
+    };
+  }, { scope: containerRef, dependencies: [events, featuredEvent, isMobile] });
 
   const combinedEvents = [...(featuredEvent ? [featuredEvent] : []), ...events].filter((e, idx, self) => self.findIndex(t => t.event_id === e.event_id) === idx);
 
   // Extend the vertical scroll height based on number of items if needed, or simply let CSS handle it
   // 400vh is usually enough for 5-6 cards. We'll give it 500vh to ensure enough scroll room.
   return (
-    <section ref={eventsSectionRef as any} className="h-auto md:h-[500vh] bg-[#F4F4F0] relative overflow-clip border-b-[3px] border-slate-900">
+    <div ref={containerRef} className="events-scroll-wrapper w-full">
+      <section ref={eventsSectionRef as any} className="h-auto md:h-screen bg-[#F4F4F0] relative overflow-hidden border-b-[3px] border-slate-900">
       {/* Background Grid synced to Hero */}
       <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left z-0"></div>
 
-      <div className="relative md:sticky top-0 h-auto md:h-[100vh] flex items-center overflow-hidden z-10 w-full py-24 md:py-0">
-        <motion.div
+      <div className="relative h-full flex items-center overflow-hidden z-10 w-full py-24 md:py-0">
+        <div
           ref={trackRef as any}
-          style={{ x: isMobile ? 0 : x }}
           className="flex flex-col md:flex-row flex-nowrap items-center space-y-16 md:space-y-0 md:space-x-24 px-6 md:px-0 w-full md:w-max"
         >
           {/* ── Slide 1: Intro (Centered Full Screen) ── */}
@@ -622,86 +560,110 @@ function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: E
           </div>
 
           {/* ── Slide 2..N: Event Cards ── */}
-          {combinedEvents.map((event, idx) => (
-            <motion.div
-              key={event.event_id}
-              className="flex-shrink-0 w-full md:w-[360px]"
-            >
-              <Link href={`/events/${event.event_id}`} className="group block relative aspect-[4/5] bg-slate-900 border-[3px] border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300">
-                {/* Image Background */}
-                <div className="absolute inset-0">
-                  <img
-                    src={event.banner_url || "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
-                    alt={event.title}
-                    className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700"
-                  />
-                  {/* Gradient for base text readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
-                </div>
-
-                {/* Top Elements (Always visible) */}
-                <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-10">
-                  <div className="flex flex-col gap-2">
-                    <span className="px-3 py-1 bg-[#4285F4] text-white text-[10px] font-black uppercase tracking-widest rounded-full border-2 border-slate-900 shadow-[2px_2px_0_#0f172a]">
-                      {event.category_name || 'General'}
-                    </span>
+          {combinedEvents.length > 0 ? (
+            combinedEvents.map((event, idx) => (
+              <div
+                key={event.event_id}
+                className="flex-shrink-0 w-full md:w-[360px]"
+              >
+                <Link href={`/events/${event.event_id}`} className="group block relative aspect-[4/5] bg-slate-900 border-[3px] border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300">
+                  {/* Image Background */}
+                  <div className="absolute inset-0">
+                    <img
+                      src={event.banner_url || "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
+                      alt={event.title}
+                      className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700"
+                    />
+                    {/* Gradient for base text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
                   </div>
 
-                  <div className="bg-[#EA4335] border-2 border-slate-900 rounded-xl w-14 h-14 flex flex-col items-center justify-center shadow-[4px_4px_0_#0f172a] rotate-3 group-hover:rotate-0 transition-transform">
-                    <span className="text-[9px] font-black text-white uppercase leading-none mt-1">
-                      {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
-                    </span>
-                    <span className="text-xl font-black text-white leading-none">
-                      {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bottom Content Area */}
-                <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col justify-end z-20 h-full">
-                  {/* Title & Details Container */}
-                  <div className="transform translate-y-36 group-hover:translate-y-0 transition-transform duration-500 ease-out flex flex-col">
-
-                    <h3 className={`text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className} line-clamp-2`}>
-                      {event.title}
-                    </h3>
-
-                    <div className="w-12 h-1 bg-[#FBBC05] mt-4 mb-4 opacity-100 group-hover:opacity-0 transition-opacity duration-300" />
-
-                    {/* Hidden Details (Reveal on Hover) */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-                      <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs font-bold text-gray-300 mb-6 border-t-2 border-white/20 pt-4">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Time</span>
-                          <span className="text-white">{event.start_datetime ? formatTime(event.start_datetime) : 'TBA'}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Location</span>
-                          <span className="text-white truncate pr-2" title={event.venue || 'Online'}>{event.venue || 'Online'}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Entry</span>
-                          <span className="text-white">{event.is_free ? 'Free' : `Rs. ${event.ticket_price || 0}`}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Status</span>
-                          <span className={event.seats_available > 0 ? 'text-[#34A853]' : 'text-[#EA4335]'}>
-                            {event.seats_available > 0 ? `${event.seats_available} Seats` : 'Sold Out'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs font-black text-white uppercase tracking-widest pt-3 border-t-2 border-white/10">
-                        <span className="flex items-center gap-2">VIEW DETAILS <div className="w-8 h-[2px] bg-white transition-all group-hover:w-12 group-hover:bg-[#4285F4]" /></span>
-                        <span className="text-[#FBBC05] flex items-center group/rsvp">RSVP <svg className="w-4 h-4 ml-1 group-hover/rsvp:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" /></svg></span>
-                      </div>
+                  {/* Top Elements (Always visible) */}
+                  <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-10">
+                    <div className="flex flex-col gap-2">
+                      <span className="px-3 py-1 bg-[#4285F4] text-white text-[10px] font-black uppercase tracking-widest rounded-full border-2 border-slate-900 shadow-[2px_2px_0_#0f172a]">
+                        {event.category_name || 'General'}
+                      </span>
                     </div>
 
+                    <div className="bg-[#EA4335] border-2 border-slate-900 rounded-xl w-14 h-14 flex flex-col items-center justify-center shadow-[4px_4px_0_#0f172a] rotate-3 group-hover:rotate-0 transition-transform">
+                      <span className="text-[9px] font-black text-white uppercase leading-none mt-1">
+                        {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
+                      </span>
+                      <span className="text-xl font-black text-white leading-none">
+                        {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Bottom Content Area */}
+                  <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col justify-end z-20 h-full">
+                    {/* Title & Details Container */}
+                    <div className="transform translate-y-36 group-hover:translate-y-0 transition-transform duration-500 ease-out flex flex-col">
+
+                      <h3 className={`text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className} line-clamp-2`}>
+                        {event.title}
+                      </h3>
+
+                      <div className="w-12 h-1 bg-[#FBBC05] mt-4 mb-4 opacity-100 group-hover:opacity-0 transition-opacity duration-300" />
+
+                      {/* Hidden Details (Reveal on Hover) */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                        <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs font-bold text-gray-300 mb-6 border-t-2 border-white/20 pt-4">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Time</span>
+                            <span className="text-white">{event.start_datetime ? formatTime(event.start_datetime) : 'TBA'}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Location</span>
+                            <span className="text-white truncate pr-2" title={event.venue || 'Online'}>{event.venue || 'Online'}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Entry</span>
+                            <span className="text-white">{event.is_free ? 'Free' : `Rs. ${event.ticket_price || 0}`}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Status</span>
+                            <span className={event.seats_available > 0 ? 'text-[#34A853]' : 'text-[#EA4335]'}>
+                              {event.seats_available > 0 ? `${event.seats_available} Seats` : 'Sold Out'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs font-black text-white uppercase tracking-widest pt-3 border-t-2 border-white/10">
+                          <span className="flex items-center gap-2">VIEW DETAILS <div className="w-8 h-[2px] bg-white transition-all group-hover:w-12 group-hover:bg-[#4285F4]" /></span>
+                          <span className="text-[#FBBC05] flex items-center group/rsvp">RSVP <svg className="w-4 h-4 ml-1 group-hover/rsvp:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" /></svg></span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ))
+          ) : (
+            <div className="flex-shrink-0 w-full md:w-[360px]">
+              <div className="relative aspect-[4/5] bg-white border-[3px] border-slate-900 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center shadow-[8px_8px_0_#0f172a]">
+                <div className="w-20 h-20 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 rotate-3">
+                  <svg className="w-10 h-10 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
                 </div>
-              </Link>
-            </motion.div>
-          ))}
+                <h3 className={`text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-4 ${antonio.className}`}>
+                  Still Cooking...
+                </h3>
+                <p className="text-slate-600 font-bold text-sm leading-relaxed px-4">
+                  Looks like we're still cooking something amazing. Come back later for new events!
+                </p>
+                <div className="mt-8 flex gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#4285F4] animate-bounce" />
+                  <div className="w-2 h-2 rounded-full bg-[#EA4335] animate-bounce delay-100" />
+                  <div className="w-2 h-2 rounded-full bg-[#FBBC05] animate-bounce delay-200" />
+                  <div className="w-2 h-2 rounded-full bg-[#34A853] animate-bounce delay-300" />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Slide Final: CTA ── */}
           <div className="flex-shrink-0 w-full md:w-[360px]">
@@ -734,9 +696,10 @@ function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: E
           {/* Spacer to center the last card at the end of scroll */}
           {!isMobile && <div className="flex-shrink-0 w-[calc(50vw-180px)]" />}
 
-        </motion.div>
+        </div>
       </div>
     </section>
+    </div>
   );
 }
 
@@ -773,16 +736,92 @@ const SOCIAL_LINKS = [
 ];
 
 export default function HomePage() {
+  const heroRef = useRef<HTMLElement>(null);
   const [wordIndex, setWordIndex] = useState(0);
-  const words = ["BUILD", "SHIP", "GROW", "LEAD", "HACK", "CODE", "WIN", "SHINE"];
+  const baseWords = ["BUILD", "SHIP", "GROW", "LEAD", "HACK", "CODE", "WIN", "SHINE"];
+  // Append first word to end for seamless looping
+  const words = [...baseWords, baseWords[0]];
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+
+  // Hero Animations
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    
+    // Initial entrance for hero lines
+    tl.from(".hero-line-1", {
+      y: 50,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.1,
+      ease: "power3.out"
+    })
+    .from(".hero-line-2", {
+      y: 50,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.1,
+      ease: "power3.out"
+    }, "-=0.6")
+    .from(".hero-p", {
+      opacity: 0,
+      y: 20,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.6")
+    .from(".hero-btn", {
+      scale: 0.8,
+      opacity: 0,
+      duration: 0.8,
+      ease: "back.out(1.7)"
+    }, "-=0.6")
+    .from(".word-stack", {
+      opacity: 0,
+      duration: 0.5
+    }, "-=0.4");
+
+    // Continuous pulse for the gradient
+    gsap.to(".word-span", {
+      "--pulse": "50%",
+      duration: 1.5,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut"
+    });
+  }, { scope: heroRef });
+
+  // Handle word cycling animation (Seamless Stack Slide)
+  useGSAP(() => {
+    if (wordIndex === 0 && gsap.getProperty(".word-stack", "y") !== 0) {
+      // If we are resetting to 0, it means we just finished the duplicate animation.
+      // We snap back to 0 instantly without animation.
+      gsap.set(".word-stack", { y: 0 });
+      return;
+    }
+
+    gsap.to(".word-stack", {
+      y: `-${wordIndex * 100}%`,
+      duration: 0.8,
+      ease: "power4.inOut",
+      onComplete: () => {
+        // If we just reached the duplicated first word at the end
+        if (wordIndex === words.length - 1) {
+          setWordIndex(0);
+        }
+      }
+    });
+  }, { scope: heroRef, dependencies: [wordIndex] });
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % words.length);
-    }, 2000);
+      // Only increment if we aren't at the very end (the duplicate)
+      // The onComplete handles the snap back
+      setWordIndex((prev) => {
+        if (prev === words.length - 1) return prev;
+        return prev + 1;
+      });
+    }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [words.length]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -814,10 +853,12 @@ export default function HomePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Scroll hooks for parallax wavy transition
-  const { scrollY } = useScroll();
-  const waveY = useTransform(scrollY, [0, 800], [0, -100]);
-  const waveYReverse = useTransform(scrollY, [0, 800], [0, 100]);
+  // Brute-force kill all ScrollTriggers on page unmount (fixes Next.js route cache issues)
+  useEffect(() => {
+    return () => {
+      ScrollTrigger.getAll().forEach(t => t.kill());
+    };
+  }, []);
 
   // Newsletter state
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -903,7 +944,8 @@ export default function HomePage() {
 
       {/* ── Brutalist Grid Hero (with Advanced Ink Trail) ── */}
       <section
-        className="relative bg-[#F4F4F0] min-h-screen py-16 flex flex-col items-center justify-center overflow-hidden"
+        ref={heroRef}
+        className="relative bg-[#F4F4F0] min-h-screen py-16 flex flex-col items-center justify-center overflow-hidden hero-section"
       >
 
         {/* Base Background Grid */}
@@ -1003,74 +1045,64 @@ export default function HomePage() {
             className={`text-[3rem] sm:text-[4rem] md:text-[5.5rem] font-black uppercase tracking-tighter text-foreground leading-[1.0] py-8 select-none w-full grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4 mb-[-1.5rem] sm:mb-[-2rem] md:mb-[-3rem] ${antonio.className}`}
           >
             {/* Line 1: COME | TO | LEARN. */}
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-right">
+            <span className="text-right hero-line-1">
               COME
-            </motion.span>
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-center">
+            </span>
+            <span className="text-center hero-line-1">
               TO
-            </motion.span>
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }} className="text-left">
+            </span>
+            <span className="text-left hero-line-1">
               LEARN.
-            </motion.span>
+            </span>
 
             {/* Line 2: STAY | TO | [ANIMATED] */}
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-right">
+            <span className="text-right hero-line-2">
               STAY
-            </motion.span>
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center">
+            </span>
+            <span className="text-center hero-line-2">
               TO
-            </motion.span>
-            <motion.span initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-left flex items-center h-full w-full">
+            </span>
+            <span className="text-left flex items-center h-full w-full hero-line-2">
               <span className="flex items-center relative h-[1.1em] w-full overflow-hidden">
-                <AnimatePresence mode="popLayout">
-                  <motion.span
-                    key={wordIndex}
-                    initial={{ y: "100%" }}
-                    animate={{ 
-                      y: "0%",
-                      "--pulse": ["10%", "50%", "10%"]
-                    } as any}
-                    exit={{ y: "-100%" }}
-                    transition={{ 
-                      y: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
-                      "--pulse": { duration: 3, repeat: Infinity, ease: "easeInOut" }
-                    }}
-                    style={{ 
-                      backgroundImage: [
-                        "linear-gradient(90deg, #ff7c70 0%, #EA4335 var(--pulse), #c53026 100%)", // Red
-                        "linear-gradient(90deg, #7aaaff 0%, #4285F4 var(--pulse), #3474d4 100%)", // Blue
-                        "linear-gradient(90deg, #ffe066 0%, #FBBC05 var(--pulse), #e6ad00 100%)", // Yellow
-                        "linear-gradient(90deg, #69e88d 0%, #34A853 var(--pulse), #288a44 100%)"  // Green
-                      ][wordIndex % 4],
-                      WebkitBackgroundClip: "text",
-                      backgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                      color: "transparent"
-                    }}
-                    className="absolute inset-0 flex items-center justify-start whitespace-nowrap leading-none pt-[0.0em]"
-                  >
-                    {words[wordIndex]}
-                  </motion.span>
-                </AnimatePresence>
+                <div className="absolute inset-0 flex flex-col word-stack">
+                  {words.map((word, idx) => (
+                    <span
+                      key={`${word}-${idx}`}
+                      style={{ 
+                        backgroundImage: [
+                          "linear-gradient(90deg, #ff7c70 0%, #EA4335 var(--pulse), #c53026 100%)", // Red
+                          "linear-gradient(90deg, #7aaaff 0%, #4285F4 var(--pulse), #3474d4 100%)", // Blue
+                          "linear-gradient(90deg, #ffe066 0%, #FBBC05 var(--pulse), #e6ad00 100%)", // Yellow
+                          "linear-gradient(90deg, #69e88d 0%, #34A853 var(--pulse), #288a44 100%)"  // Green
+                        ][idx % 4],
+                        WebkitBackgroundClip: "text",
+                        backgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        color: "transparent",
+                      }}
+                      className="h-full w-full flex items-center justify-start whitespace-nowrap leading-none pt-[0.0em] word-span flex-shrink-0"
+                    >
+                      {word}
+                    </span>
+                  ))}
+                </div>
               </span>
-            </motion.span>
+            </span>
           </h1>
 
-          <motion.p
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-            className="mt-6 text-base sm:text-lg font-normal max-w-xl mx-auto text-gray-700 tracking-wide relative z-10 text-center px-4 py-1"
+          <p
+            className="mt-6 text-base sm:text-lg font-normal max-w-xl mx-auto text-gray-700 tracking-wide relative z-10 text-center px-4 py-1 hero-p"
           >
             Real projects. Real people. Real fun.
-          </motion.p>
+          </p>
 
-          <motion.div
-            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.6, type: 'spring' }}
-            className="mt-6 relative z-10 flex justify-center"
+          <div
+            className="mt-6 relative z-10 flex justify-center hero-btn"
           >
             <Magnetic>
               <Link
                 href="/events"
-                className="inline-flex items-center gap-4 px-2 py-2 pr-2 pl-6 sm:pl-8 bg-[#F4F4F0] border-[3px] border-foreground rounded-full shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] hover:-translate-y-1 hover:-translate-x-1 active:shadow-none active:translate-y-1 active:translate-x-1 transition-all group"
+                className="inline-flex items-center gap-4 px-2 py-2 pr-2 pl-6 sm:pl-8 bg-[#F4F4F0] border-[3px] border-foreground rounded-full shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] hover:-translate-y-1 hover:-translate-x-1 active:shadow-none active:translate-y-1 active:translate-x-1 transition-[background-color,color,box-shadow,transform] duration-300 group"
               >
                 <span className="font-black uppercase tracking-widest text-base sm:text-lg text-foreground">
                   EXPLORE EVENTS
@@ -1080,7 +1112,7 @@ export default function HomePage() {
                 </span>
               </Link>
             </Magnetic>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -1091,7 +1123,7 @@ export default function HomePage() {
       />
 
       {/* ── Upcoming Events: Horizontal Scroll Reveal ── */}
-      {!loading && (featuredEvent || events.length > 0) && (
+      {!loading && (
         <EventsHorizontalScroll
           events={events}
           featuredEvent={featuredEvent}

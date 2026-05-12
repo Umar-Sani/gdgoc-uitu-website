@@ -38,16 +38,19 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         return;
       }
 
-      // 1. Hide on scroll
-      setIsVisible(false);
+      // 1. Hide on scroll (DISABLED)
+      // setIsVisible(false);
 
       // 2. Clear existing timer
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       // 3. Show after 2 seconds of stopping
-      timeoutRef.current = setTimeout(() => {
-        setIsVisible(true);
-      }, 2000);
+      // timeoutRef.current = setTimeout(() => {
+      //   setIsVisible(true);
+      // }, 2000);
+      
+      // Always visible for now
+      setIsVisible(true);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -77,7 +80,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <nav
           className={`w-full pointer-events-auto relative transition-all duration-300 ease-in-out ${ghost
             ? 'max-w-full bg-transparent border-transparent shadow-none rounded-none'
-            : 'max-w-[1200px] bg-white border-[3px] border-foreground rounded-2xl md:rounded-full shadow-[6px_6px_0_#000]'
+            : 'max-w-[1200px] bg-white border-2 border-foreground rounded-2xl md:rounded-full shadow-[4px_4px_0_#000]'
             }`}
         >
           <div className="w-full h-13 md:h-14 flex items-center px-3 md:px-6">
