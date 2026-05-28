@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BrutalistMemberCard, TeamMember } from '../../../components/ui/BrutalistMemberCard';
+import { Antonio } from 'next/font/google';
+
+const antonio = Antonio({ subsets: ['latin'] });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,25 +110,27 @@ export default function AboutPage() {
     <div className="min-h-screen bg-white">
 
       {/* ── Header ── */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
-        <div className="h-1 w-full flex">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col items-center justify-center relative">
+        <div className="absolute top-0 left-0 w-full h-1.5 flex">
           <div className="flex-1 bg-[#4285F4]" />
           <div className="flex-1 bg-[#EA4335]" />
           <div className="flex-1 bg-[#FBBC05]" />
           <div className="flex-1 bg-[#34A853]" />
         </div>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h1 className="text-4xl font-bold text-white tracking-tight">About GDGOC-UITU</h1>
-          <p className="mt-4 text-blue-200 text-sm leading-relaxed max-w-xl mx-auto">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
+          <h1 className={`text-5xl sm:text-7xl md:text-8xl font-black text-white uppercase tracking-tighter ${antonio.className}`}>
+            About GDGOC-UITU
+          </h1>
+          <p className="mt-8 text-blue-50 font-medium text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto border-2 border-white/20 bg-white/5 px-6 py-4 shadow-[4px_4px_0_rgba(255,255,255,0.1)]">
             Learn about our mission, the people behind the community, and the organizations that support us.
           </p>
-          {/* Quick nav */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+          {/* Quick nav brutalist buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
             {['#mission', '#team', '#sponsors'].map((anchor) => (
               <a
                 key={anchor}
                 href={anchor}
-                className="px-4 py-2 rounded-xl bg-white bg-opacity-10 border border-white border-opacity-20 text-white text-xs font-semibold hover:bg-opacity-20 transition-all capitalize"
+                className="px-6 py-3 bg-white/5 border-2 border-white/20 text-white text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_rgba(255,255,255,0.1)] hover:bg-white/10 hover:translate-y-1 hover:translate-x-1 hover:shadow-[0px_0px_0_rgba(255,255,255,0.1)] transition-all"
               >
                 {anchor.replace('#', '')}
               </a>

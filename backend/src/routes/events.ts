@@ -327,4 +327,135 @@ router.get('/:id/registration-status', requireAuth, async (req: Request, res: Re
   }
 });
 
+// ─── GET /api/events/:id/people ───────────────────────────────────────────────
+// Public — get all people associated with an event
+router.get('/:id/people', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        person_id, event_id, full_name, role,
+        bio, avatar_url, linkedin_url, organization,
+        display_order, created_at
+       FROM events.event_people
+       WHERE event_id = $1
+       ORDER BY display_order ASC, created_at ASC`,
+      [req.params.id]
+    );
+
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    console.error('GET /api/events/:id/people error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── POST /api/events/:id/people ──────────────────────────────────────────────
+// Admin — add a person to an event
+router.post('/:id/people', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
+  try {
+    const {
+      full_name, role, bio,
+      avatar_url, linkedin_url,
+      organization, display_order,
+    } = req.body;
+
+    if (!full_name || !role) {
+      return res.status(400).json({
+        data: null,
+        error: 'full_name and role are required.',
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO events.event_people (
+        event_id, full_name, role, bio,
+        avatar_url, linkedin_url, organization, display_order
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *`,
+      [
+        req.params.id,
+        full_name.trim(),
+        role.trim(),
+        bio?.trim() ?? null,
+        avatar_url?.trim() ?? null,
+        linkedin_url?.trim() ?? null,
+        organization?.trim() ?? null,
+        display_order ?? 0,
+      ]
+    );
+
+    res.status(201).json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    console.error('POST /api/events/:id/people error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── PATCH /api/events/:id/people/:personId ───────────────────────────────────
+// Admin — edit a person on an event
+router.patch('/:id/people/:personId', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
+  try {
+    const {
+      full_name, role, bio,
+      avatar_url, linkedin_url,
+      organization, display_order,
+    } = req.body;
+
+    const result = await pool.query(
+      `UPDATE events.event_people SET
+        full_name     = COALESCE($1, full_name),
+        role          = COALESCE($2, role),
+        bio           = COALESCE($3, bio),
+        avatar_url    = COALESCE($4, avatar_url),
+        linkedin_url  = COALESCE($5, linkedin_url),
+        organization  = COALESCE($6, organization),
+        display_order = COALESCE($7, display_order)
+      WHERE person_id = $8 AND event_id = $9
+      RETURNING *`,
+      [
+        full_name?.trim() ?? null,
+        role?.trim() ?? null,
+        bio?.trim() ?? null,
+        avatar_url?.trim() ?? null,
+        linkedin_url?.trim() ?? null,
+        organization?.trim() ?? null,
+        display_order ?? null,
+        req.params.personId,
+        req.params.id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Person not found.' });
+    }
+
+    res.json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    console.error('PATCH /api/events/:id/people/:personId error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── DELETE /api/events/:id/people/:personId ──────────────────────────────────
+// Admin — remove a person from an event
+router.delete('/:id/people/:personId', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM events.event_people
+       WHERE person_id = $1 AND event_id = $2
+       RETURNING person_id`,
+      [req.params.personId, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Person not found.' });
+    }
+
+    res.json({ data: { deleted: true }, error: null });
+  } catch (err: any) {
+    console.error('DELETE /api/events/:id/people/:personId error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 export default router;

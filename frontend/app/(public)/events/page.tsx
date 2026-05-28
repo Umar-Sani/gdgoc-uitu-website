@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import type { Event } from '@shared/types';
+import { Antonio } from 'next/font/google';
+
+const antonio = Antonio({ subsets: ['latin'] });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -275,83 +278,87 @@ export default function EventsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
-          {/* Google color bar */}
-          <div className="h-1 w-16 flex mb-6 rounded-full overflow-hidden">
-            <div className="flex-1 bg-[#4285F4]" />
-            <div className="flex-1 bg-[#EA4335]" />
-            <div className="flex-1 bg-[#FBBC05]" />
-            <div className="flex-1 bg-[#34A853]" />
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                Events
-              </h1>
-              <p className="mt-1 text-gray-500 text-sm">
-                Workshops, seminars, hackathons and more from GDGOC-UITU
-              </p>
-            </div>
-
-            {/* Total count */}
-            {!loading && (
-              <p className="text-sm text-gray-400">
-                {total} event{total !== 1 ? 's' : ''} found
-              </p>
-            )}
-          </div>
-
-          {/* ── Search bar ── */}
-          <div className="mt-6 relative max-w-md">
-            <svg
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col items-center justify-center relative">
+        <div className="absolute top-0 left-0 w-full h-1.5 flex">
+          <div className="flex-1 bg-[#4285F4]" />
+          <div className="flex-1 bg-[#EA4335]" />
+          <div className="flex-1 bg-[#FBBC05]" />
+          <div className="flex-1 bg-[#34A853]" />
+        </div>
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
+          <h1 className={`text-5xl sm:text-7xl md:text-8xl font-black text-white uppercase tracking-tighter ${antonio.className}`}>
+            Events
+          </h1>
+          <p className="mt-8 text-blue-50 font-medium text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto border-2 border-white/20 bg-white/5 px-6 py-4 shadow-[4px_4px_0_rgba(255,255,255,0.1)]">
+            Workshops, seminars, hackathons and more from GDGOC-UITU
+          </p>
+          <div className="mt-10">
+            <a
+              href="#events-directory"
+              className="px-6 py-3 bg-white/5 border-2 border-white/20 text-white text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_rgba(255,255,255,0.1)] hover:bg-white/10 hover:translate-y-1 hover:translate-x-1 hover:shadow-[0px_0px_0_rgba(255,255,255,0.1)] transition-all"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all bg-white"
-            />
-            {searchInput && (
-              <button
-                onClick={() => setSearchInput('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {/* ── Tabs ── */}
-          <div className="mt-4 flex gap-1 border-b border-gray-200">
-            {(['upcoming', 'past'] as TabType[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2.5 text-sm font-semibold capitalize transition-all border-b-2 -mb-px ${
-                  activeTab === tab
-                    ? 'border-[#4285F4] text-[#4285F4]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab === 'upcoming' ? 'Upcoming' : 'Past Events'}
-              </button>
-            ))}
+              Explore Events
+            </a>
           </div>
         </div>
       </div>
 
       {/* ── Body ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div id="events-directory" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Directory</h2>
+            {!loading && (
+              <p className="text-sm text-gray-500 mt-1">
+                {total} event{total !== 1 ? 's' : ''} found
+              </p>
+            )}
+          </div>
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
+            {/* Search */}
+            <div className="relative w-full sm:w-64">
+              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Tabs ── */}
+        <div className="flex gap-1 border-b border-gray-200 mb-8">
+          {(['upcoming', 'past'] as TabType[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 text-sm font-semibold capitalize transition-all border-b-2 -mb-px ${
+                activeTab === tab
+                  ? 'border-[#4285F4] text-[#4285F4]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab === 'upcoming' ? 'Upcoming' : 'Past Events'}
+            </button>
+          ))}
+        </div>
 
         {/* ── Category filters ── */}
         <div className="flex flex-wrap gap-2 mb-6">

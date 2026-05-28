@@ -7,6 +7,11 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Magnetic from '../../components/ui/magnetic';
 import { BrutalistMemberCard } from '../../components/ui/BrutalistMemberCard';
+import PuzzleImage from '../../components/ui/PuzzleImage';
+import WhoWeAre from '../../components/ui/WhoWeAre';
+import UpcomingEvents from '../../components/ui/UpcomingEvents';
+import PastEventsShowcase from '../../components/ui/PastEventsShowcase';
+import TechnologiesGrid from '../../components/ui/TechnologiesGrid';
 import { Antonio } from 'next/font/google';
 
 const antonio = Antonio({ subsets: ['latin'] });
@@ -120,19 +125,6 @@ const TESTIMONIALS = [
     quote: 'GDGOC events are always well organized and the content is always relevant to what the industry actually needs right now.',
     avatar: null,
   },
-];
-
-// ─── Tech Stack ───────────────────────────────────────────────────────────────
-
-const TECHNOLOGIES = [
-  { name: 'Flutter', color: '#54C5F8', icon: '📱' },
-  { name: 'AI / ML', color: '#FF7043', icon: '🤖' },
-  { name: 'Web Dev', color: '#42A5F5', icon: '🌐' },
-  { name: 'Cloud', color: '#26A69A', icon: '☁️' },
-  { name: 'Android', color: '#66BB6A', icon: '🤖' },
-  { name: 'Open Source', color: '#AB47BC', icon: '🔓' },
-  { name: 'Cybersecurity', color: '#EF5350', icon: '🔒' },
-  { name: 'DevOps', color: '#78909C', icon: '⚙️' },
 ];
 
 // ─── Platform Colors ──────────────────────────────────────────────────────────
@@ -459,7 +451,7 @@ function IdentitySection({ activeFeatureIndex, wordIndex }: { activeFeatureIndex
                   >
                     <div
                       className="h-full bg-white transition-all duration-500"
-                      style={{ 
+                      style={{
                         width: i === activeFeatureIndex ? "100%" : i < activeFeatureIndex ? "100%" : "0%",
                         transitionDuration: i === activeFeatureIndex ? "5s" : "0.5s",
                         transitionTimingFunction: "linear"
@@ -525,180 +517,180 @@ function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: E
   return (
     <div ref={containerRef} className="events-scroll-wrapper w-full">
       <section ref={eventsSectionRef as any} className="h-auto md:h-screen bg-[#F4F4F0] relative overflow-hidden border-b-[3px] border-slate-900">
-      {/* Background Grid synced to Hero */}
-      <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left z-0"></div>
+        {/* Background Grid synced to Hero */}
+        <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:100px_100px] bg-top-left z-0"></div>
 
-      <div className="relative h-full flex items-center overflow-hidden z-10 w-full py-24 md:py-0">
-        <div
-          ref={trackRef as any}
-          className="flex flex-col md:flex-row flex-nowrap items-center space-y-16 md:space-y-0 md:space-x-24 px-6 md:px-0 w-full md:w-max"
-        >
-          {/* ── Slide 1: Intro (Centered Full Screen) ── */}
-          <div className="flex-shrink-0 w-full md:w-[100vw] flex flex-col items-center justify-center text-center">
-            <div className="space-y-8 flex flex-col items-center">
-              <div className="h-1.5 w-20 bg-[#4285F4] rounded-full" />
-              <h2 className={`text-6xl sm:text-7xl lg:text-[7rem] font-black uppercase tracking-tighter leading-[0.85] ${antonio.className}`}>
-                <span className="text-[#4285F4]">UPCOMING!</span><br />
-                <span className="text-slate-900">EVENTS?</span>
-              </h2>
-              <p className="text-gray-600 text-xl font-bold tracking-tight max-w-sm">
-                Don't miss out on the most impactful technical sessions in the city.
-              </p>
+        <div className="relative h-full flex items-center overflow-hidden z-10 w-full py-24 md:py-0">
+          <div
+            ref={trackRef as any}
+            className="flex flex-col md:flex-row flex-nowrap items-center space-y-16 md:space-y-0 md:space-x-24 px-6 md:px-0 w-full md:w-max"
+          >
+            {/* ── Slide 1: Intro (Centered Full Screen) ── */}
+            <div className="flex-shrink-0 w-full md:w-[100vw] flex flex-col items-center justify-center text-center">
+              <div className="space-y-8 flex flex-col items-center">
+                <div className="h-1.5 w-20 bg-[#4285F4] rounded-full" />
+                <h2 className={`text-6xl sm:text-7xl lg:text-[7rem] font-black uppercase tracking-tighter leading-[0.85] ${antonio.className}`}>
+                  <span className="text-[#4285F4]">UPCOMING!</span><br />
+                  <span className="text-slate-900">EVENTS?</span>
+                </h2>
+                <p className="text-gray-600 text-xl font-bold tracking-tight max-w-sm">
+                  Don't miss out on the most impactful technical sessions in the city.
+                </p>
 
-              <Link
-                href="/events"
-                className="inline-flex h-16 items-center bg-white rounded-full text-slate-900 text-sm font-black uppercase tracking-widest hover:-translate-y-1 transition-transform border-[3px] border-slate-900 shadow-[6px_6px_0_#0f172a] p-1.5 group mx-auto"
-              >
-                <span className="px-6">Explore More</span>
-                <div className="h-full px-4 bg-[#4285F4] border-[2px] border-slate-900 rounded-full flex items-center justify-center text-xs shadow-[2px_2px_0_#0f172a] group-hover:bg-[#34A853] text-white transition-colors uppercase leading-none">
-                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          {/* ── Slide 2..N: Event Cards ── */}
-          {combinedEvents.length > 0 ? (
-            combinedEvents.map((event, idx) => (
-              <div
-                key={event.event_id}
-                className="flex-shrink-0 w-full md:w-[360px]"
-              >
-                <Link href={`/events/${event.event_id}`} className="group block relative aspect-[4/5] bg-slate-900 border-[3px] border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300">
-                  {/* Image Background */}
-                  <div className="absolute inset-0">
-                    <img
-                      src={event.banner_url || "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
-                      alt={event.title}
-                      className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700"
-                    />
-                    {/* Gradient for base text readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
-                  </div>
-
-                  {/* Top Elements (Always visible) */}
-                  <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-10">
-                    <div className="flex flex-col gap-2">
-                      <span className="px-3 py-1 bg-[#4285F4] text-white text-[10px] font-black uppercase tracking-widest rounded-full border-2 border-slate-900 shadow-[2px_2px_0_#0f172a]">
-                        {event.category_name || 'General'}
-                      </span>
-                    </div>
-
-                    <div className="bg-[#EA4335] border-2 border-slate-900 rounded-xl w-14 h-14 flex flex-col items-center justify-center shadow-[4px_4px_0_#0f172a] rotate-3 group-hover:rotate-0 transition-transform">
-                      <span className="text-[9px] font-black text-white uppercase leading-none mt-1">
-                        {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
-                      </span>
-                      <span className="text-xl font-black text-white leading-none">
-                        {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Content Area */}
-                  <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col justify-end z-20 h-full">
-                    {/* Title & Details Container */}
-                    <div className="transform translate-y-36 group-hover:translate-y-0 transition-transform duration-500 ease-out flex flex-col">
-
-                      <h3 className={`text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className} line-clamp-2`}>
-                        {event.title}
-                      </h3>
-
-                      <div className="w-12 h-1 bg-[#FBBC05] mt-4 mb-4 opacity-100 group-hover:opacity-0 transition-opacity duration-300" />
-
-                      {/* Hidden Details (Reveal on Hover) */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-                        <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs font-bold text-gray-300 mb-6 border-t-2 border-white/20 pt-4">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Time</span>
-                            <span className="text-white">{event.start_datetime ? formatTime(event.start_datetime) : 'TBA'}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Location</span>
-                            <span className="text-white truncate pr-2" title={event.venue || 'Online'}>{event.venue || 'Online'}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Entry</span>
-                            <span className="text-white">{event.is_free ? 'Free' : `Rs. ${event.ticket_price || 0}`}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Status</span>
-                            <span className={event.seats_available > 0 ? 'text-[#34A853]' : 'text-[#EA4335]'}>
-                              {event.seats_available > 0 ? `${event.seats_available} Seats` : 'Sold Out'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs font-black text-white uppercase tracking-widest pt-3 border-t-2 border-white/10">
-                          <span className="flex items-center gap-2">VIEW DETAILS <div className="w-8 h-[2px] bg-white transition-all group-hover:w-12 group-hover:bg-[#4285F4]" /></span>
-                          <span className="text-[#FBBC05] flex items-center group/rsvp">RSVP <svg className="w-4 h-4 ml-1 group-hover/rsvp:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" /></svg></span>
-                        </div>
-                      </div>
-
-                    </div>
+                <Link
+                  href="/events"
+                  className="inline-flex h-16 items-center bg-white rounded-full text-slate-900 text-sm font-black uppercase tracking-widest hover:-translate-y-1 transition-transform border-[3px] border-slate-900 shadow-[6px_6px_0_#0f172a] p-1.5 group mx-auto"
+                >
+                  <span className="px-6">Explore More</span>
+                  <div className="h-full px-4 bg-[#4285F4] border-[2px] border-slate-900 rounded-full flex items-center justify-center text-xs shadow-[2px_2px_0_#0f172a] group-hover:bg-[#34A853] text-white transition-colors uppercase leading-none">
+                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </Link>
               </div>
-            ))
-          ) : (
+            </div>
+
+            {/* ── Slide 2..N: Event Cards ── */}
+            {combinedEvents.length > 0 ? (
+              combinedEvents.map((event, idx) => (
+                <div
+                  key={event.event_id}
+                  className="flex-shrink-0 w-full md:w-[360px]"
+                >
+                  <Link href={`/events/${event.event_id}`} className="group block relative aspect-[4/5] bg-slate-900 border-[3px] border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300">
+                    {/* Image Background */}
+                    <div className="absolute inset-0">
+                      <img
+                        src={event.banner_url || "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
+                        alt={event.title}
+                        className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700"
+                      />
+                      {/* Gradient for base text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+                    </div>
+
+                    {/* Top Elements (Always visible) */}
+                    <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-10">
+                      <div className="flex flex-col gap-2">
+                        <span className="px-3 py-1 bg-[#4285F4] text-white text-[10px] font-black uppercase tracking-widest rounded-full border-2 border-slate-900 shadow-[2px_2px_0_#0f172a]">
+                          {event.category_name || 'General'}
+                        </span>
+                      </div>
+
+                      <div className="bg-[#EA4335] border-2 border-slate-900 rounded-xl w-14 h-14 flex flex-col items-center justify-center shadow-[4px_4px_0_#0f172a] rotate-3 group-hover:rotate-0 transition-transform">
+                        <span className="text-[9px] font-black text-white uppercase leading-none mt-1">
+                          {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
+                        </span>
+                        <span className="text-xl font-black text-white leading-none">
+                          {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Content Area */}
+                    <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col justify-end z-20 h-full">
+                      {/* Title & Details Container */}
+                      <div className="transform translate-y-36 group-hover:translate-y-0 transition-transform duration-500 ease-out flex flex-col">
+
+                        <h3 className={`text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className} line-clamp-2`}>
+                          {event.title}
+                        </h3>
+
+                        <div className="w-12 h-1 bg-[#FBBC05] mt-4 mb-4 opacity-100 group-hover:opacity-0 transition-opacity duration-300" />
+
+                        {/* Hidden Details (Reveal on Hover) */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                          <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs font-bold text-gray-300 mb-6 border-t-2 border-white/20 pt-4">
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Time</span>
+                              <span className="text-white">{event.start_datetime ? formatTime(event.start_datetime) : 'TBA'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Location</span>
+                              <span className="text-white truncate pr-2" title={event.venue || 'Online'}>{event.venue || 'Online'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Entry</span>
+                              <span className="text-white">{event.is_free ? 'Free' : `Rs. ${event.ticket_price || 0}`}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Status</span>
+                              <span className={event.seats_available > 0 ? 'text-[#34A853]' : 'text-[#EA4335]'}>
+                                {event.seats_available > 0 ? `${event.seats_available} Seats` : 'Sold Out'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs font-black text-white uppercase tracking-widest pt-3 border-t-2 border-white/10">
+                            <span className="flex items-center gap-2">VIEW DETAILS <div className="w-8 h-[2px] bg-white transition-all group-hover:w-12 group-hover:bg-[#4285F4]" /></span>
+                            <span className="text-[#FBBC05] flex items-center group/rsvp">RSVP <svg className="w-4 h-4 ml-1 group-hover/rsvp:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" /></svg></span>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <div className="flex-shrink-0 w-full md:w-[360px]">
+                <div className="relative aspect-[4/5] bg-white border-[3px] border-slate-900 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center shadow-[8px_8px_0_#0f172a]">
+                  <div className="w-20 h-20 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 rotate-3">
+                    <svg className="w-10 h-10 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <h3 className={`text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-4 ${antonio.className}`}>
+                    Still Cooking...
+                  </h3>
+                  <p className="text-slate-600 font-bold text-sm leading-relaxed px-4">
+                    Looks like we're still cooking something amazing. Come back later for new events!
+                  </p>
+                  <div className="mt-8 flex gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#4285F4] animate-bounce" />
+                    <div className="w-2 h-2 rounded-full bg-[#EA4335] animate-bounce delay-100" />
+                    <div className="w-2 h-2 rounded-full bg-[#FBBC05] animate-bounce delay-200" />
+                    <div className="w-2 h-2 rounded-full bg-[#34A853] animate-bounce delay-300" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Slide Final: CTA ── */}
             <div className="flex-shrink-0 w-full md:w-[360px]">
-              <div className="relative aspect-[4/5] bg-white border-[3px] border-slate-900 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center shadow-[8px_8px_0_#0f172a]">
-                <div className="w-20 h-20 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 rotate-3">
-                  <svg className="w-10 h-10 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <div className="relative p-10 md:p-12 bg-[#F4F4F0] border-[3px] border-slate-900 rounded-[2rem] shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300 space-y-8 aspect-[4/5] flex flex-col justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-[#4285F4] border-2 border-slate-900 flex items-center justify-center shadow-[4px_4px_0_#0f172a]">
+                  <svg className="w-8 h-8 text-white rotate-[-45deg]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" />
                   </svg>
                 </div>
-                <h3 className={`text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-4 ${antonio.className}`}>
-                  Still Cooking...
-                </h3>
-                <p className="text-slate-600 font-bold text-sm leading-relaxed px-4">
-                  Looks like we're still cooking something amazing. Come back later for new events!
-                </p>
-                <div className="mt-8 flex gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#4285F4] animate-bounce" />
-                  <div className="w-2 h-2 rounded-full bg-[#EA4335] animate-bounce delay-100" />
-                  <div className="w-2 h-2 rounded-full bg-[#FBBC05] animate-bounce delay-200" />
-                  <div className="w-2 h-2 rounded-full bg-[#34A853] animate-bounce delay-300" />
+                <div>
+                  <h4 className={`text-4xl font-black text-slate-900 italic uppercase tracking-tighter leading-[0.9] mb-4 ${antonio.className}`}>
+                    Want to host<br />an event?
+                  </h4>
+                  <p className="text-gray-600 font-bold max-w-xs leading-snug">
+                    Have an idea for a workshop or talk? Let's make it happen. Reach out to our leads.
+                  </p>
                 </div>
+                <Link
+                  href="/about"
+                  className="inline-flex h-12 w-max items-center px-6 bg-slate-900 text-[#F4F4F0] border-[2px] border-slate-900 rounded-full text-xs font-black uppercase tracking-widest hover:bg-[#FBBC05] hover:text-slate-900 transition-all shadow-[4px_4px_0_#4285F4] group"
+                >
+                  Get in touch
+                  <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7" />
+                  </svg>
+                </Link>
               </div>
             </div>
-          )}
 
-          {/* ── Slide Final: CTA ── */}
-          <div className="flex-shrink-0 w-full md:w-[360px]">
-            <div className="relative p-10 md:p-12 bg-[#F4F4F0] border-[3px] border-slate-900 rounded-[2rem] shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-1 hover:translate-x-1 transition-all duration-300 space-y-8 aspect-[4/5] flex flex-col justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-[#4285F4] border-2 border-slate-900 flex items-center justify-center shadow-[4px_4px_0_#0f172a]">
-                <svg className="w-8 h-8 text-white rotate-[-45deg]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7M21 12H3" />
-                </svg>
-              </div>
-              <div>
-                <h4 className={`text-4xl font-black text-slate-900 italic uppercase tracking-tighter leading-[0.9] mb-4 ${antonio.className}`}>
-                  Want to host<br />an event?
-                </h4>
-                <p className="text-gray-600 font-bold max-w-xs leading-snug">
-                  Have an idea for a workshop or talk? Let's make it happen. Reach out to our leads.
-                </p>
-              </div>
-              <Link
-                href="/about"
-                className="inline-flex h-12 w-max items-center px-6 bg-slate-900 text-[#F4F4F0] border-[2px] border-slate-900 rounded-full text-xs font-black uppercase tracking-widest hover:bg-[#FBBC05] hover:text-slate-900 transition-all shadow-[4px_4px_0_#4285F4] group"
-              >
-                Get in touch
-                <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
+            {/* Spacer to center the last card at the end of scroll */}
+            {!isMobile && <div className="flex-shrink-0 w-[calc(50vw-180px)]" />}
+
           </div>
-
-          {/* Spacer to center the last card at the end of scroll */}
-          {!isMobile && <div className="flex-shrink-0 w-[calc(50vw-180px)]" />}
-
         </div>
-      </div>
-    </section>
+      </section>
     </div>
   );
 }
@@ -746,7 +738,7 @@ export default function HomePage() {
   // Hero Animations
   useGSAP(() => {
     const tl = gsap.timeline();
-    
+
     // Initial entrance for hero lines
     tl.from(".hero-line-1", {
       y: 50,
@@ -755,29 +747,29 @@ export default function HomePage() {
       stagger: 0.1,
       ease: "power3.out"
     })
-    .from(".hero-line-2", {
-      y: 50,
-      opacity: 0,
-      duration: 0.8,
-      stagger: 0.1,
-      ease: "power3.out"
-    }, "-=0.6")
-    .from(".hero-p", {
-      opacity: 0,
-      y: 20,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.6")
-    .from(".hero-btn", {
-      scale: 0.8,
-      opacity: 0,
-      duration: 0.8,
-      ease: "back.out(1.7)"
-    }, "-=0.6")
-    .from(".word-stack", {
-      opacity: 0,
-      duration: 0.5
-    }, "-=0.4");
+      .from(".hero-line-2", {
+        y: 50,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.1,
+        ease: "power3.out"
+      }, "-=0.6")
+      .from(".hero-p", {
+        opacity: 0,
+        y: 20,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.6")
+      .from(".hero-btn", {
+        scale: 0.8,
+        opacity: 0,
+        duration: 0.8,
+        ease: "back.out(1.7)"
+      }, "-=0.6")
+      .from(".word-stack", {
+        opacity: 0,
+        duration: 0.5
+      }, "-=0.4");
 
     // Continuous pulse for the gradient
     gsap.to(".word-span", {
@@ -1039,6 +1031,17 @@ export default function HomePage() {
         </motion.div> */}
 
 
+        {/* ── Puzzle Image Animation ── */}
+        <PuzzleImage
+          slides={[
+            { src: '/images/Android WOMAN Standing still.png', side: 'left' },
+            { src: '/images/Android Guy Standing Still.png', side: 'right' },
+          ]}
+          cols={3}
+          rows={4}
+          pieceSize={300}
+        />
+
         <div className="relative z-10 max-w-[900px] mx-auto px-4 text-center flex flex-col items-center mt-6">
 
           <h1
@@ -1068,7 +1071,7 @@ export default function HomePage() {
                   {words.map((word, idx) => (
                     <span
                       key={`${word}-${idx}`}
-                      style={{ 
+                      style={{
                         backgroundImage: [
                           "linear-gradient(90deg, #ff7c70 0%, #EA4335 var(--pulse), #c53026 100%)", // Red
                           "linear-gradient(90deg, #7aaaff 0%, #4285F4 var(--pulse), #3474d4 100%)", // Blue
@@ -1116,181 +1119,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Who We Are: Identity Reveal ── */}
-      <IdentitySection
-        activeFeatureIndex={activeFeatureIndex}
-        wordIndex={wordIndex}
-      />
+      {/* ── Who We Are: Horizontal Scroll Reveal ── */}
+      <WhoWeAre />
 
-      {/* ── Upcoming Events: Horizontal Scroll Reveal ── */}
+      {/* ── Upcoming Events ── */}
       {!loading && (
-        <EventsHorizontalScroll
+        <UpcomingEvents
           events={events}
           featuredEvent={featuredEvent}
-          isMobile={isMobile}
         />
       )}
 
-      {/* ── Featured Past Events ── */}
+      {/* ── Featured Past Events Showcase ── */}
       {!loading && featuredPastEvents.length > 0 && (
-        <section className="py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-
-            <div className="flex items-end justify-between mb-10">
-              <div>
-                <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                  <div className="flex-1 bg-[#4285F4]" />
-                  <div className="flex-1 bg-[#EA4335]" />
-                  <div className="flex-1 bg-[#FBBC05]" />
-                  <div className="flex-1 bg-[#34A853]" />
-                </div>
-                <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>
-                  Our Best Events
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Highlights from our most impactful events
-                </p>
-              </div>
-              <Link
-                href="/events?status=past"
-                className="text-sm font-semibold text-[#4285F4] hover:underline"
-              >
-                View Past Events →
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredPastEvents.map((event, index) => {
-                const colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
-                const color = colors[index % colors.length];
-                return (
-                  <div
-                    key={event.id}
-                    className={`group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col ${event.event_id ? 'cursor-pointer' : ''
-                      }`}
-                    onClick={() => {
-                      if (event.event_id) {
-                        window.location.href = `/events/${event.event_id}`;
-                      }
-                    }}
-                  >
-                    {/* Color accent top bar */}
-                    <div className="h-1.5 w-full" style={{ backgroundColor: color }} />
-
-                    {/* Image or placeholder */}
-                    <div className="relative h-44 overflow-hidden" style={{ backgroundColor: `${color}15` }}>
-                      {event.image_url ? (
-                        <img
-                          src={event.image_url}
-                          alt={event.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <div className="text-center">
-                            <div
-                              className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-2"
-                              style={{ backgroundColor: `${color}25` }}
-                            >
-                              <svg
-                                className="w-8 h-8"
-                                style={{ color }}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Category badge */}
-                      {event.category && (
-                        <div className="absolute top-3 left-3">
-                          <span
-                            className="px-2.5 py-1 rounded-full text-xs font-bold text-white"
-                            style={{ backgroundColor: color }}
-                          >
-                            {event.category}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Linked event badge */}
-                      {event.event_id && (
-                        <div className="absolute top-3 right-3">
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white text-gray-700 shadow-sm border border-gray-100">
-                            View Event →
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5 flex flex-col flex-1">
-                      <h3 className={`font-bold text-gray-900 text-base leading-snug group-hover:text-[#4285F4] transition-colors mb-2 ${antonio.className}`}>
-                        {event.title}
-                      </h3>
-
-                      {event.description && (
-                        <p className="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">
-                          {event.description}
-                        </p>
-                      )}
-
-                      {event.event_date && (
-                        <div className="flex items-center gap-1.5 mt-4 text-xs text-gray-400">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          {new Date(event.event_date).toLocaleDateString('en-PK', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+        <PastEventsShowcase events={featuredPastEvents} />
       )}
 
       {/* ── Technologies We Cover ── */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden mx-auto">
-              <div className="flex-1 bg-[#4285F4]" />
-              <div className="flex-1 bg-[#EA4335]" />
-              <div className="flex-1 bg-[#FBBC05]" />
-              <div className="flex-1 bg-[#34A853]" />
-            </div>
-            <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>Technologies We Cover</h2>
-            <p className="text-sm text-gray-500 mt-2">From mobile to cloud — we cover the full stack</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {TECHNOLOGIES.map((tech) => (
-              <div
-                key={tech.name}
-                className="group p-5 rounded-2xl border border-gray-100 bg-white hover:shadow-md transition-all text-center cursor-default"
-              >
-                <div className="text-3xl mb-2">{tech.icon}</div>
-                <div
-                  className="w-8 h-1 rounded-full mx-auto mb-2"
-                  style={{ backgroundColor: tech.color }}
-                />
-                <p className="text-sm font-semibold text-gray-800">{tech.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section >
+      <TechnologiesGrid />
 
       {/* ── Latest Forum Discussions ── */}
       {

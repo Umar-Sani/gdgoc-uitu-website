@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { Antonio } from 'next/font/google';
+
+const antonio = Antonio({ subsets: ['latin'] });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -227,84 +230,91 @@ export default function ForumPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
-          <div className="h-1 w-16 flex mb-6 rounded-full overflow-hidden">
-            <div className="flex-1 bg-[#4285F4]" />
-            <div className="flex-1 bg-[#EA4335]" />
-            <div className="flex-1 bg-[#FBBC05]" />
-            <div className="flex-1 bg-[#34A853]" />
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Forum</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Ask questions, share knowledge, connect with the community
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Search button */}
-              <Link
-                href="/forum/search"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all bg-white"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Search
-              </Link>
-
-              {/* New thread button — only for logged in users */}
-              {user && (
-                <Link
-                  href="/forum/new"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4285F4] hover:bg-blue-600 text-white text-sm font-semibold transition-all shadow-md hover:shadow-blue-200"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Thread
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* ── Sort tabs ── */}
-          <div className="mt-6 flex gap-1 border-b border-gray-200">
-            {(['latest', 'popular', 'unanswered'] as SortType[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSort(s)}
-                className={`px-4 py-2.5 text-sm font-semibold capitalize transition-all border-b-2 -mb-px ${
-                  sort === s
-                    ? 'border-[#4285F4] text-[#4285F4]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {s === 'unanswered' ? 'Unanswered' : s.charAt(0).toUpperCase() + s.slice(1)}
-              </button>
-            ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col items-center justify-center relative">
+        <div className="absolute top-0 left-0 w-full h-1.5 flex">
+          <div className="flex-1 bg-[#4285F4]" />
+          <div className="flex-1 bg-[#EA4335]" />
+          <div className="flex-1 bg-[#FBBC05]" />
+          <div className="flex-1 bg-[#34A853]" />
+        </div>
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
+          <h1 className={`text-5xl sm:text-7xl md:text-8xl font-black text-white uppercase tracking-tighter ${antonio.className}`}>
+            Forum
+          </h1>
+          <p className="mt-8 text-blue-50 font-medium text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto border-2 border-white/20 bg-white/5 px-6 py-4 shadow-[4px_4px_0_rgba(255,255,255,0.1)]">
+            Ask questions, share knowledge, connect with the community
+          </p>
+          <div className="mt-10">
+            <a
+              href="#forum-directory"
+              className="px-6 py-3 bg-white/5 border-2 border-white/20 text-white text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_rgba(255,255,255,0.1)] hover:bg-white/10 hover:translate-y-1 hover:translate-x-1 hover:shadow-[0px_0px_0_rgba(255,255,255,0.1)] transition-all"
+            >
+              Join Discussion
+            </a>
           </div>
         </div>
       </div>
 
       {/* ── Body ── */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div id="forum-directory" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
-          {/* ── Thread list ── */}
-          <div className="flex-1 space-y-3">
-
-            {/* Total count */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Discussions</h2>
             {!loading && (
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-gray-500 mt-1">
                 {total} thread{total !== 1 ? 's' : ''}
                 {selectedCategory !== 'all' ? ` in ${selectedCategory}` : ''}
               </p>
             )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/forum/search"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all bg-white"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search
+            </Link>
+
+            {user && (
+              <Link
+                href="/forum/new"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4285F4] hover:bg-blue-600 text-white text-sm font-semibold transition-all shadow-md hover:shadow-blue-200"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                New Thread
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* ── Sort tabs ── */}
+        <div className="mb-8 flex gap-1 border-b border-gray-200">
+          {(['latest', 'popular', 'unanswered'] as SortType[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => setSort(s)}
+              className={`px-4 py-2.5 text-sm font-semibold capitalize transition-all border-b-2 -mb-px ${
+                sort === s
+                  ? 'border-[#4285F4] text-[#4285F4]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {s === 'unanswered' ? 'Unanswered' : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8">
+
+          {/* ── Thread list ── */}
+          <div className="flex-1 space-y-3">
 
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => <SkeletonThread key={i} />)
