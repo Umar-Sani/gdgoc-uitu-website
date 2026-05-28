@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -21,14 +21,45 @@ router.get('/threads', async (req: Request, res: Response) => {
     let paramIndex = 1;
 
     let query = `
-        SELECT v.* FROM forum.v_thread_preview v
-        JOIN forum.threads t ON v.thread_id = t.thread_id
+        SELECT 
+          t.thread_id,
+          t.title,
+          LEFT(t.body, 150) AS body_preview,
+          c.name AS category_name,
+          c.color_hex AS category_color,
+          t.tags,
+          t.is_pinned,
+          t.is_locked,
+          t.view_count,
+          t.upvote_count,
+          t.reply_count,
+          t.created_at,
+          t.updated_at,
+          t.author_id,
+          u.full_name AS author_name,
+          u.avatar_url AS author_avatar,
+          (SELECT MAX(created_at) FROM forum.replies WHERE thread_id = t.thread_id AND is_deleted = FALSE) AS last_reply_at,
+          (
+            SELECT COALESCE(json_agg(json_build_object('name', sub.full_name, 'avatar', sub.avatar_url, 'username', sub.username)), '[]'::json)
+            FROM (
+              SELECT au.full_name, au.avatar_url, au.username, MIN(r.created_at) as first_reply
+              FROM forum.replies r
+              JOIN users.users au ON r.author_id = au.user_id
+              WHERE r.thread_id = t.thread_id AND r.is_deleted = FALSE AND r.author_id != t.author_id
+              GROUP BY r.author_id, au.full_name, au.avatar_url, au.username
+              ORDER BY first_reply ASC
+              LIMIT 4
+            ) sub
+          ) AS participants
+        FROM forum.threads t
+        LEFT JOIN forum.categories c ON t.category_id = c.category_id
+        LEFT JOIN users.users u ON t.author_id = u.user_id
         WHERE t.is_deleted = FALSE
     `;
 
     // Filter by category
     if (category && category !== 'all') {
-      query += ` AND category_name = $${paramIndex}`;
+      query += ` AND c.name = $${paramIndex}`;
       params.push(category);
       paramIndex++;
     }
@@ -52,11 +83,11 @@ router.get('/threads', async (req: Request, res: Response) => {
 
     // Sorting
     if (sort === 'popular') {
-        query += ` ORDER BY v.is_pinned DESC, v.upvote_count DESC, v.created_at DESC`;
+        query += ` ORDER BY t.is_pinned DESC, t.upvote_count DESC, t.created_at DESC`;
     } else if (sort === 'unanswered') {
-        query += ` ORDER BY v.is_pinned DESC, v.reply_count ASC, v.created_at DESC`;
+        query += ` ORDER BY t.is_pinned DESC, t.reply_count ASC, t.created_at DESC`;
     } else {
-        query += ` ORDER BY v.is_pinned DESC, COALESCE(v.last_reply_at, v.created_at) DESC`;
+        query += ` ORDER BY t.is_pinned DESC, COALESCE((SELECT MAX(created_at) FROM forum.replies WHERE thread_id = t.thread_id AND is_deleted = FALSE), t.created_at) DESC`;
     }
 
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -82,17 +113,30 @@ router.get('/threads', async (req: Request, res: Response) => {
 // Public — single thread with replies
 router.get('/threads/:id', async (req: Request, res: Response) => {
   try {
-    // Increment view count
-    await pool.query(
-      `UPDATE forum.threads
-       SET view_count = view_count + 1
-       WHERE thread_id = $1 AND is_deleted = FALSE`,
-      [req.params.id]
-    );
-
-    // Fetch thread from view
+    // Fetch full thread with joins
     const threadResult = await pool.query(
-      `SELECT * FROM forum.v_thread_preview WHERE thread_id = $1`,
+      `SELECT 
+        t.thread_id,
+        t.title,
+        t.body,
+        t.category_id,
+        c.name AS category_name,
+        c.color_hex AS category_color,
+        t.tags,
+        t.is_pinned,
+        t.is_locked,
+        t.view_count,
+        t.upvote_count,
+        t.reply_count,
+        t.created_at,
+        t.updated_at,
+        t.author_id,
+        u.full_name AS author_name,
+        u.avatar_url AS author_avatar
+       FROM forum.threads t
+       LEFT JOIN forum.categories c ON t.category_id = c.category_id
+       LEFT JOIN users.users u ON t.author_id = u.user_id
+       WHERE t.thread_id = $1 AND t.is_deleted = FALSE`,
       [req.params.id]
     );
 
@@ -132,6 +176,23 @@ router.get('/threads/:id', async (req: Request, res: Response) => {
 
   } catch (err: any) {
     console.error('GET /api/forum/threads/:id error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── POST /api/forum/threads/:id/view ─────────────────────────────────────────
+// Public — increment thread view count
+router.post('/threads/:id/view', async (req: Request, res: Response) => {
+  try {
+    await pool.query(
+      `UPDATE forum.threads
+       SET view_count = view_count + 1
+       WHERE thread_id = $1 AND is_deleted = FALSE`,
+      [req.params.id]
+    );
+    res.json({ data: { success: true }, error: null });
+  } catch (err: any) {
+    console.error('POST /api/forum/threads/:id/view error:', err.message);
     res.status(500).json({ data: null, error: err.message });
   }
 });
@@ -206,10 +267,10 @@ router.post('/threads/:id/replies', requireAuth, async (req: Request, res: Respo
       [threadId, authorId, body.trim(), parent_reply_id ?? null]
     );
 
-    // Increment reply count on thread
+    // Update thread updated_at timestamp
     await pool.query(
       `UPDATE forum.threads
-       SET reply_count = reply_count + 1, updated_at = NOW()
+       SET updated_at = NOW()
        WHERE thread_id = $1`,
       [threadId]
     );
@@ -322,10 +383,68 @@ router.get('/categories', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
       `SELECT category_id, name, color_hex
-       FROM events.categories
-       ORDER BY name ASC`
+       FROM forum.categories
+       ORDER BY display_order ASC`
     );
     res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── PUT /api/forum/threads/:id/pin ──────────────────────────────────────────
+// Auth required (admin) — toggle pin status
+router.put('/threads/:id/pin', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const { is_pinned } = req.body;
+    const result = await pool.query(
+      `UPDATE forum.threads SET is_pinned = $1, updated_at = NOW() WHERE thread_id = $2 RETURNING *`,
+      [is_pinned, req.params.id]
+    );
+    res.json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── PUT /api/forum/threads/:id/lock ─────────────────────────────────────────
+// Auth required (admin) — toggle lock status
+router.put('/threads/:id/lock', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const { is_locked } = req.body;
+    const result = await pool.query(
+      `UPDATE forum.threads SET is_locked = $1, updated_at = NOW() WHERE thread_id = $2 RETURNING *`,
+      [is_locked, req.params.id]
+    );
+    res.json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── DELETE /api/forum/threads/:id ───────────────────────────────────────────
+// Auth required (admin) — soft delete thread
+router.delete('/threads/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    await pool.query(
+      `UPDATE forum.threads SET is_deleted = TRUE, updated_at = NOW() WHERE thread_id = $1`,
+      [req.params.id]
+    );
+    res.json({ data: { success: true }, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── DELETE /api/forum/replies/:id ───────────────────────────────────────────
+// Auth required (admin) — soft delete reply
+router.delete('/replies/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    await pool.query(
+      `UPDATE forum.replies SET is_deleted = TRUE, updated_at = NOW() WHERE reply_id = $1`,
+      [req.params.id]
+    );
+    res.json({ data: { success: true }, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
   }

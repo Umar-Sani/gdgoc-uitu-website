@@ -133,4 +133,27 @@ router.post('/recommendations/generate', requireAuth, async (req: Request, res: 
   }
 });
 
+// GET /api/users/search
+// Public (or authenticated) — search users by username for mentions
+router.get('/search', async (req: Request, res: Response) => {
+  try {
+    const q = req.query.q as string;
+    if (!q || q.length < 2) {
+      return res.json({ data: [], error: null });
+    }
+
+    const result = await pool.query(
+      `SELECT username, full_name, avatar_url 
+       FROM users.users 
+       WHERE username ILIKE $1 
+       LIMIT 10`,
+      [`${q}%`]
+    );
+
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 export default router;

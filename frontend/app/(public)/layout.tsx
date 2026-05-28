@@ -23,6 +23,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isHero = pathname === '/';
+  const isThread = pathname.startsWith('/forum/') && pathname !== '/forum';
   // Show ghost (transparent) mode only on the hero page before scrolling
   const ghost = isHero && !scrolled;
 
@@ -71,6 +72,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     <div className="min-h-screen flex flex-col bg-[#F4F4F0]">
 
       {/* ── Navbar: always fixed, transitions top offset + styles ── */}
+      {!isThread && (
       <div
         className={`fixed z-50 flex justify-center pointer-events-none transition-all duration-700 ease-[0.16,1,0.3,1] ${ghost
             ? 'top-0 left-0 right-0 px-0'
@@ -242,6 +244,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           )}
         </nav>
       </div>
+      )}
 
       {/* ── Page Content ── */}
       {/* Padding is CONSTANT — never changes on scroll, preventing layout jitter. */}

@@ -62,16 +62,31 @@ type FeaturedEvent = {
   linked_event_status: string | null;
 };
 
+type Participant = {
+  name: string;
+  avatar: string | null;
+  username: string;
+};
+
 type Thread = {
   thread_id: string;
   title: string;
   body_preview: string;
   category_name: string;
   category_color: string;
+  tags: string[];
+  is_pinned: boolean;
+  is_locked: boolean;
+  view_count: number;
   reply_count: number;
   upvote_count: number;
   created_at: string;
+  updated_at: string;
+  author_id: string;
   author_name: string;
+  author_avatar: string | null;
+  last_reply_at: string | null;
+  participants: Participant[];
 };
 
 type SocialPost = {
@@ -1136,13 +1151,13 @@ export default function HomePage() {
       )}
 
       {/* ── Technologies We Cover ── */}
-      <TechnologiesGrid />
+      {/* <TechnologiesGrid /> */}
 
       {/* ── Latest Forum Discussions ── */}
       {
         !loading && threads.length > 0 && (
           <section className="py-20 bg-white">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="w-full max-w-full mx-auto px-4 sm:px-8 lg:px-12">
               <div className="flex items-end justify-between mb-8">
                 <div>
                   <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
@@ -1159,49 +1174,108 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              <div className="space-y-3">
-                {threads.map((thread) => (
-                  <Link key={thread.thread_id} href={`/forum/${thread.thread_id}`}>
-                    <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all p-5">
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {getInitials(thread.author_name || 'U')}
-                        </div>
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                {/* Table Header */}
+                <div className="hidden sm:flex items-center px-4 py-3 gap-4 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="flex-1">Topic</div>
+                  <div className="w-32 shrink-0">Participants</div>
+                  <div className="hidden md:block w-16 shrink-0 text-center">Replies</div>
+                  <div className="hidden lg:block w-16 shrink-0 text-center">Views</div>
+                  <div className="w-24 shrink-0 text-right">Activity</div>
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                  {threads.map((thread) => (
+                    <Link key={thread.thread_id} href={`/forum/${thread.thread_id}`} className="block hover:bg-blue-50/50 transition-colors">
+                      <div className="flex items-center p-4 gap-4">
+
+                        {/* Topic & Category */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            {thread.is_pinned && (
+                              <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                              </svg>
+                            )}
+                            {thread.is_locked && (
+                              <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                            <h3 className="text-base font-semibold text-gray-900 truncate">
+                              {thread.title}
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
                             <span
-                              className="px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white"
                               style={{ backgroundColor: `#${thread.category_color}` }}
                             >
                               {thread.category_name}
                             </span>
-                            <span className="text-xs text-gray-400">{timeAgo(thread.created_at)}</span>
-                          </div>
-                          <h3 className="font-semibold text-gray-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1">
-                            {thread.title}
-                          </h3>
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-1">{thread.body_preview}</p>
-                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                            <span>{thread.author_name}</span>
-                            <span>{thread.reply_count} replies</span>
-                            <span>{thread.upvote_count} upvotes</span>
+                            {thread.tags && thread.tags.length > 0 && (
+                              <div className="flex gap-1">
+                                {thread.tags.slice(0, 3).map(tag => (
+                                  <span key={tag} className="text-gray-500">#{tag}</span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
+
+                        {/* Participants */}
+                        <div className="hidden sm:flex items-center gap-1 w-32 shrink-0">
+                          <div className="flex -space-x-1">
+                            {/* Thread author first */}
+                            <div className="relative z-10 w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0" title={thread.author_name}>
+                              {thread.author_avatar ? (
+                                <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
+                              )}
+                            </div>
+                            {/* Then repliers */}
+                            {thread.participants?.map((p, i) => (
+                              <div key={i} className="relative w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 z-0" title={p.name}>
+                                {p.avatar ? (
+                                  <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-[9px] font-bold text-gray-600">{getInitials(p.name)}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Replies */}
+                        <div className="hidden md:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
+                          <span className="text-sm font-semibold text-gray-700">{thread.reply_count}</span>
+                          <span className="text-[10px] uppercase">Replies</span>
+                        </div>
+
+                        {/* Views */}
+                        <div className="hidden lg:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
+                          <span className="text-sm font-semibold text-gray-700">{thread.view_count}</span>
+                          <span className="text-[10px] uppercase">Views</span>
+                        </div>
+
+                        {/* Activity */}
+                        <div className="hidden sm:flex flex-col items-end justify-center w-24 shrink-0 text-gray-500 text-xs">
+                          <span className="font-medium text-gray-900">{timeAgo(thread.last_reply_at || thread.created_at)}</span>
+                        </div>
+
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-6 text-center">
                 <Link
-                  href="/forum/new"
+                  href="/forum"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Start a Discussion
+                  View All Discussions →
                 </Link>
               </div>
             </div>
