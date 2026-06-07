@@ -13,6 +13,7 @@ import UpcomingEvents from '../../components/ui/UpcomingEvents';
 import PastEventsShowcase from '../../components/ui/PastEventsShowcase';
 import TechnologiesGrid from '../../components/ui/TechnologiesGrid';
 import { Antonio } from 'next/font/google';
+import MascotBanner from '../../components/ui/MascotBanner';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -1046,16 +1047,6 @@ export default function HomePage() {
         </motion.div> */}
 
 
-        {/* ── Puzzle Image Animation ── */}
-        <PuzzleImage
-          slides={[
-            { src: '/images/Android WOMAN Standing still.png', side: 'left' },
-            { src: '/images/Android Guy Standing Still.png', side: 'right' },
-          ]}
-          cols={3}
-          rows={4}
-          pieceSize={300}
-        />
 
         <div className="relative z-10 max-w-[900px] mx-auto px-4 text-center flex flex-col items-center mt-6">
 
@@ -1146,7 +1137,7 @@ export default function HomePage() {
       )}
 
       {/* ── Featured Past Events Showcase ── */}
-      {!loading && featuredPastEvents.length > 0 && (
+      {!loading && (
         <PastEventsShowcase events={featuredPastEvents} />
       )}
 
@@ -1155,7 +1146,7 @@ export default function HomePage() {
 
       {/* ── Latest Forum Discussions ── */}
       {
-        !loading && threads.length > 0 && (
+        !loading && (
           <section className="py-20 bg-white">
             <div className="w-full max-w-full mx-auto px-4 sm:px-8 lg:px-12">
               <div className="flex items-end justify-between mb-8">
@@ -1175,99 +1166,126 @@ export default function HomePage() {
               </div>
 
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                {/* Table Header */}
-                <div className="hidden sm:flex items-center px-4 py-3 gap-4 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <div className="flex-1">Topic</div>
-                  <div className="w-32 shrink-0">Participants</div>
-                  <div className="hidden md:block w-16 shrink-0 text-center">Replies</div>
-                  <div className="hidden lg:block w-16 shrink-0 text-center">Views</div>
-                  <div className="w-24 shrink-0 text-right">Activity</div>
-                </div>
+                {threads.length > 0 ? (
+                  <>
+                    {/* Table Header */}
+                    <div className="hidden sm:flex items-center px-4 py-3 gap-4 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <div className="flex-1">Topic</div>
+                      <div className="w-32 shrink-0">Participants</div>
+                      <div className="hidden md:block w-16 shrink-0 text-center">Replies</div>
+                      <div className="hidden lg:block w-16 shrink-0 text-center">Views</div>
+                      <div className="w-24 shrink-0 text-right">Activity</div>
+                    </div>
 
-                <div className="divide-y divide-gray-100">
-                  {threads.map((thread) => (
-                    <Link key={thread.thread_id} href={`/forum/${thread.thread_id}`} className="block hover:bg-blue-50/50 transition-colors">
-                      <div className="flex items-center p-4 gap-4">
+                    <div className="divide-y divide-gray-100">
+                      {threads.map((thread) => (
+                        <Link key={thread.thread_id} href={`/forum/${thread.thread_id}`} className="block hover:bg-blue-50/50 transition-colors">
+                          <div className="flex items-center p-4 gap-4">
 
-                        {/* Topic & Category */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            {thread.is_pinned && (
-                              <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                              </svg>
-                            )}
-                            {thread.is_locked && (
-                              <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                            <h3 className="text-base font-semibold text-gray-900 truncate">
-                              {thread.title}
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <span
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white"
-                              style={{ backgroundColor: `#${thread.category_color}` }}
-                            >
-                              {thread.category_name}
-                            </span>
-                            {thread.tags && thread.tags.length > 0 && (
-                              <div className="flex gap-1">
-                                {thread.tags.slice(0, 3).map(tag => (
-                                  <span key={tag} className="text-gray-500">#{tag}</span>
-                                ))}
+                            {/* Topic & Category */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                {thread.is_pinned && (
+                                  <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                                  </svg>
+                                )}
+                                {thread.is_locked && (
+                                  <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                                <h3 className="text-base font-semibold text-gray-900 truncate">
+                                  {thread.title}
+                                </h3>
                               </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Participants */}
-                        <div className="hidden sm:flex items-center gap-1 w-32 shrink-0">
-                          <div className="flex -space-x-1">
-                            {/* Thread author first */}
-                            <div className="relative z-10 w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0" title={thread.author_name}>
-                              {thread.author_avatar ? (
-                                <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
-                              )}
-                            </div>
-                            {/* Then repliers */}
-                            {thread.participants?.map((p, i) => (
-                              <div key={i} className="relative w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 z-0" title={p.name}>
-                                {p.avatar ? (
-                                  <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-[9px] font-bold text-gray-600">{getInitials(p.name)}</span>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span
+                                  className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white"
+                                  style={{ backgroundColor: `#${thread.category_color}` }}
+                                >
+                                  {thread.category_name}
+                                </span>
+                                {thread.tags && thread.tags.length > 0 && (
+                                  <div className="flex gap-1">
+                                    {thread.tags.slice(0, 3).map(tag => (
+                                      <span key={tag} className="text-gray-500">#{tag}</span>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
-                            ))}
+                            </div>
+
+                            {/* Participants */}
+                            <div className="hidden sm:flex items-center gap-1 w-32 shrink-0">
+                              <div className="flex -space-x-1">
+                                {/* Thread author first */}
+                                <div className="relative z-10 w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0" title={thread.author_name}>
+                                  {thread.author_avatar ? (
+                                    <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
+                                  )}
+                                </div>
+                                {/* Then repliers */}
+                                {thread.participants?.map((p, i) => (
+                                  <div key={i} className="relative w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 z-0" title={p.name}>
+                                    {p.avatar ? (
+                                      <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-[9px] font-bold text-gray-600">{getInitials(p.name)}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Replies */}
+                            <div className="hidden md:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
+                              <span className="text-sm font-semibold text-gray-700">{thread.reply_count}</span>
+                              <span className="text-[10px] uppercase">Replies</span>
+                            </div>
+
+                            {/* Views */}
+                            <div className="hidden lg:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
+                              <span className="text-sm font-semibold text-gray-700">{thread.view_count}</span>
+                              <span className="text-[10px] uppercase">Views</span>
+                            </div>
+
+                            {/* Activity */}
+                            <div className="hidden sm:flex flex-col items-end justify-center w-24 shrink-0 text-gray-500 text-xs">
+                              <span className="font-medium text-gray-900">{timeAgo(thread.last_reply_at || thread.created_at)}</span>
+                            </div>
+
                           </div>
-                        </div>
-
-                        {/* Replies */}
-                        <div className="hidden md:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
-                          <span className="text-sm font-semibold text-gray-700">{thread.reply_count}</span>
-                          <span className="text-[10px] uppercase">Replies</span>
-                        </div>
-
-                        {/* Views */}
-                        <div className="hidden lg:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
-                          <span className="text-sm font-semibold text-gray-700">{thread.view_count}</span>
-                          <span className="text-[10px] uppercase">Views</span>
-                        </div>
-
-                        {/* Activity */}
-                        <div className="hidden sm:flex flex-col items-end justify-center w-24 shrink-0 text-gray-500 text-xs">
-                          <span className="font-medium text-gray-900">{timeAgo(thread.last_reply_at || thread.created_at)}</span>
-                        </div>
-
-                      </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                    <div className="w-16 h-16 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#0f172a] rotate-3">
+                      <svg className="w-8 h-8 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className={`text-2xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
+                      No Discussions Yet
+                    </h3>
+                    <p className="text-slate-600 font-bold text-sm leading-relaxed max-w-xs px-2">
+                      Be the first to start a conversation! Head over to our forum and post a thread.
+                    </p>
+                    <div className="mt-5 flex gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#4285F4] animate-bounce" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <Link href="/forum" className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#4285F4] text-white text-sm font-bold hover:bg-blue-600 transition-all shadow-md">
+                      Go to Forum →
                     </Link>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 text-center">
@@ -1335,7 +1353,7 @@ export default function HomePage() {
 
       {/* ── Social Media Feed ── */}
       {
-        !loading && socialPosts.length > 0 && (
+        !loading && (
           <section className="py-20 bg-white">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-end justify-between mb-8">
@@ -1351,56 +1369,78 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {socialPosts.map((post) => {
-                  const config = PLATFORM_CONFIG[post.platform] ?? { color: '#4285F4', label: post.platform };
-                  return (
-                    <div key={post.post_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
+              {socialPosts.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  {socialPosts.map((post) => {
+                    const config = PLATFORM_CONFIG[post.platform] ?? { color: '#4285F4', label: post.platform };
+                    return (
+                      <div key={post.post_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
 
-                      {/* Media */}
-                      {post.media_urls && post.media_urls.length > 0 && (
-                        <div className="h-48 bg-gray-100 overflow-hidden">
-                          <img
-                            src={post.media_urls[0]}
-                            alt="Post media"
-                            className="w-full h-full object-cover"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        </div>
-                      )}
-
-                      <div className="p-4 flex flex-col flex-1">
-                        {/* Platform badge */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <span
-                            className="px-2.5 py-1 rounded-full text-xs font-bold text-white capitalize"
-                            style={{ backgroundColor: config.color }}
-                          >
-                            {config.label}
-                          </span>
-                          {post.posted_at && (
-                            <span className="text-xs text-gray-400">{timeAgo(post.posted_at)}</span>
-                          )}
-                        </div>
-
-                        {/* Caption */}
-                        <p className="text-sm text-gray-700 leading-relaxed line-clamp-3 flex-1">
-                          {post.caption}
-                        </p>
-
-                        {/* Hashtags */}
-                        {post.hashtags && post.hashtags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-3">
-                            {post.hashtags.slice(0, 3).map((tag) => (
-                              <span key={tag} className="text-xs text-blue-500">#{tag}</span>
-                            ))}
+                        {/* Media */}
+                        {post.media_urls && post.media_urls.length > 0 && (
+                          <div className="h-48 bg-gray-100 overflow-hidden">
+                            <img
+                              src={post.media_urls[0]}
+                              alt="Post media"
+                              className="w-full h-full object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
                           </div>
                         )}
+
+                        <div className="p-4 flex flex-col flex-1">
+                          {/* Platform badge */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <span
+                              className="px-2.5 py-1 rounded-full text-xs font-bold text-white capitalize"
+                              style={{ backgroundColor: config.color }}
+                            >
+                              {config.label}
+                            </span>
+                            {post.posted_at && (
+                              <span className="text-xs text-gray-400">{timeAgo(post.posted_at)}</span>
+                            )}
+                          </div>
+
+                          {/* Caption */}
+                          <p className="text-sm text-gray-700 leading-relaxed line-clamp-3 flex-1">
+                            {post.caption}
+                          </p>
+
+                          {/* Hashtags */}
+                          {post.hashtags && post.hashtags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-3">
+                              {post.hashtags.slice(0, 3).map((tag) => (
+                                <span key={tag} className="text-xs text-blue-500">#{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 px-8 text-center border border-gray-200 rounded-xl">
+                  <div className="w-16 h-16 bg-[#34A853] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#0f172a] rotate-3">
+                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </div>
+                  <h3 className={`text-2xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
+                    Nothing Posted Yet
+                  </h3>
+                  <p className="text-slate-600 font-bold text-sm leading-relaxed max-w-xs px-2">
+                    We haven&apos;t shared any posts yet. Follow us on our socials for the latest updates!
+                  </p>
+                  <div className="mt-5 flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#4285F4] animate-bounce" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )
@@ -1408,7 +1448,7 @@ export default function HomePage() {
 
       {/* ── Brutalist Team Preview ── */}
       {
-        !loading && teamMembers.length > 0 && (
+        !loading && (
           <section className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
             {/* Subtle grid background */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-60 pointer-events-none" />
@@ -1425,21 +1465,43 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Brutalist 2-Column Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 max-w-4xl mx-auto">
-                {teamMembers
-                  .sort((a, b) => a.display_order - b.display_order)
-                  .slice(0, 2)
-                  .map((member, idx) => (
-                    <BrutalistMemberCard
-                      key={member.member_id}
-                      member={member}
-                      index={idx}
-                      actionLabel="VIEW PROFILE"
-                      actionHref="/about"
-                    />
-                  ))}
-              </div>
+              {teamMembers.length > 0 ? (
+                /* Brutalist 2-Column Grid */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 max-w-4xl mx-auto">
+                  {teamMembers
+                    .sort((a, b) => a.display_order - b.display_order)
+                    .slice(0, 2)
+                    .map((member, idx) => (
+                      <BrutalistMemberCard
+                        key={member.member_id}
+                        member={member}
+                        index={idx}
+                        actionLabel="VIEW PROFILE"
+                        actionHref="/about"
+                      />
+                    ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 bg-[#4285F4] border-[3px] border-black rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#000] rotate-3">
+                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h3 className={`text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
+                    Team Coming Soon
+                  </h3>
+                  <p className="text-slate-600 font-bold text-sm leading-relaxed max-w-xs px-2">
+                    Our leadership team is being assembled. Check back soon to meet the crew!
+                  </p>
+                  <div className="mt-5 flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#4285F4] animate-bounce" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
 
               {/* View All Team Link */}
               <div className="mt-16 flex justify-center">
@@ -1456,35 +1518,58 @@ export default function HomePage() {
 
       {/* ── Sponsors Strip ── */}
       {
-        !loading && sponsors.length > 0 && (
+        !loading && (
           <section className="py-14 bg-white border-t border-gray-100">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-8">
                 Supported By
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-8">
-                {sponsors.map((sponsor) => (
-                  <a
-                    key={sponsor.sponsor_id}
-                    href={sponsor.website_url ?? '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group"
-                  >
-                    {sponsor.logo_url ? (
-                      <img
-                        src={sponsor.logo_url}
-                        alt={sponsor.name}
-                        className="h-10 w-auto object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all"
-                      />
-                    ) : (
-                      <span className="text-sm font-bold text-gray-400 group-hover:text-gray-700 transition-colors">
-                        {sponsor.name}
-                      </span>
-                    )}
-                  </a>
-                ))}
-              </div>
+              {sponsors.length > 0 ? (
+                <div className="flex flex-wrap items-center justify-center gap-8">
+                  {sponsors.map((sponsor) => (
+                    <a
+                      key={sponsor.sponsor_id}
+                      href={sponsor.website_url ?? '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group"
+                    >
+                      {sponsor.logo_url ? (
+                        <img
+                          src={sponsor.logo_url}
+                          alt={sponsor.name}
+                          className="h-10 w-auto object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all"
+                        />
+                      ) : (
+                        <span className="text-sm font-bold text-gray-400 group-hover:text-gray-700 transition-colors">
+                          {sponsor.name}
+                        </span>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-14 h-14 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-4 shadow-[4px_4px_0_#0f172a] rotate-3">
+                    <svg className="w-7 h-7 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </div>
+                  <h3 className={`text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-2 ${antonio.className}`}>
+                    No Sponsors Yet
+                  </h3>
+                  <p className="text-slate-500 font-bold text-sm leading-relaxed max-w-xs">
+                    Interested in supporting GDGOC-UITU?{' '}
+                    <Link href="/contact" className="text-[#4285F4] hover:underline">Get in touch!</Link>
+                  </p>
+                  <div className="mt-4 flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-[#4285F4] animate-bounce" />
+                    <div className="w-2 h-2 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )
@@ -1642,6 +1727,9 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* ── Announcement Mascot (fixed; placed last so ScrollTrigger pin-spacers never conflict) ── */}
+      <MascotBanner announcement={homepage?.announcement ?? null} />
 
     </div >
   );

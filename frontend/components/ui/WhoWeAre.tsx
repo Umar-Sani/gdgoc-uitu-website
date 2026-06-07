@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -14,8 +13,10 @@ if (typeof window !== 'undefined') {
 }
 
 export default function WhoWeAre() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const flipRef = useRef<HTMLSpanElement>(null);
 
   useGSAP(
     () => {
@@ -24,15 +25,30 @@ export default function WhoWeAre() {
       if (!section || !container) return;
 
       // ── Main Horizontal Scroll Animation ──
+      // End the scroll when the UITU flip element is centered in the viewport
+      // (instead of scrolling all the way to the container's right edge).
+      const getEndX = () => {
+        const flip = flipRef.current;
+        if (!flip) return -(container.scrollWidth - window.innerWidth);
+        // Static offset of the flip's centre from the container's left edge
+        // (rect difference is invariant to the current transform).
+        const cRect = container.getBoundingClientRect();
+        const fRect = flip.getBoundingClientRect();
+        const flipCenterOffset = fRect.left - cRect.left + fRect.width / 2;
+        return window.innerWidth / 2 - flipCenterOffset;
+      };
+
+      // No GSAP pin — the section is pinned via CSS `position: sticky` and the
+      // outer wrapper reserves the scroll height in CSS (known at SSR). This avoids
+      // a pin-spacer being injected after hydration, which was causing large CLS.
       const scrollTween = gsap.to(container, {
-        x: () => -(container.scrollWidth - window.innerWidth),
+        x: getEndX,
         ease: 'none',
         scrollTrigger: {
-          trigger: section,
-          pin: true,
+          trigger: wrapperRef.current,
           scrub: 1,
           start: 'top top',
-          end: () => `+=${container.scrollWidth}`,
+          end: 'bottom bottom',
           invalidateOnRefresh: true,
         },
       });
@@ -56,24 +72,73 @@ export default function WhoWeAre() {
         });
       });
 
-      // ── Snappy Scrolling Words Box 1 ──
-      const tl1 = gsap.timeline({ repeat: -1 });
-      tl1.to('.scrolling-words-1', { yPercent: -25, ease: 'power4.inOut', duration: 0.8, delay: 1.5 })
-         .to('.scrolling-words-1', { yPercent: -50, ease: 'power4.inOut', duration: 0.8, delay: 1.5 })
-         .to('.scrolling-words-1', { yPercent: -75, ease: 'power4.inOut', duration: 0.8, delay: 1.5 });
+      // ── "That's Right" flourish — words reveal one after another (with a colour glow) ──
+      gsap.timeline({
+        scrollTrigger: {
+          trigger: '.thats-trigger',
+          containerAnimation: scrollTween,
+          start: 'left 90%',
+          toggleActions: 'play none none reverse',
+        },
+      })
+        .from('.thats-word-1', { scale: 0.6, opacity: 0, y: 20, ease: 'back.out(1.5)', duration: 0.5 })
+        .from('.thats-word-2', { scale: 0.6, opacity: 0, y: 20, ease: 'back.out(1.5)', duration: 0.5 }, '-=0.1');
 
-      // ── Snappy Scrolling Words Box 2 ──
-      const tl2 = gsap.timeline({ repeat: -1 });
-      tl2.to('.scrolling-words-2', { yPercent: -25, ease: 'power4.inOut', duration: 0.8, delay: 1.5 })
-         .to('.scrolling-words-2', { yPercent: -50, ease: 'power4.inOut', duration: 0.8, delay: 1.5 })
-         .to('.scrolling-words-2', { yPercent: -75, ease: 'power4.inOut', duration: 0.8, delay: 1.5 });
+      // ── "WE DO" boxes flip down into view ──
+      (gsap.utils.toArray('.flip-in-box') as HTMLElement[]).forEach((box) => {
+        gsap.from(box, {
+          rotateX: -90,
+          opacity: 0,
+          transformOrigin: 'top center',
+          ease: 'power3.out',
+          duration: 0.8,
+          scrollTrigger: {
+            trigger: box,
+            containerAnimation: scrollTween,
+            start: 'left 85%',
+            toggleActions: 'play none none reverse',
+          },
+        });
+      });
+
+      // ── UITU text ↔ logo flip (back and forth) ──
+      gsap.to('.flip-uitu-inner', {
+        rotationY: 180,
+        duration: 1,
+        ease: 'power3.inOut',
+        repeat: -1,
+        yoyo: true,
+        repeatDelay: 1.5,
+        transformOrigin: 'center center',
+      });
+
+      // ── Community values flip-board (cycles through the three values on one line) ──
+      gsap.set('.community-face-0', { rotateX: 0 });
+      gsap.set('.community-face-1', { rotateX: 90 });
+      gsap.set('.community-face-2', { rotateX: 90 });
+
+      const cFlip = 0.3; // flip duration (out, then in — sequential)
+      const cHold = 1.6; // time each value stays on screen
+      // Each transition: current face flips fully out, THEN the next flips in
+      // (sequential, no overlap → clean flip-board reveal).
+      gsap.timeline({ repeat: -1, defaults: { duration: cFlip, ease: 'power2.inOut' } })
+        .to({}, { duration: cHold })
+        .to('.community-face-0', { rotateX: -90 })
+        .to('.community-face-1', { rotateX: 0 })
+        .to({}, { duration: cHold })
+        .to('.community-face-1', { rotateX: -90 })
+        .to('.community-face-2', { rotateX: 0 })
+        .to({}, { duration: cHold })
+        .to('.community-face-2', { rotateX: -90 })
+        .set('.community-face-0', { rotateX: 90 })
+        .to('.community-face-0', { rotateX: 0 });
 
       // ── Text Splitting & Revealing ──
       const massiveTexts = gsap.utils.toArray('.massive-text') as HTMLElement[];
-      
+
       massiveTexts.forEach((textElement) => {
         const split = new SplitText(textElement, { type: 'words, chars', tag: 'span' });
-        
+
         split.chars.forEach((char) => {
           gsap.from(char, {
             yPercent: gsap.utils.random(-150, 150),
@@ -92,139 +157,182 @@ export default function WhoWeAre() {
         });
       });
 
-      // ── CTA Panel Reveal ──
-      gsap.from('.cta-element', {
-        scale: 0.8,
+      // ── Fade out everything except "AT UITU" + CTA as the scroll reaches the end ──
+      // Single scrubbed opacity tween (GPU-composited → no performance cost).
+      gsap.to('.we-are-prelude', {
         opacity: 0,
-        y: 50,
-        stagger: 0.1,
-        ease: 'back.out(1.5)',
+        ease: 'none',
         scrollTrigger: {
-          trigger: '.cta-panel',
-          containerAnimation: scrollTween,
-          start: 'left 85%',
-          end: 'left 50%',
-          scrub: 1,
+          trigger: wrapperRef.current,
+          start: 'bottom bottom+=60%', // begin fading only in the final stretch (later)
+          end: 'bottom bottom',        // fully gone exactly when AT UITU is centered
+          scrub: true,
         },
       });
 
+      // ── Recompute the scroll-end position after late-loading assets (logo, fonts) ──
+      // getEndX() depends on the flip box size; refresh once everything has settled
+      // so the UITU element still lands centered regardless of load timing.
+      const refresh = () => ScrollTrigger.refresh();
+      if (document.fonts?.ready) document.fonts.ready.then(refresh);
+      if (document.readyState === 'complete') {
+        refresh();
+      } else {
+        window.addEventListener('load', refresh);
+      }
+
+      return () => window.removeEventListener('load', refresh);
     },
     { scope: sectionRef }
   );
 
   return (
-    <section
-      ref={sectionRef}
-      className="h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden flex items-center relative font-sans"
-    >
-      {/* Background grain or subtle gradient could go here */}
-
-      <div
-        ref={containerRef}
-        className="flex flex-nowrap items-center w-max px-[10vw] gap-6 relative z-10"
+    // Outer wrapper reserves the scroll height in CSS (SSR-known) so no layout
+    // shift occurs after hydration. Tune `height` to change the scroll pacing.
+    <div ref={wrapperRef} className="relative w-full" style={{ height: '600vh' }}>
+      <section
+        ref={sectionRef}
+        className="sticky top-0 h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden flex items-center font-sans"
       >
-        <span className="massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight">
-          WE ARE
-        </span>
-
-        {/* Floater: Logo */}
-        <div className="floater flex-shrink-0 mx-2 w-24 h-24 md:w-32 md:h-32 relative" data-speed="1.5">
-          <Image
-            src="/images/logolight.png"
-            alt="GDGOC Logo"
-            fill
-            className="object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-          />
-        </div>
-
-        <span className="massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight relative">
-          BUILDERS, CREATORS, AND INNOVATORS.
-          {/* Floater: Pill */}
-          <div className="floater absolute -top-12 right-0 bg-gradient-to-r from-[#ff7c70] to-[#EA4335] text-white px-6 py-2 rounded-xl text-xl font-bold -rotate-6 shadow-xl" data-speed="2">
-            That's right
+        <div
+          ref={containerRef}
+          className="flex flex-nowrap items-center w-max gap-6 relative z-10 will-change-transform"
+        >
+          {/* ── Intro Frame — "WE ARE" + Google Developers logo, large & centered at the start ── */}
+          <div className="we-are-prelude flex-shrink-0 w-screen flex items-center justify-center gap-12 md:gap-24">
+            <span className="whitespace-nowrap text-[clamp(3rem,8vw,9rem)] font-black tracking-tight">
+              WE ARE
+            </span>
+            {/* Google Developers logo → swaps to GDGoC-UITU on hover */}
+            <span className="group relative inline-block w-64 md:w-80 lg:w-[26rem] aspect-[256/125] cursor-pointer">
+              <img
+                src="/images/logolight2.png"
+                alt="Google Developers Group on Campus - UIT University"
+                className="absolute relative top-2 inset-0 w-full h-full object-contain drop-shadow-[0_0_25px_rgba(66,133,244,0.3)] transition-opacity duration-300 group-hover:opacity-0"
+                draggable={false}
+              />
+              <img
+                src="/images/google-developers-seeklogo.svg"
+                alt="GDGoC-UITU"
+                className="absolute inset-0 w-full h-full object-contain opacity-0 drop-shadow-[0_0_25px_rgba(255,255,255,0.25)] transition-opacity duration-300 group-hover:opacity-100"
+                draggable={false}
+              />
+            </span>
           </div>
-        </span>
 
-        <span className="massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight ml-12 relative">
-          WE DO
-        </span>
+          {/* UITU building silhouette — faint background. Absolute so it scrolls with the
+              track but takes no flow space, and sits behind the text (negative z). */}
+          <div className="we-are-prelude pointer-events-none absolute top-1/2 left-[85vw] -translate-x-1/2 -translate-y-1/2 -z-10">
+            <img
+              src="/images/UITU%20Building%20Silhouette.png"
+              alt=""
+              className="h-[640px] w-auto max-w-none object-contain opacity-[0.12]"
+              draggable={false}
+            />
+          </div>
 
-        {/* Scrolling Box 1 */}
-        <div className="scrolling-box-1 flex-shrink-0 h-[clamp(3.5rem,7vw,8rem)] overflow-hidden bg-gradient-to-r from-[#34A853] to-[#288a44] text-white px-8 rounded-[2rem] mx-2 flex flex-col justify-start shadow-2xl relative">
-          <div className="scrolling-words-1 flex flex-col">
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
-              <Star size={48} fill="currentColor" />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">WORKSHOPS</span>
+          <span className="we-are-prelude massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight">
+            BUILDERS, CREATORS, AND INNOVATORS
+          </span>
+
+          {/* "That's Right" — two-line flourish sized to the sentence height, fits between INNOVATORS and WE DO */}
+          <div className="thats-trigger we-are-prelude flex-shrink-0 self-center ml-4 flex flex-col items-center justify-center leading-[0.85] text-center">
+            <span className="thats-word-1 uppercase font-black tracking-tighter text-white text-[clamp(1.2rem,2.4vw,2.7rem)]">That&apos;s</span>
+            <span className="thats-word-2 uppercase font-black tracking-tighter text-white text-[clamp(1.2rem,2.4vw,2.7rem)]">Right</span>
+          </div>
+
+          <span className="we-are-prelude massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight ml-4 relative">
+            WE DO
+          </span>
+
+          {/* WE DO — Workshops + Projects inline on the sentence line, Hackathons centered below */}
+          <div className="we-are-prelude flex-shrink-0 relative flex items-center gap-5" style={{ perspective: '1200px' }}>
+            <div className="flip-in-box will-change-transform flex-shrink-0 h-[clamp(3.5rem,7vw,8rem)] bg-gradient-to-r from-[#34A853] to-[#288a44] text-white px-8 rounded-[2rem] flex items-center gap-4 shadow-2xl">
+              {/* <Star size={48} fill="currentColor" /> */}
+              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight whitespace-nowrap">WORKSHOPS</span>
             </div>
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
-              <Zap size={48} fill="currentColor" />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">HACKATHONS</span>
+            <div className="flip-in-box will-change-transform flex-shrink-0 h-[clamp(3.5rem,7vw,8rem)] bg-gradient-to-r from-[#4285F4] to-[#3474d4] text-white px-8 rounded-[2rem] flex items-center gap-4 shadow-2xl">
+              {/* <Rocket size={48} fill="currentColor" /> */}
+              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight whitespace-nowrap">PROJECTS</span>
             </div>
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
-              <Rocket size={48} fill="currentColor" />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">PROJECTS</span>
-            </div>
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
-              <Star size={48} fill="currentColor" />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">WORKSHOPS</span>
+            {/* Hackathons — centered below the two boxes (absolute so it doesn't shift the row off the line) */}
+            <div className="flip-in-box will-change-transform absolute left-1/2 top-full -translate-x-1/2 mt-5 flex-shrink-0 h-[clamp(3.5rem,7vw,8rem)] bg-gradient-to-r from-[#EA4335] to-[#c53026] text-white px-8 rounded-[2rem] flex items-center gap-4 shadow-2xl">
+              {/* <Zap size={48} fill="currentColor" /> */}
+              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight whitespace-nowrap">HACKATHONS</span>
             </div>
           </div>
-        </div>
 
-        <span className="massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight ml-12">
-          AND A GLOBAL NETWORK OF PASSIONATE STUDENTS
-        </span>
+          <span className="we-are-prelude massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight ml-12">
+            AND HAVE A GLOBAL NETWORK OF PASSIONATE STUDENTS
+          </span>
 
-        {/* Scrolling Box 2 */}
-        <div className="scrolling-box-2 flex-shrink-0 h-[clamp(3.5rem,7vw,8rem)] overflow-hidden bg-gradient-to-r from-[#4285F4] to-[#3474d4] text-white px-8 rounded-[2rem] mx-2 flex flex-col justify-start shadow-2xl relative">
-          <div className="scrolling-words-2 flex flex-col">
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
+          {/* Community values — single flip-board cycling through the three values on one line */}
+          <div className="we-are-prelude flex-shrink-0 inline-grid" style={{ perspective: '1200px' }}>
+            <div className="community-face-0 [grid-area:1/1] place-self-center [backface-visibility:hidden] will-change-transform h-[clamp(3.5rem,7vw,8rem)] bg-gradient-to-r from-[#4285F4] to-[#3474d4] text-white px-8 rounded-[2rem] flex items-center gap-4 shadow-2xl">
               <BookOpen size={48} />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">LEARNING TOGETHER</span>
+              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight whitespace-nowrap">LEARNING TOGETHER</span>
             </div>
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
-              <HeartHandshake size={48} />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">HELPING EACH OTHER</span>
-            </div>
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
+            <div className="community-face-1 [grid-area:1/1] place-self-center [backface-visibility:hidden] will-change-transform h-[clamp(3.5rem,7vw,8rem)] bg-gradient-to-r from-[#34A853] to-[#288a44] text-white px-8 rounded-[2rem] flex items-center gap-4 shadow-2xl">
               <TrendingUp size={48} />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">GROWING TOGETHER</span>
+              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight whitespace-nowrap">GROWING TOGETHER</span>
             </div>
-            <div className="h-[clamp(3.5rem,7vw,8rem)] flex items-center gap-4">
-              <BookOpen size={48} />
-              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight">LEARNING TOGETHER</span>
+            <div className="community-face-2 [grid-area:1/1] place-self-center [backface-visibility:hidden] will-change-transform h-[clamp(3.5rem,7vw,8rem)] bg-gradient-to-r from-[#ff7c70] to-[#EA4335] text-white px-8 rounded-[2rem] flex items-center gap-4 shadow-2xl">
+              <HeartHandshake size={48} />
+              <span className="text-[clamp(2.5rem,5vw,6rem)] font-bold tracking-tight whitespace-nowrap">HELPING EACH OTHER</span>
+            </div>
+          </div>
+
+          {/* ── Final Segment — "AT UITU" inline on the sentence line; CTA sits below the logo ── */}
+          <div className="relative flex-shrink-0 inline-flex items-center gap-8 whitespace-nowrap text-[clamp(3rem,8vw,9rem)] font-medium tracking-tight ml-12">
+            <span className="massive-text">AT</span>
+
+            {/* UITU text ↔ logo flip */}
+            <span ref={flipRef} className="flip-uitu inline-block relative align-middle" style={{ perspective: '1000px' }}>
+              <span className="flip-uitu-inner inline-grid will-change-transform" style={{ transformStyle: 'preserve-3d' }}>
+                {/* Front face — UITU text (inline with the sentence) */}
+                <span
+                  className="[grid-area:1/1] inline-flex items-center justify-center"
+                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                >
+                  UITU
+                </span>
+                {/* Back face — UITU logo (large) */}
+                <span
+                  className="[grid-area:1/1] inline-flex items-center justify-center"
+                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                >
+                  <img
+                    src="/images/UITU%20LOGO%20WHITE.png"
+                    alt="UITU"
+                    className="h-[clamp(7rem,14vw,16rem)] aspect-square object-contain"
+                    draggable={false}
+                  />
+                </span>
+              </span>
+            </span>
+
+            {/* CTA — brutalist buttons below the logo (matches forum style); absolute so it doesn't push "AT UITU" off the line */}
+            <div className="cta-panel absolute left-1/2 -translate-x-1/2 top-full mt-16 flex flex-row items-center gap-4">
+              <Link
+                href="/about"
+                className="cta-element px-6 py-3 bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest border-2 border-black shadow-[4px_4px_0_#4285F4] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all whitespace-nowrap"
+              >
+                Read more about us
+              </Link>
+
+              <a href="#" className="cta-element w-11 h-11 flex items-center justify-center bg-white/5 border-2 border-white/20 text-white shadow-[4px_4px_0_rgba(255,255,255,0.12)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none hover:bg-[#ff7c70] hover:border-[#ff7c70] transition-all">
+                <Instagram size={18} />
+              </a>
+              <a href="#" className="cta-element w-11 h-11 flex items-center justify-center bg-white/5 border-2 border-white/20 text-white shadow-[4px_4px_0_rgba(255,255,255,0.12)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none hover:bg-[#4285F4] hover:border-[#4285F4] transition-all">
+                <Linkedin size={18} />
+              </a>
+              <a href="#" className="cta-element w-11 h-11 flex items-center justify-center bg-white/5 border-2 border-white/20 text-white shadow-[4px_4px_0_rgba(255,255,255,0.12)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none hover:bg-[#34A853] hover:border-[#34A853] transition-all">
+                <LinkIcon size={18} />
+              </a>
             </div>
           </div>
         </div>
-
-        <span className="massive-text flex-shrink-0 whitespace-nowrap text-[clamp(2.5rem,5vw,6rem)] font-medium tracking-tight ml-12">
-          AT UITU.
-        </span>
-
-        {/* CTA Panel */}
-        <div className="cta-panel flex-shrink-0 flex items-center gap-8 ml-24 mr-32">
-          <Link
-            href="/about"
-            className="cta-element px-10 py-5 bg-white text-black rounded-full text-2xl md:text-4xl font-bold hover:bg-gray-200 transition-colors shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-          >
-            Read more about us
-          </Link>
-          
-          <div className="flex gap-4">
-            <a href="#" className="cta-element bg-[#27272a] p-5 rounded-full text-white hover:bg-[#ff7c70] transition-colors">
-              <Instagram size={32} />
-            </a>
-            <a href="#" className="cta-element bg-[#27272a] p-5 rounded-full text-white hover:bg-[#4285F4] transition-colors">
-              <Linkedin size={32} />
-            </a>
-            <a href="#" className="cta-element bg-[#27272a] p-5 rounded-full text-white hover:bg-[#34A853] transition-colors">
-              <LinkIcon size={32} />
-            </a>
-          </div>
-        </div>
-        
-        <div className="w-[10vw] flex-shrink-0" />
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

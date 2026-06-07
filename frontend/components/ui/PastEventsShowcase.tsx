@@ -206,7 +206,49 @@ export default function PastEventsShowcase({ events }: PastEventsShowcaseProps) 
     return seamlessLoop;
   }
 
-  if (!events.length) return null;
+  if (!events.length) {
+    return (
+      <section className="relative bg-slate-950 text-white overflow-hidden flex flex-col justify-center items-center py-24 px-4">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-950/80 to-indigo-950/60" />
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:80px_80px]" />
+
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 mb-10">
+          <div className="flex items-end gap-4">
+            <div className="h-1.5 w-14 flex rounded-none overflow-hidden border border-white/10">
+              <div className="flex-1 bg-[#4285F4]" />
+              <div className="flex-1 bg-[#EA4335]" />
+              <div className="flex-1 bg-[#FBBC05]" />
+              <div className="flex-1 bg-[#34A853]" />
+            </div>
+            <h2 className={`text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-white/[0.06] leading-none ${antonio.className}`}>
+              Showcase
+            </h2>
+          </div>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center text-center max-w-md">
+          <div className="w-20 h-20 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 shadow-[6px_6px_0_rgba(0,0,0,0.4)] rotate-3">
+            <Sparkles className="w-10 h-10 text-slate-900" />
+          </div>
+          <h3 className={`text-4xl font-black text-white uppercase tracking-tight leading-none mb-4 ${antonio.className}`}>
+            Nothing Here Yet
+          </h3>
+          <p className="text-gray-400 font-bold text-sm leading-relaxed max-w-xs">
+            We haven&apos;t featured any past events yet. Our best moments are coming soon!
+          </p>
+          <div className="mt-8 flex gap-2">
+            {GOOGLE_COLORS.map((c, i) => (
+              <div
+                key={c}
+                className="w-2.5 h-2.5 rounded-full animate-bounce"
+                style={{ backgroundColor: c, animationDelay: `${i * 100}ms` }}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const currentEvent = events[activeIndex];
   const activeColor = GOOGLE_COLORS[activeIndex % GOOGLE_COLORS.length];
