@@ -7,8 +7,8 @@ import { Antonio } from 'next/font/google';
 const antonio = Antonio({ subsets: ['latin'] });
 
 export default function ContactPage() {
-  const [form, setForm]         = useState({ full_name: '', email: '', subject: '', message: '' });
-  const [errors, setErrors]     = useState<Record<string, string>>({});
+  const [form, setForm] = useState({ full_name: '', email: '', subject: '', message: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [generalError, setGeneralError] = useState('');
@@ -57,10 +57,9 @@ export default function ContactPage() {
   }
 
   const inputClass = (hasError?: boolean) =>
-    `w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${
-      hasError
-        ? 'border-red-400 bg-red-50 focus:ring-2 focus:ring-red-200'
-        : 'border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
+    `w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${hasError
+      ? 'border-red-400 bg-red-50 focus:ring-2 focus:ring-red-200'
+      : 'border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
     }`;
 
   return (

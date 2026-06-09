@@ -4,19 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BrutalistMemberCard, TeamMember } from '../../../components/ui/BrutalistMemberCard';
 import CactusRunner from '../../../components/ui/CactusRunner';
+import MissionScroll from '../../../components/ui/MissionScroll';
 import { Antonio } from 'next/font/google';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type AboutSection = {
-  section_id: number;
-  section_key: string;
-  title: string;
-  body: string;
-  display_order: number;
-};
 
 // Imported TeamMember from components
 
@@ -59,7 +52,6 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AboutPage() {
-  const [sections, setSections]   = useState<AboutSection[]>([]);
   const [members, setMembers]     = useState<TeamMember[]>([]);
   const [sponsors, setSponsors]   = useState<Sponsor[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -68,12 +60,10 @@ export default function AboutPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/api/cms/about`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/team`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/sponsors`).then((r) => r.json()),
     ])
-      .then(([aboutRes, teamRes, sponsorsRes]) => {
-        if (aboutRes.data) setSections(aboutRes.data);
+      .then(([teamRes, sponsorsRes]) => {
         if (teamRes.data) setMembers(teamRes.data);
         if (sponsorsRes.data) setSponsors(sponsorsRes.data);
       })
@@ -152,39 +142,8 @@ export default function AboutPage() {
       </div>
 
       {/* ── Mission / About Sections ── */}
-      <section id="mission" className="py-20 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader title="Our Mission" subtitle="What we stand for and why we exist" />
-
-          {loading ? (
-            <div className="space-y-8 animate-pulse">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-3">
-                  <div className="h-5 bg-gray-200 rounded w-1/3" />
-                  <div className="h-4 bg-gray-200 rounded w-full" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </div>
-              ))}
-            </div>
-          ) : sections.length === 0 ? (
-            <p className="text-gray-400 text-sm">Content coming soon.</p>
-          ) : (
-            <div className="space-y-10">
-              {[...sections]
-                .sort((a, b) => a.display_order - b.display_order)
-                .map((section) => (
-                  <div key={section.section_id} className="flex gap-6">
-                    <div className="flex-shrink-0 w-1 rounded-full bg-gradient-to-b from-[#4285F4] via-[#FBBC05] to-[#34A853]" />
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{section.title}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{section.body}</p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </section>
+      {/* ── Our Mission / Vision / What We Do — pinned scroll section ── */}
+      <MissionScroll />
 
       {/* ── Team ── */}
       <section id="team" className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
