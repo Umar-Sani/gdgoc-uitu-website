@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BrutalistMemberCard, TeamMember } from '../../../components/ui/BrutalistMemberCard';
+import { TeamMember } from '../../../components/ui/BrutalistMemberCard';
+import TeamCards, { Team, MemberCard, PeopleBlock, THEMES } from '../../../components/ui/TeamCards';
+import ParallaxBackdrop from '../../../components/ui/ParallaxBackdrop';
 import CactusRunner from '../../../components/ui/CactusRunner';
 import MissionScroll from '../../../components/ui/MissionScroll';
 import { Antonio } from 'next/font/google';
@@ -34,7 +36,7 @@ const TIER_CONFIG: Record<string, { label: string; color: string }> = {
 
 // ─── Section Header ───────────────────────────────────────────────────────────
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+function SectionHeader({ title, subtitle, light = false }: { title: string; subtitle?: string; light?: boolean }) {
   return (
     <div className="mb-8">
       <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
@@ -43,8 +45,8 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
         <div className="flex-1 bg-[#FBBC05]" />
         <div className="flex-1 bg-[#34A853]" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{title}</h2>
-      {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+      <h2 className={`text-2xl font-bold tracking-tight ${light ? 'text-white' : 'text-gray-900'}`}>{title}</h2>
+      {subtitle && <p className={`text-sm mt-1 ${light ? 'text-blue-200' : 'text-gray-500'}`}>{subtitle}</p>}
     </div>
   );
 }
@@ -53,6 +55,7 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 
 export default function AboutPage() {
   const [members, setMembers]     = useState<TeamMember[]>([]);
+  const [teams, setTeams]         = useState<{ team_id: string; name: string; display_order: number }[]>([]);
   const [sponsors, setSponsors]   = useState<Sponsor[]>([]);
   const [loading, setLoading]     = useState(true);
 
@@ -61,10 +64,12 @@ export default function AboutPage() {
   useEffect(() => {
     Promise.all([
       fetch(`${API_URL}/api/cms/team`).then((r) => r.json()),
+      fetch(`${API_URL}/api/cms/teams`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/sponsors`).then((r) => r.json()),
     ])
-      .then(([teamRes, sponsorsRes]) => {
+      .then(([teamRes, teamsRes, sponsorsRes]) => {
         if (teamRes.data) setMembers(teamRes.data);
+        if (teamsRes.data) setTeams(teamsRes.data);
         if (sponsorsRes.data) setSponsors(sponsorsRes.data);
       })
       .catch(console.error)
@@ -78,8 +83,12 @@ export default function AboutPage() {
   const mentors     = members.filter((m) => m.section === 'mentor');
   const pastLeaders = members.filter((m) => m.section === 'past_leader');
 
-  // Get unique team names from co-leads
-  const teamNames = [...new Set(coLeads.map((m) => m.team_name).filter(Boolean))] as string[];
+  // Teams ordered by the teams-table display_order; only those with a co-lead are shown.
+  // Any team a co-lead uses that isn't in the teams table (legacy) is appended at the end.
+  const usedTeams = new Set(coLeads.map((m) => m.team_name).filter(Boolean) as string[]);
+  const orderedFromTable = teams.map((t) => t.name).filter((n) => usedTeams.has(n));
+  const leftovers = [...usedTeams].filter((n) => !teams.some((t) => t.name === n));
+  const teamNames = [...orderedFromTable, ...leftovers];
 
   // Group members by team
   const membersByTeam = teamNames.reduce((acc, team) => {
@@ -88,6 +97,13 @@ export default function AboutPage() {
       .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
     return acc;
   }, {} as Record<string, TeamMember[]>);
+
+  // Shape each team for the showcase: lead first, then its members.
+  const teamData: Team[] = teamNames.map((teamName) => {
+    const lead = coLeads.find((m) => m.team_name === teamName) ?? null;
+    const rest = membersByTeam[teamName] ?? [];
+    return { name: teamName, lead, members: lead ? [lead, ...rest] : rest };
+  });
 
   // Group sponsors by tier
   const tiers = ['platinum', 'gold', 'silver', 'bronze'];
@@ -146,11 +162,28 @@ export default function AboutPage() {
       <MissionScroll />
 
       {/* ── Team ── */}
-      <section id="team" className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-60 pointer-events-none" />
-
+      <section id="team" className="py-24 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-x-clip">
+        {/* Decorative mascot backdrop — full width, drifts slowly down the section (parallax) */}
+        <ParallaxBackdrop
+          src="/images/Android_Mascots_Classroom.png"
+          className="opacity-[0.08] z-0"
+        />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
-          <SectionHeader title="Our Team" subtitle="The builders and organizers running the show." />
+          {/* Centered, oversized header to match the Mission / hero sections */}
+          <div className="text-center mb-16">
+            <div className="h-1.5 w-16 mx-auto flex mb-6 rounded-full overflow-hidden">
+              <div className="flex-1 bg-[#4285F4]" />
+              <div className="flex-1 bg-[#EA4335]" />
+              <div className="flex-1 bg-[#FBBC05]" />
+              <div className="flex-1 bg-[#34A853]" />
+            </div>
+            <h2 className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-white leading-[0.9] ${antonio.className}`}>
+              Our Team
+            </h2>
+            <p className="mt-5 text-base md:text-lg text-blue-200 max-w-xl mx-auto">
+              The builders and organizers running the show.
+            </p>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 animate-pulse">
@@ -161,93 +194,67 @@ export default function AboutPage() {
           ) : (
             <div className="space-y-20">
 
-              {/* GDG Lead */}
+              {/* GDG Lead — centered card flanked by "GDG / LEAD" and a phrase */}
               {gdgLead.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
-                    <span className="w-6 h-6 rounded-full bg-[#EA4335] border-2 border-black flex items-center justify-center text-white text-xs shadow-[2px_2px_0_#000]">👑</span>
-                    GDG Lead
-                  </h3>
-                  <div className="flex">
-                    <div className="w-full md:w-1/2">
-                      <BrutalistMemberCard member={gdgLead[0]} index={0} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Co-Leads and their Teams */}
-              {teamNames.map((teamName, teamIdx) => {
-                const coLead = coLeads.find((m) => m.team_name === teamName);
-                const members = membersByTeam[teamName] ?? [];
-                
-                // We combine the co-lead and team members to map them uniformly
-                const allTeamMembers = coLead ? [coLead, ...members] : members;
-
-                return (
-                  <div key={teamName}>
-                    <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
-                      <span className="w-4 h-4 rounded-none bg-[#4285F4] border-2 border-black shadow-[2px_2px_0_#000]" />
-                      {teamName}
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <div className="grid lg:grid-cols-[1fr_minmax(0,21rem)_1fr] gap-10 lg:gap-12 items-center">
+                    {/* Left — GDG / LEAD */}
+                    <h3 className={`uppercase text-white text-center lg:text-right ${antonio.className}`}>
+                      <span className="block font-black tracking-tight text-4xl sm:text-5xl xl:text-6xl">
+                        GDG
+                      </span>
+                      <span
+                        className="block font-black tracking-tighter leading-[0.8] text-8xl sm:text-9xl xl:text-[11rem]"
+                        style={{ WebkitTextStroke: '2px rgba(255,255,255,0.25)' }}
+                      >
+                        Lead
+                      </span>
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14">
-                      {allTeamMembers.map((member, idx) => (
-                        <div key={member.member_id} className="relative h-full">
-                          {member.role_title.toLowerCase().includes('lead') && (
-                            <div className="absolute -top-4 -right-2 md:-right-4 z-30">
-                              <span className="px-4 py-1 border-[3px] border-black text-xs font-black bg-[#FFED00] text-black uppercase shadow-[4px_4px_0_#000] rotate-3 block">
-                                Lead
-                              </span>
-                            </div>
-                          )}
-                          <BrutalistMemberCard member={member} index={teamIdx + idx} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
 
-              {/* Mentors */}
-              {mentors.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
-                    <span className="w-6 h-6 rounded-full bg-[#34A853] border-2 border-black flex items-center justify-center text-white text-xs shadow-[2px_2px_0_#000]">🎓</span>
-                    Mentors
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14">
-                    {[...mentors]
-                      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-                      .map((member, idx) => (
-                        <BrutalistMemberCard key={member.member_id} member={member} index={idx + 1} />
-                      ))}
+                    {/* Middle — the card */}
+                    <MemberCard member={gdgLead[0]} theme={THEMES[0]} isLead />
+
+                    {/* Right — phrase about the leaders */}
+                    <p className="text-lg md:text-xl text-blue-100 leading-relaxed max-w-sm mx-auto lg:mx-0 text-center lg:text-left">
+                      Behind every GDGOC-UITU milestone is a leader who turns ideas into action —
+                      guiding the community, championing collaboration, and empowering the next
+                      generation of builders.
+                    </p>
                   </div>
                 </div>
               )}
 
-              {/* Past Leaders */}
+              {/* Teams — sticky-left identity + cards-right. Breaks out wider than the
+                  page column so the cards fill the screen instead of leaving dead space. */}
+              {teamData.length > 0 && (
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <TeamCards teams={teamData} />
+                </div>
+              )}
+
+              {/* Mentors — same sticky-left / cards-right structure as Teams */}
+              {mentors.length > 0 && (
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <PeopleBlock
+                    topLine="Our"
+                    bigLine="Mentors"
+                    subtitle="The experienced guides shaping the community."
+                    members={[...mentors].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))}
+                    theme={THEMES[3]}
+                  />
+                </div>
+              )}
+
+              {/* Past Leaders — same structure, with the tenure-year sticker */}
               {pastLeaders.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-black text-black uppercase tracking-widest mb-6 flex items-center gap-3 border-b-4 border-black pb-2 inline-flex">
-                    <span className="w-6 h-6 rounded-full bg-[#FBBC05] border-2 border-black flex items-center justify-center text-white text-xs shadow-[2px_2px_0_#000]">⭐</span>
-                    Past Leaders
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14">
-                    {[...pastLeaders]
-                      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-                      .map((member, idx) => (
-                        <div key={member.member_id} className="relative h-full">
-                          {member.tenure_year && (
-                            <div className="absolute -top-4 -right-2 md:-right-4 z-30">
-                              <span className="px-3 py-1 border-[3px] border-black text-[10px] font-black bg-[#FBBC05] text-black uppercase shadow-[4px_4px_0_#000] rotate-2 block">
-                                {member.tenure_year}
-                              </span>
-                            </div>
-                          )}
-                          <BrutalistMemberCard member={member} index={idx} />
-                        </div>
-                      ))}
-                  </div>
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <PeopleBlock
+                    topLine="Past"
+                    bigLine="Leaders"
+                    subtitle="The alumni who built the foundation."
+                    members={[...pastLeaders].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))}
+                    theme={THEMES[1]}
+                  />
                 </div>
               )}
 
@@ -258,8 +265,22 @@ export default function AboutPage() {
 
       {/* ── Sponsors ── */}
       <section id="sponsors" className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px x-4 sm:px-6 lg:px-8">
-          <SectionHeader title="Our Sponsors" subtitle="Organizations that make GDGOC-UITU possible" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Centered, oversized header to match the Mission / Team sections */}
+          <div className="text-center mb-16">
+            <div className="h-1.5 w-16 mx-auto flex mb-6 rounded-full overflow-hidden">
+              <div className="flex-1 bg-[#4285F4]" />
+              <div className="flex-1 bg-[#EA4335]" />
+              <div className="flex-1 bg-[#FBBC05]" />
+              <div className="flex-1 bg-[#34A853]" />
+            </div>
+            <h2 className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-slate-900 leading-[0.9] ${antonio.className}`}>
+              Our Sponsors
+            </h2>
+            <p className="mt-5 text-base md:text-lg text-gray-500 max-w-xl mx-auto">
+              Organizations that make GDGOC-UITU possible.
+            </p>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 animate-pulse">
@@ -283,29 +304,29 @@ export default function AboutPage() {
                       </span>
                       <div className="flex-1 h-px bg-gray-100" />
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                       {tierSponsors.map((sponsor) => (
                         <a
                           key={sponsor.sponsor_id}
                           href={sponsor.website_url ?? '#'}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group flex flex-col items-center p-6 rounded-2xl border border-gray-100 hover:border-blue-100 hover:shadow-md transition-all text-center"
+                          className="group flex flex-col items-center p-10 rounded-3xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg hover:-translate-y-1 transition-all text-center"
                         >
                           {sponsor.logo_url ? (
                             <img
                               src={sponsor.logo_url}
                               alt={sponsor.name}
-                              className="h-14 w-auto object-contain mb-3 grayscale group-hover:grayscale-0 transition-all"
+                              className="h-32 w-auto object-contain mb-5 grayscale group-hover:grayscale-0 transition-all"
                             />
                           ) : (
-                            <div className="h-14 w-full rounded-xl bg-gray-100 flex items-center justify-center mb-3">
-                              <span className="text-lg font-bold text-gray-400">{sponsor.name[0]}</span>
+                            <div className="h-32 w-full rounded-2xl bg-gray-100 flex items-center justify-center mb-5">
+                              <span className="text-4xl font-bold text-gray-400">{sponsor.name[0]}</span>
                             </div>
                           )}
-                          <p className="text-xs font-semibold text-gray-700">{sponsor.name}</p>
+                          <p className="text-lg font-bold text-gray-800">{sponsor.name}</p>
                           {sponsor.description && (
-                            <p className="text-xs text-gray-400 mt-1 line-clamp-2">{sponsor.description}</p>
+                            <p className="text-sm text-gray-400 mt-2 line-clamp-3">{sponsor.description}</p>
                           )}
                         </a>
                       ))}

@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Magnetic from '../../components/ui/magnetic';
-import { BrutalistMemberCard } from '../../components/ui/BrutalistMemberCard';
 import PuzzleImage from '../../components/ui/PuzzleImage';
 import WhoWeAre from '../../components/ui/WhoWeAre';
 import UpcomingEvents from '../../components/ui/UpcomingEvents';
@@ -14,6 +15,8 @@ import PastEventsShowcase from '../../components/ui/PastEventsShowcase';
 import TechnologiesGrid from '../../components/ui/TechnologiesGrid';
 import { Antonio } from 'next/font/google';
 import MascotBanner from '../../components/ui/MascotBanner';
+import ParallaxBackdrop from '../../components/ui/ParallaxBackdrop';
+import { useAuth } from '@/context/AuthContext';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -117,31 +120,24 @@ type Sponsor = {
   tier: string;
 };
 
-// ─── Hardcoded Testimonials ───────────────────────────────────────────────────
+type Testimonial = {
+  testimonial_id: string;
+  author_name: string;
+  author_role: string | null;
+  quote: string;
+  avatar_url: string | null;
+  display_order: number;
+};
 
-const TESTIMONIALS = [
-  {
-    id: 1,
-    name: 'Fatima Zahra',
-    role: 'Flutter Developer',
-    quote: 'The Flutter workshop at GDGOC-UITU completely changed how I approach mobile development. The hands-on sessions were incredibly valuable.',
-    avatar: null,
-  },
-  {
-    id: 2,
-    name: 'Ahmed Raza',
-    role: 'CS Student, UIT',
-    quote: 'I attended the AI/ML bootcamp and left with real skills I could apply immediately. The community here is genuinely supportive.',
-    avatar: null,
-  },
-  {
-    id: 3,
-    name: 'Zainab Hassan',
-    role: 'Web Developer',
-    quote: 'GDGOC events are always well organized and the content is always relevant to what the industry actually needs right now.',
-    avatar: null,
-  },
-];
+// ─── Team card themes (mirrors TeamCards.tsx THEMES) ─────────────────────────
+
+const TEAM_THEMES = [
+  { solid: '#4285F4', gradient: 'linear-gradient(135deg, #5a9bff, #3474d4)', glow: 'rgba(66,133,244,0.55)' },
+  { solid: '#EA4335', gradient: 'linear-gradient(135deg, #ff7c70, #c53026)', glow: 'rgba(234,67,53,0.55)' },
+  { solid: '#FBBC05', gradient: 'linear-gradient(135deg, #ffd34d, #e0a000)', glow: 'rgba(251,188,5,0.55)' },
+  { solid: '#34A853', gradient: 'linear-gradient(135deg, #4cc36a, #288a44)', glow: 'rgba(52,168,83,0.55)' },
+] as const;
+type TeamTheme = typeof TEAM_THEMES[number];
 
 // ─── Platform Colors ──────────────────────────────────────────────────────────
 
@@ -180,6 +176,442 @@ function timeAgo(dateStr: string): string {
 
 function getInitials(name: string): string {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+// ─── GSAP vertical loop (ported from GreenSock verticalLoop helper) ───────────
+type VLoop = gsap.core.Timeline & {
+  toIndex: (i: number, vars?: gsap.TweenVars) => gsap.core.Tween | gsap.core.Timeline;
+  next: (vars?: gsap.TweenVars) => gsap.core.Tween | gsap.core.Timeline;
+  previous: (vars?: gsap.TweenVars) => gsap.core.Tween | gsap.core.Timeline;
+  current: () => number;
+  times: number[];
+  cleanup: () => void;
+};
+
+function buildVerticalLoop(items: HTMLElement[], config: {
+  paused?: boolean; center?: boolean; speed?: number;
+  onChange?: (el: HTMLElement, i: number) => void;
+} = {}): VLoop {
+  const snap = gsap.utils.snap(1);
+  const tl = gsap.timeline({
+    repeat: -1, paused: config.paused, defaults: { ease: 'none' },
+    onReverseComplete() { tl.totalTime(tl.rawTime() + tl.duration() * 100); },
+  }) as VLoop;
+
+  const n = items.length;
+  const container = items[0].parentNode as HTMLElement;
+  const heights: number[] = [];
+  const yPercents: number[] = [];
+  const spaceBefore: number[] = [];
+  const times: number[] = [];
+  let curIndex = 0;
+  let timeWrap!: (v: number) => number;
+  let totalHeight = 0;
+  const pps = (config.speed ?? 1) * 100;
+  const startY = items[0].offsetTop;
+
+  const measure = () => {
+    let b1 = container.getBoundingClientRect(), b2: DOMRect;
+    items.forEach((el, i) => {
+      heights[i] = parseFloat(gsap.getProperty(el, 'height', 'px') as string);
+      yPercents[i] = snap(parseFloat(gsap.getProperty(el, 'y', 'px') as string) / heights[i] * 100
+        + (gsap.getProperty(el, 'yPercent') as number));
+      b2 = el.getBoundingClientRect();
+      spaceBefore[i] = b2.top - (i ? b1.bottom : b1.top);
+      b1 = b2;
+    });
+    gsap.set(items, { yPercent: (i: number) => yPercents[i] });
+    totalHeight = items[n - 1].offsetTop
+      + yPercents[n - 1] / 100 * heights[n - 1]
+      - startY + spaceBefore[0]
+      + items[n - 1].offsetHeight * (gsap.getProperty(items[n - 1], 'scaleY') as number);
+  };
+
+  const buildTL = () => {
+    tl.clear();
+    items.forEach((item, i) => {
+      const curY = yPercents[i] / 100 * heights[i];
+      const dStart = item.offsetTop + curY - startY + spaceBefore[0];
+      const dLoop = dStart + heights[i] * (gsap.getProperty(item, 'scaleY') as number);
+      tl.to(item, { yPercent: snap((curY - dLoop) / heights[i] * 100), duration: dLoop / pps }, 0)
+        .fromTo(item,
+          { yPercent: snap((curY - dLoop + totalHeight) / heights[i] * 100) },
+          { yPercent: yPercents[i], duration: (totalHeight - dLoop) / pps, immediateRender: false },
+          dLoop / pps)
+        .add('label' + i, dStart / pps);
+      times[i] = dStart / pps;
+    });
+    timeWrap = gsap.utils.wrap(0, tl.duration());
+  };
+
+  const applyOffsets = () => {
+    if (!config.center) return;
+    const offset = tl.duration() * (container.offsetHeight / 2) / totalHeight;
+    times.forEach((_, i) => {
+      times[i] = timeWrap(tl.labels['label' + i] + tl.duration() * heights[i] / 2 / totalHeight - offset);
+    });
+  };
+
+  const closest = (value: number) => {
+    let idx = 0, best = 1e10;
+    times.forEach((t, i) => {
+      let d = Math.abs(t - value);
+      if (d > tl.duration() / 2) d = tl.duration() - d;
+      if (d < best) { best = d; idx = i; }
+    });
+    return idx;
+  };
+
+  const toIndex = (index: number, vars: gsap.TweenVars = {}) => {
+    if (Math.abs(index - curIndex) > n / 2) index += index > curIndex ? -n : n;
+    const ni = gsap.utils.wrap(0, n, index);
+    let t = times[ni];
+    if ((t > tl.time()) !== (index > curIndex) && index !== curIndex) t += tl.duration() * (index > curIndex ? 1 : -1);
+    if (t < 0 || t > tl.duration()) vars = { ...vars, modifiers: { time: timeWrap } };
+    curIndex = ni;
+    vars.overwrite = true;
+    return vars.duration === 0 ? tl.time(timeWrap(t)) : tl.tweenTo(t, vars);
+  };
+
+  gsap.set(items, { y: 0 });
+  measure();
+  buildTL();
+  applyOffsets();
+
+  let lastIdx = 0;
+  if (config.onChange) {
+    const cb = config.onChange;
+    tl.eventCallback('onUpdate', () => {
+      const i = closest(tl.time());
+      if (i !== lastIdx) { lastIdx = i; cb(items[i], i); }
+    });
+  }
+
+  tl.progress(1, true).progress(0, true);
+
+  const onResize = () => {
+    const p = tl.progress();
+    tl.progress(0, true);
+    measure(); buildTL(); applyOffsets();
+    tl.progress(p, true);
+  };
+  window.addEventListener('resize', onResize);
+
+  tl.toIndex = toIndex;
+  tl.next = (v?) => toIndex(curIndex + 1, v);
+  tl.previous = (v?) => toIndex(curIndex - 1, v);
+  tl.current = () => curIndex;
+  tl.times = times;
+  tl.cleanup = () => { window.removeEventListener('resize', onResize); tl.kill(); };
+
+  (tl as any).closestIndex = (set?: boolean) => { const i = closest(tl.time()); if (set) curIndex = i; return i; };
+  (tl as any).closestIndex(true);
+  lastIdx = curIndex;
+  config.onChange?.(items[curIndex], curIndex);
+
+  return tl;
+}
+
+// ─── Forum thread card (mirrors the /forum Reddit-style card) ─────────────────
+
+function preprocessMarkdown(text: string): string {
+  if (!text) return '';
+  return text.replace(/\B@([a-zA-Z0-9_]+)/g, '[@$1](mention:$1)');
+}
+
+const markdownComponents = {
+  a: ({ href, children, ...props }: any) => {
+    if (href?.startsWith('mention:')) {
+      const username = href.replace('mention:', '');
+      return (
+        <span className="inline-block px-1.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
+          @{username}
+        </span>
+      );
+    }
+    return <a href={href} className="text-blue-600 hover:underline" {...props}>{children}</a>;
+  },
+};
+
+function Stat({ icon, value }: { icon: React.ReactNode; value: number }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      {icon}
+      {value}
+    </span>
+  );
+}
+
+function ForumThreadCard({ thread }: { thread: Thread }) {
+  // Detect whether the body preview overflows its clamp → show "… Read more"
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [isClamped, setIsClamped] = useState(false);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el) setIsClamped(el.scrollHeight > el.clientHeight + 4);
+  }, [thread.body_preview]);
+
+  const backendCut = (thread.body_preview?.length ?? 0) >= 150;
+  const previewText = backendCut
+    ? thread.body_preview.replace(/\s+\S*$/, '').trimEnd() + '…'
+    : thread.body_preview;
+  const hasMore = backendCut || isClamped;
+
+  return (
+    <div className="flex flex-col h-full w-full bg-white border-[2.5px] border-black rounded-xl shadow-[4px_4px_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[5px_5px_0_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1px_1px_0_#000] transition-all p-5">
+
+      {/* ── Author + status ── */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center overflow-hidden shrink-0 border-2 border-black">
+          {thread.author_avatar ? (
+            <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-[10px] font-bold text-white">{getInitials(thread.author_name)}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 min-w-0 flex-wrap">
+          <span className="font-semibold text-gray-700 truncate">{thread.author_name}</span>
+          <span className="text-gray-300">•</span>
+          <span>{timeAgo(thread.created_at)}</span>
+          {thread.is_pinned && (
+            <span className="inline-flex items-center gap-1 text-[#34A853] font-semibold">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>
+              Pinned
+            </span>
+          )}
+          {thread.is_locked && (
+            <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+          )}
+        </div>
+      </div>
+
+      {/* ── Heading ── */}
+      <Link href={`/forum/${thread.thread_id}`} className="block group mt-3">
+        <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#4285F4] transition-colors leading-snug">
+          {thread.title}
+        </h3>
+      </Link>
+
+      {/* ── Category + tags ── */}
+      <div className="flex items-center gap-2 mt-2 flex-wrap">
+        <span
+          className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white border border-black/20"
+          style={{ backgroundColor: `#${thread.category_color}` }}
+        >
+          {thread.category_name}
+        </span>
+        {thread.tags?.slice(0, 4).map((tag) => (
+          <span key={tag} className="text-xs text-gray-500">#{tag}</span>
+        ))}
+      </div>
+
+      {/* ── Body preview (markdown) ── */}
+      <div className="relative mt-3">
+        <div
+          ref={bodyRef}
+          className="max-h-28 overflow-hidden text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-headings:my-1.5 prose-ul:my-1 prose-ol:my-1 prose-a:text-blue-600 prose-code:text-pink-600 prose-img:rounded-lg prose-img:max-h-24 prose-img:my-1 [&_pre]:whitespace-pre-wrap [&_pre]:text-xs"
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {preprocessMarkdown(previewText)}
+          </ReactMarkdown>
+        </div>
+        {hasMore && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent" />
+        )}
+      </div>
+
+      {hasMore && (
+        <Link
+          href={`/forum/${thread.thread_id}`}
+          className="inline-block mt-1.5 text-xs font-semibold text-[#4285F4] hover:underline"
+        >
+          Read more →
+        </Link>
+      )}
+
+      {/* ── Stats ── */}
+      <div className="flex items-center gap-5 mt-auto pt-4 border-t-2 border-dashed border-gray-200 text-xs font-medium text-gray-500">
+        <Stat
+          value={thread.upvote_count}
+          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>}
+        />
+        <Stat
+          value={thread.reply_count}
+          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
+        />
+        <Stat
+          value={thread.view_count}
+          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+        />
+        <div className="flex items-center -space-x-1.5 ml-auto">
+          <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden" title={thread.author_name}>
+            {thread.author_avatar ? (
+              <img src={thread.author_avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
+            )}
+          </div>
+          {thread.participants?.slice(0, 4).map((p, i) => (
+            <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden" title={p.name}>
+              {p.avatar ? (
+                <img src={p.avatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[9px] font-bold text-gray-600">{getInitials(p.name)}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Thread focus stack: scroll-proximity magnify ─────────────────────────────
+// Writes transform/opacity directly to DOM — no React state on scroll frames.
+function ThreadFocusStack({ threads }: { threads: Thread[] }) {
+  const wrapRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mainCount = Math.min(threads.length, 3);
+
+  useEffect(() => {
+    if (mainCount === 0) return;
+    let raf = 0;
+    const compute = () => {
+      raf = 0;
+      const center = window.innerHeight / 2;
+      const raw = wrapRefs.current.slice(0, mainCount).map((el) => {
+        if (!el) return 0;
+        const rect = el.getBoundingClientRect();
+        const dist = Math.abs(rect.top + rect.height / 2 - center);
+        return Math.max(0, 1 - dist / (window.innerHeight * 0.65));
+      });
+      const peak = Math.max(...raw, 0.001);
+      wrapRefs.current.slice(0, mainCount).forEach((el, i) => {
+        if (!el) return;
+        const w = raw[i] / peak;
+        el.style.transform = `scale(${(0.95 + 0.08 * w).toFixed(4)})`;
+        el.style.opacity = (0.42 + 0.58 * w).toFixed(3);
+      });
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(compute); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    compute();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [mainCount]);
+
+  const mainThreads = threads.slice(0, 3);
+  const ghostThread = threads[3] ?? null;
+
+  return (
+    <div className="space-y-5">
+      {mainThreads.map((thread, i) => (
+        <div
+          key={thread.thread_id}
+          ref={(el) => { wrapRefs.current[i] = el; }}
+          style={{
+            transform: i === 0 ? 'scale(1.03)' : 'scale(0.95)',
+            opacity: i === 0 ? 1 : 0.42,
+            transition: 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.55s ease',
+            willChange: 'transform, opacity',
+          }}
+        >
+          <ForumThreadCard thread={thread} />
+        </div>
+      ))}
+
+      {/* Ghost teaser → fades into the View All CTA */}
+      <div className="relative mt-1 overflow-hidden rounded-xl">
+        <div
+          style={{
+            opacity: 0.15,
+            transform: 'scale(0.93)',
+            filter: 'blur(1.5px)',
+            pointerEvents: 'none',
+            transformOrigin: 'top center',
+          }}
+        >
+          {ghostThread ? (
+            <ForumThreadCard thread={ghostThread} />
+          ) : (
+            <div className="h-36 bg-gray-100 rounded-xl" />
+          )}
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 bg-gradient-to-t from-white via-white/85 to-white/10">
+          <Link
+            href="/forum"
+            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-[#4285F4] text-white text-sm font-black uppercase tracking-wider shadow-lg hover:bg-blue-600 hover:-translate-y-0.5 transition-all"
+          >
+            View All Discussions
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mini member card (GDG-Lead style, for the landing page team showcase) ────
+
+function MiniMemberCard({
+  member,
+  theme,
+  isLead = false,
+}: {
+  member: TeamMember;
+  theme: TeamTheme;
+  isLead?: boolean;
+}) {
+  const initials = (name: string) =>
+    name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+  return (
+    <div
+      className="group flex flex-col rounded-3xl bg-white overflow-hidden hover:-translate-y-1.5 transition-all duration-300 ring-1 ring-black/5"
+      style={{ boxShadow: `4px 4px 0 ${theme.solid}, 0 16px 40px -10px ${theme.glow}` }}
+    >
+      {/* Portrait */}
+      <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
+        {member.avatar_url ? (
+          <img
+            src={member.avatar_url}
+            alt={member.full_name}
+            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+            draggable={false}
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center text-5xl font-black text-white"
+            style={{ backgroundImage: theme.gradient }}
+          >
+            {initials(member.full_name)}
+          </div>
+        )}
+        {isLead && (
+          <span
+            className="absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white"
+            style={{ backgroundImage: theme.gradient, boxShadow: `0 4px 14px ${theme.glow}` }}
+          >
+            Lead
+          </span>
+        )}
+      </div>
+      {/* Body */}
+      <div className="flex flex-col p-4">
+        <h4 className="text-base font-black uppercase tracking-tight text-gray-900 leading-none truncate">
+          {member.full_name}
+        </h4>
+        <p
+          className="text-[11px] font-black uppercase tracking-wide mt-2 px-3 py-1 self-start rounded-full text-white truncate max-w-full"
+          style={{ backgroundImage: theme.gradient, boxShadow: `0 4px 14px ${theme.glow}` }}
+        >
+          {member.role_title}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // ─── Stat Counter ─────────────────────────────────────────────────────────────
@@ -838,6 +1270,8 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  const { user, token } = useAuth();
+
   // ─── CMS Data ──────────────────────────────────────────────────────────────
   const [homepage, setHomepage] = useState<Homepage | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
@@ -847,7 +1281,15 @@ export default function HomePage() {
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Testimonial submission form state
+  const [tForm, setTForm] = useState({ author_role: '', quote: '' });
+  const [tSubmitting, setTSubmitting] = useState(false);
+  const [tSuccess, setTSuccess] = useState(false);
+  const [tError, setTError] = useState('');
+  const [tModalOpen, setTModalOpen] = useState(false);
 
   // Identity section ref for scroll-masking
   // (Now handled inside IdentitySection component)
@@ -877,6 +1319,9 @@ export default function HomePage() {
 
   // Testimonial carousel
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const tLoopRef = useRef<VLoop | null>(null);
+  const tItemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
 
   // ─── Unified Events Hover State ─────────────────────────────────────────────
   const [activeEventIndex, setActiveEventIndex] = useState(0);
@@ -889,12 +1334,13 @@ export default function HomePage() {
       fetch(`${API_URL}/api/cms/homepage`).then((r) => r.json()),
       fetch(`${API_URL}/api/events?status=upcoming&limit=4`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/featured-events`).then((r) => r.json()),
-      fetch(`${API_URL}/api/forum/threads?limit=3&sort=latest`).then((r) => r.json()),
+      fetch(`${API_URL}/api/forum/threads?limit=4&sort=latest`).then((r) => r.json()),
       fetch(`${API_URL}/api/social/posts?limit=3&status=published`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/team`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/sponsors`).then((r) => r.json()),
+      fetch(`${API_URL}/api/cms/testimonials`).then((r) => r.json()),
     ])
-      .then(([homepageRes, eventsRes, featuredPastRes, threadsRes, socialRes, teamRes, sponsorsRes]) => {
+      .then(([homepageRes, eventsRes, featuredPastRes, threadsRes, socialRes, teamRes, sponsorsRes, testimonialsRes]) => {
         if (homepageRes.data) setHomepage(homepageRes.data);
         if (eventsRes.data) {
           const allEvents = eventsRes.data;
@@ -904,20 +1350,36 @@ export default function HomePage() {
         if (featuredPastRes.data) setFeaturedPastEvents(featuredPastRes.data)
         if (threadsRes.data) setThreads(threadsRes.data);
         if (socialRes.data) setSocialPosts(socialRes.data);
-        if (teamRes.data) setTeamMembers(teamRes.data.slice(0, 4));
+        if (teamRes.data) setTeamMembers(teamRes.data.slice(0, 6));
         if (sponsorsRes.data) setSponsors(sponsorsRes.data);
+        if (testimonialsRes.data) setTestimonials(testimonialsRes.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
+  // ─── Testimonial GSAP loop init ─────────────────────────────────────────────
+  useEffect(() => {
+    if (testimonials.length < 2) return;
+    const items = tItemRefs.current.filter((el): el is HTMLButtonElement => !!el);
+    if (items.length < 2) return;
+    const loop = buildVerticalLoop(items, {
+      paused: true,
+      center: true,
+      onChange: (_el, i) => setActiveTestimonial(i),
+    });
+    tLoopRef.current = loop;
+    return () => { loop.cleanup(); tLoopRef.current = null; };
+  }, [testimonials.length]);
+
   // ─── Testimonial auto-rotate ────────────────────────────────────────────────
   useEffect(() => {
+    if (testimonials.length < 2) return;
     const timer = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
+      tLoopRef.current?.next({ duration: 0.5, ease: 'power1.inOut' });
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [testimonials.length]);
 
   // ─── Newsletter submit ──────────────────────────────────────────────────────
   async function handleNewsletter(e: React.FormEvent) {
@@ -1145,293 +1607,39 @@ export default function HomePage() {
       {/* <TechnologiesGrid /> */}
 
       {/* ── Latest Forum Discussions ── */}
-      {
-        !loading && (
-          <section className="py-20 bg-white">
-            <div className="w-full max-w-full mx-auto px-4 sm:px-8 lg:px-12">
-              <div className="flex items-end justify-between mb-8">
-                <div>
-                  <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                    <div className="flex-1 bg-[#4285F4]" />
-                    <div className="flex-1 bg-[#EA4335]" />
-                    <div className="flex-1 bg-[#FBBC05]" />
-                    <div className="flex-1 bg-[#34A853]" />
-                  </div>
-                  <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>Latest Discussions</h2>
-                  <p className="text-sm text-gray-500 mt-1">Join the conversation in our community forum</p>
-                </div>
-                <Link href="/forum" className="text-sm font-semibold text-[#4285F4] hover:underline">
-                  View All →
-                </Link>
+      {!loading && (
+        <section className="py-20 bg-white">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6">
+            <div className="text-center mb-12">
+              <div className="h-1.5 w-16 mx-auto flex mb-6 rounded-full overflow-hidden">
+                <div className="flex-1 bg-[#4285F4]" />
+                <div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" />
+                <div className="flex-1 bg-[#34A853]" />
               </div>
-
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                {threads.length > 0 ? (
-                  <>
-                    {/* Table Header */}
-                    <div className="hidden sm:flex items-center px-4 py-3 gap-4 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      <div className="flex-1">Topic</div>
-                      <div className="w-32 shrink-0">Participants</div>
-                      <div className="hidden md:block w-16 shrink-0 text-center">Replies</div>
-                      <div className="hidden lg:block w-16 shrink-0 text-center">Views</div>
-                      <div className="w-24 shrink-0 text-right">Activity</div>
-                    </div>
-
-                    <div className="divide-y divide-gray-100">
-                      {threads.map((thread) => (
-                        <Link key={thread.thread_id} href={`/forum/${thread.thread_id}`} className="block hover:bg-blue-50/50 transition-colors">
-                          <div className="flex items-center p-4 gap-4">
-
-                            {/* Topic & Category */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                {thread.is_pinned && (
-                                  <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                                  </svg>
-                                )}
-                                {thread.is_locked && (
-                                  <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                                <h3 className="text-base font-semibold text-gray-900 truncate">
-                                  {thread.title}
-                                </h3>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs">
-                                <span
-                                  className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white"
-                                  style={{ backgroundColor: `#${thread.category_color}` }}
-                                >
-                                  {thread.category_name}
-                                </span>
-                                {thread.tags && thread.tags.length > 0 && (
-                                  <div className="flex gap-1">
-                                    {thread.tags.slice(0, 3).map(tag => (
-                                      <span key={tag} className="text-gray-500">#{tag}</span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Participants */}
-                            <div className="hidden sm:flex items-center gap-1 w-32 shrink-0">
-                              <div className="flex -space-x-1">
-                                {/* Thread author first */}
-                                <div className="relative z-10 w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0" title={thread.author_name}>
-                                  {thread.author_avatar ? (
-                                    <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
-                                  )}
-                                </div>
-                                {/* Then repliers */}
-                                {thread.participants?.map((p, i) => (
-                                  <div key={i} className="relative w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 z-0" title={p.name}>
-                                    {p.avatar ? (
-                                      <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="text-[9px] font-bold text-gray-600">{getInitials(p.name)}</span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Replies */}
-                            <div className="hidden md:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
-                              <span className="text-sm font-semibold text-gray-700">{thread.reply_count}</span>
-                              <span className="text-[10px] uppercase">Replies</span>
-                            </div>
-
-                            {/* Views */}
-                            <div className="hidden lg:flex flex-col items-center justify-center w-16 shrink-0 text-gray-500">
-                              <span className="text-sm font-semibold text-gray-700">{thread.view_count}</span>
-                              <span className="text-[10px] uppercase">Views</span>
-                            </div>
-
-                            {/* Activity */}
-                            <div className="hidden sm:flex flex-col items-end justify-center w-24 shrink-0 text-gray-500 text-xs">
-                              <span className="font-medium text-gray-900">{timeAgo(thread.last_reply_at || thread.created_at)}</span>
-                            </div>
-
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-                    <div className="w-16 h-16 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#0f172a] rotate-3">
-                      <svg className="w-8 h-8 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                    <h3 className={`text-2xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
-                      No Discussions Yet
-                    </h3>
-                    <p className="text-slate-600 font-bold text-sm leading-relaxed max-w-xs px-2">
-                      Be the first to start a conversation! Head over to our forum and post a thread.
-                    </p>
-                    <div className="mt-5 flex gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#4285F4] animate-bounce" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                    <Link href="/forum" className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#4285F4] text-white text-sm font-bold hover:bg-blue-600 transition-all shadow-md">
-                      Go to Forum →
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 text-center">
-                <Link
-                  href="/forum"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all"
-                >
-                  View All Discussions →
-                </Link>
-              </div>
+              <h2 className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-slate-900 leading-[0.9] ${antonio.className}`}>
+                Latest Discussions
+              </h2>
+              <p className="mt-5 text-base md:text-lg text-gray-500 max-w-xl mx-auto">
+                Join the conversation in our community forum.
+              </p>
             </div>
-          </section>
-        )
-      }
 
-      {/* ── Testimonials ── */}
-      <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="h-1 w-12 flex mb-6 rounded-full overflow-hidden mx-auto">
-            <div className="flex-1 bg-[#4285F4]" />
-            <div className="flex-1 bg-[#EA4335]" />
-            <div className="flex-1 bg-[#FBBC05]" />
-            <div className="flex-1 bg-[#34A853]" />
-          </div>
-          <h2 className={`text-2xl font-bold text-white tracking-tight mb-12 ${antonio.className}`}>What Our Members Say</h2>
-
-          <div className="relative">
-            {TESTIMONIALS.map((t, i) => (
-              <div
-                key={t.id}
-                className={`transition-all duration-500 ${i === activeTestimonial ? 'opacity-100 translate-y-0' : 'opacity-0 absolute inset-0 translate-y-4'
-                  }`}
-              >
-                <div className="bg-white bg-opacity-10 border border-white border-opacity-10 rounded-2xl p-8">
-                  <p className="text-lg text-white leading-relaxed italic">
-                    "{t.quote}"
-                  </p>
-                  <div className="flex items-center justify-center gap-3 mt-6">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold">
-                      {getInitials(t.name)}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-white text-sm font-semibold">{t.name}</p>
-                      <p className="text-blue-300 text-xs">{t.role}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Dots */}
-          <div className="flex items-center justify-center gap-2 mt-8">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveTestimonial(i)}
-                className={`rounded-full transition-all ${i === activeTestimonial ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-white bg-opacity-30'
-                  }`}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Social Media Feed ── */}
-      {
-        !loading && (
-          <section className="py-20 bg-white">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-end justify-between mb-8">
-                <div>
-                  <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
-                    <div className="flex-1 bg-[#4285F4]" />
-                    <div className="flex-1 bg-[#EA4335]" />
-                    <div className="flex-1 bg-[#FBBC05]" />
-                    <div className="flex-1 bg-[#34A853]" />
-                  </div>
-                  <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>From Our Socials</h2>
-                  <p className="text-sm text-gray-500 mt-1">Stay up to date with what we're sharing</p>
-                </div>
-              </div>
-
-              {socialPosts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {socialPosts.map((post) => {
-                    const config = PLATFORM_CONFIG[post.platform] ?? { color: '#4285F4', label: post.platform };
-                    return (
-                      <div key={post.post_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
-
-                        {/* Media */}
-                        {post.media_urls && post.media_urls.length > 0 && (
-                          <div className="h-48 bg-gray-100 overflow-hidden">
-                            <img
-                              src={post.media_urls[0]}
-                              alt="Post media"
-                              className="w-full h-full object-cover"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
-                          </div>
-                        )}
-
-                        <div className="p-4 flex flex-col flex-1">
-                          {/* Platform badge */}
-                          <div className="flex items-center gap-2 mb-3">
-                            <span
-                              className="px-2.5 py-1 rounded-full text-xs font-bold text-white capitalize"
-                              style={{ backgroundColor: config.color }}
-                            >
-                              {config.label}
-                            </span>
-                            {post.posted_at && (
-                              <span className="text-xs text-gray-400">{timeAgo(post.posted_at)}</span>
-                            )}
-                          </div>
-
-                          {/* Caption */}
-                          <p className="text-sm text-gray-700 leading-relaxed line-clamp-3 flex-1">
-                            {post.caption}
-                          </p>
-
-                          {/* Hashtags */}
-                          {post.hashtags && post.hashtags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-3">
-                              {post.hashtags.slice(0, 3).map((tag) => (
-                                <span key={tag} className="text-xs text-blue-500">#{tag}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 px-8 text-center border border-gray-200 rounded-xl">
-                  <div className="w-16 h-16 bg-[#34A853] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#0f172a] rotate-3">
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            {threads.length > 0 ? (
+              <ThreadFocusStack threads={threads} />
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                  <div className="w-16 h-16 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#0f172a] rotate-3">
+                    <svg className="w-8 h-8 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
                   <h3 className={`text-2xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
-                    Nothing Posted Yet
+                    No Discussions Yet
                   </h3>
                   <p className="text-slate-600 font-bold text-sm leading-relaxed max-w-xs px-2">
-                    We haven&apos;t shared any posts yet. Follow us on our socials for the latest updates!
+                    Be the first to start a conversation! Head over to our forum and post a thread.
                   </p>
                   <div className="mt-5 flex gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#4285F4] animate-bounce" />
@@ -1439,82 +1647,341 @@ export default function HomePage() {
                     <div className="w-2.5 h-2.5 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
                     <div className="w-2.5 h-2.5 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )
-      }
-
-      {/* ── Brutalist Team Preview ── */}
-      {
-        !loading && (
-          <section className="py-24 bg-[#F4F4F0] border-t-[3px] border-black relative overflow-hidden">
-            {/* Subtle grid background */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-60 pointer-events-none" />
-
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
-
-              {/* Brutalist Section Header */}
-              <div className="flex flex-col items-center justify-center mb-20 text-center">
-                <h2 className={`text-[3.5rem] sm:text-[5rem] font-black uppercase tracking-tighter text-foreground leading-[0.8] mb-6 ${antonio.className}`}>
-                  MEET THE <span className="text-[#EA4335]">TEAM</span>
-                </h2>
-                <div className="inline-block bg-[#FFED00] border-[3px] border-black px-5 py-2 -rotate-2 shadow-[6px_6px_0_#000]">
-                  <p className="font-bold text-sm sm:text-base uppercase tracking-wider">The builders behind GDGOC-UITU!</p>
+                  <Link href="/forum" className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#4285F4] text-white text-sm font-bold hover:bg-blue-600 transition-all shadow-md">
+                    Go to Forum →
+                  </Link>
                 </div>
               </div>
+            )}
+          </div>
+        </section>
+      )}
 
-              {teamMembers.length > 0 ? (
-                /* Brutalist 2-Column Grid */
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 max-w-4xl mx-auto">
-                  {teamMembers
-                    .sort((a, b) => a.display_order - b.display_order)
-                    .slice(0, 2)
-                    .map((member, idx) => (
-                      <BrutalistMemberCard
-                        key={member.member_id}
-                        member={member}
-                        index={idx}
-                        actionLabel="VIEW PROFILE"
-                        actionHref="/about"
-                      />
-                    ))}
+      {/* ── Testimonials + Meet the Team share one continuous dark background ── */}
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
+
+      {/* ── Testimonials ── */}
+      <section className="py-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Header */}
+          <div className="mb-14 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="h-1 w-12 flex mb-4 rounded-full overflow-hidden">
+                <div className="flex-1 bg-[#4285F4]" />
+                <div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" />
+                <div className="flex-1 bg-[#34A853]" />
+              </div>
+              <h2 className={`text-4xl sm:text-5xl font-black uppercase tracking-tighter text-white leading-none ${antonio.className}`}>
+                What Our Members Say
+              </h2>
+            </div>
+            {user && !tSuccess && (
+              <button
+                onClick={() => setTModalOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 border border-white/25 text-sm font-bold uppercase tracking-wide text-white rounded-xl hover:bg-white/20 transition-all flex-shrink-0 backdrop-blur-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                Drop Your Thoughts
+              </button>
+            )}
+            {tSuccess && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-400/30 rounded-xl text-green-300 text-sm font-medium">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                Submitted for review!
+              </div>
+            )}
+          </div>
+
+          {testimonials.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8 lg:gap-14 items-start">
+
+              {/* Left: GSAP infinite vertical loop — no clones, no snaps */}
+              <div
+                className="h-[320px] overflow-hidden relative px-1"
+                style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%)' }}
+              >
+
+                {testimonials.map((t, i) => {
+                  const n = testimonials.length;
+                  const dist = Math.min(Math.abs(i - activeTestimonial), n - Math.abs(i - activeTestimonial));
+                  const isActive = i === activeTestimonial;
+                  const opacity = dist === 0 ? 1 : dist === 1 ? 0.45 : dist === 2 ? 0.18 : 0.05;
+                  return (
+                    <button
+                      key={t.testimonial_id}
+                      ref={el => { tItemRefs.current[i] = el; }}
+                      onClick={() => tLoopRef.current?.toIndex(i, { duration: 0.5, ease: 'power1.inOut' })}
+                      className="flex items-center gap-3 w-full text-left"
+                      style={{ height: '64px', opacity, transition: 'opacity 0.4s ease' }}
+                    >
+                      <div className={`relative flex-shrink-0 w-10 h-10 rounded-full overflow-hidden ${
+                        isActive ? 'ring-2 ring-[#4285F4] ring-offset-2 ring-offset-slate-900' : ''
+                      }`}>
+                        {(t as any).avatar_url ? (
+                          <img src={(t as any).avatar_url} alt={t.author_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-blue-400 to-indigo-500">
+                            {getInitials(t.author_name)}
+                          </div>
+                        )}
+                        {isActive && (
+                          <span className="absolute inset-0 rounded-full border-2 border-[#4285F4]/40 animate-ping" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold leading-tight truncate text-white">
+                          {t.author_name}
+                        </p>
+                        {t.author_role && (
+                          <p className="text-[11px] text-white/50 mt-0.5 truncate">{t.author_role}</p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Right: fixed-height glass card */}
+              <div className="relative h-64 sm:h-56">
+                {testimonials.map((t, i) => (
+                  <div
+                    key={t.testimonial_id}
+                    className={`absolute inset-0 transition-all duration-500 ${
+                      i === activeTestimonial
+                        ? 'opacity-100 translate-y-0 pointer-events-auto'
+                        : 'opacity-0 translate-y-3 pointer-events-none'
+                    }`}
+                  >
+                    <div className="h-full bg-white/10 border border-white/20 rounded-2xl p-6 flex flex-col overflow-hidden backdrop-blur-sm">
+                      <div className="text-4xl font-black text-blue-400 leading-none select-none mb-3 -mt-1">"</div>
+                      <p className="text-white/90 leading-relaxed italic text-sm sm:text-base flex-1 overflow-hidden"
+                         style={{ wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
+                        {t.quote}
+                      </p>
+                      <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/15 flex-shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                          {getInitials(t.author_name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate leading-none">{t.author_name}</p>
+                          {t.author_role && <p className="text-[11px] text-white/60 truncate mt-0.5">{t.author_role}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="py-16 text-center text-blue-200 text-sm bg-white/5 border border-white/10 rounded-2xl">
+              No testimonials yet — be the first to share your experience!
+            </div>
+          )}
+
+        </div>
+      </section>
+
+      {/* Testimonial submission modal */}
+      {tModalOpen && user && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => { setTModalOpen(false); setTError(''); }}
+        >
+          <div
+            className="bg-white border-[2.5px] border-black shadow-[8px_8px_0_#000] rounded-2xl p-7 w-full max-w-md"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h3 className={`text-2xl font-black uppercase tracking-tighter text-gray-900 leading-none ${antonio.className}`}>Drop Your Thoughts</h3>
+                <p className="text-xs text-gray-400 mt-1">Reviewed before publishing</p>
+              </div>
+              <button onClick={() => { setTModalOpen(false); setTError(''); }} className="text-gray-400 hover:text-gray-900 transition-colors p-1">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 mb-5 p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="w-8 h-8 rounded-full border-2 border-black bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                {getInitials(user.full_name)}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900 leading-none">{user.full_name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">Submitting as yourself</p>
+              </div>
+            </div>
+
+            {tError && <p className="text-red-500 text-xs mb-3">{tError}</p>}
+
+            <input
+              type="text"
+              placeholder="Your title or role — e.g. Flutter Dev, CS Student (optional)"
+              value={tForm.author_role}
+              onChange={e => setTForm({ ...tForm, author_role: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-black transition-all mb-3"
+            />
+            <textarea
+              placeholder="Tell us about your experience with GDGOC-UITU... *"
+              value={tForm.quote}
+              onChange={e => setTForm({ ...tForm, quote: e.target.value })}
+              rows={4}
+              className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-black transition-all resize-none mb-5"
+            />
+
+            <div className="flex gap-3">
+              <button
+                disabled={tSubmitting}
+                onClick={async () => {
+                  setTError('');
+                  if (!tForm.quote.trim()) { setTError('Please write your experience.'); return; }
+                  setTSubmitting(true);
+                  try {
+                    const res = await fetch(`${API_URL}/api/cms/testimonials`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ author_name: user.full_name, author_role: tForm.author_role, quote: tForm.quote }),
+                    });
+                    const json = await res.json();
+                    if (!res.ok) { setTError(json.error || 'Failed to submit.'); return; }
+                    setTSuccess(true);
+                    setTModalOpen(false);
+                    setTForm({ author_role: '', quote: '' });
+                  } catch {
+                    setTError('Something went wrong.');
+                  } finally {
+                    setTSubmitting(false);
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#4285F4] border-[2px] border-black shadow-[3px_3px_0_#000] text-white text-sm font-black uppercase tracking-wide hover:translate-y-0.5 hover:translate-x-0.5 hover:shadow-[1px_1px_0_#000] active:shadow-none transition-all disabled:opacity-50"
+              >
+                {tSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
+              <button
+                onClick={() => { setTModalOpen(false); setTError(''); }}
+                className="px-5 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-600 hover:border-black transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ── Meet the Team ── */}
+      {!loading && (
+        <section className="py-24 relative overflow-hidden">
+          <ParallaxBackdrop src="/images/Android_Mascots_Classroom.png" className="opacity-[0.08] z-0" />
+
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="text-center mb-16 px-4">
+              <div className="h-1.5 w-16 mx-auto flex mb-6 rounded-full overflow-hidden">
+                <div className="flex-1 bg-[#4285F4]" />
+                <div className="flex-1 bg-[#EA4335]" />
+                <div className="flex-1 bg-[#FBBC05]" />
+                <div className="flex-1 bg-[#34A853]" />
+              </div>
+              <h2 className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-white leading-[0.9] ${antonio.className}`}>
+                Meet the Team
+              </h2>
+              <p className="mt-4 text-base text-blue-200 font-medium max-w-md mx-auto">
+                The builders behind GDGOC-UITU
+              </p>
+            </div>
+
+            {teamMembers.length > 0 ? (
+              <>
+                {/* Card stage — full-bleed so ghost cards can peek in from edges */}
+                <div className="relative overflow-x-clip py-2">
+
+                  <div className="flex items-end justify-center gap-3 sm:gap-5 px-6">
+
+                    {/* Ghost far-left (barely visible teaser) */}
+                    {teamMembers[4] && (
+                      <div
+                        className="flex-shrink-0 w-36 sm:w-44 hidden lg:block pointer-events-none"
+                        style={{ opacity: 0.22, filter: 'blur(1px)', transform: 'scale(0.88)', transformOrigin: 'bottom center' }}
+                      >
+                        <MiniMemberCard member={teamMembers[4]} theme={TEAM_THEMES[3]} />
+                      </div>
+                    )}
+
+                    {/* Left team lead */}
+                    {teamMembers[1] && (
+                      <div className="flex-shrink-0 w-44 sm:w-52 hidden sm:block">
+                        <MiniMemberCard member={teamMembers[1]} theme={TEAM_THEMES[1]} />
+                      </div>
+                    )}
+
+                    {/* CENTER — GDG Lead (largest, sits highest via items-end) */}
+                    <div className="flex-shrink-0 w-56 sm:w-64 md:w-72 relative z-[5]">
+                      <MiniMemberCard member={teamMembers[0]} theme={TEAM_THEMES[0]} isLead />
+                    </div>
+
+                    {/* Right team lead */}
+                    {teamMembers[2] && (
+                      <div className="flex-shrink-0 w-44 sm:w-52 hidden sm:block">
+                        <MiniMemberCard member={teamMembers[2]} theme={TEAM_THEMES[2]} />
+                      </div>
+                    )}
+
+                    {/* Ghost far-right (barely visible teaser) */}
+                    {teamMembers[3] && (
+                      <div
+                        className="flex-shrink-0 w-36 sm:w-44 hidden lg:block pointer-events-none"
+                        style={{ opacity: 0.22, filter: 'blur(1px)', transform: 'scale(0.88)', transformOrigin: 'bottom center' }}
+                      >
+                        <MiniMemberCard member={teamMembers[3]} theme={TEAM_THEMES[3]} />
+                      </div>
+                    )}
+
+                  </div>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 bg-[#4285F4] border-[3px] border-black rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#000] rotate-3">
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+
+                {/* CTA */}
+                <div className="mt-14 flex justify-center px-4">
+                  <Link
+                    href="/about"
+                    className={`inline-flex items-center gap-3 px-8 py-3.5 bg-white/5 border-2 border-white/20 text-white text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_rgba(255,255,255,0.12)] hover:bg-white/10 hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all group ${antonio.className}`}
+                  >
+                    Meet the Full Team
+                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                     </svg>
-                  </div>
-                  <h3 className={`text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
-                    Team Coming Soon
-                  </h3>
-                  <p className="text-slate-600 font-bold text-sm leading-relaxed max-w-xs px-2">
-                    Our leadership team is being assembled. Check back soon to meet the crew!
-                  </p>
-                  <div className="mt-5 flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#4285F4] animate-bounce" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
+                  </Link>
                 </div>
-              )}
-
-              {/* View All Team Link */}
-              <div className="mt-16 flex justify-center">
-                <Link href="/about" className="inline-flex items-center gap-3 text-2xl sm:text-3xl font-black uppercase border-b-[4px] border-black pb-1 hover:text-[#EA4335] hover:border-[#EA4335] transition-colors group">
-                  MEET THE FULL TEAM
-                  <span className="group-hover:translate-x-3 transition-transform">→</span>
-                </Link>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                <div className="w-16 h-16 bg-[#4285F4] border-[3px] border-black rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#000] rotate-3">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h3 className={`text-3xl font-black text-white uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
+                  Team Coming Soon
+                </h3>
+                <p className="text-blue-200 font-bold text-sm leading-relaxed max-w-xs px-2">
+                  Our leadership team is being assembled. Check back soon to meet the crew!
+                </p>
+                <div className="mt-5 flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#4285F4] animate-bounce" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
               </div>
+            )}
+          </div>
+        </section>
+      )}
 
-            </div>
-          </section>
-        )
-      }
+      </div>{/* end shared dark background wrapper */}
 
       {/* ── Sponsors Strip ── */}
       {

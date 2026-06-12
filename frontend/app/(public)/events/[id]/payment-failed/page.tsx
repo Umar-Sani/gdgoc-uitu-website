@@ -1,9 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function PaymentFailedPage() {
+function PaymentFailedContent() {
   const params       = useParams();
   const searchParams = useSearchParams();
   const transactionId = searchParams.get('transaction_id');
@@ -94,5 +95,13 @@ export default function PaymentFailedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense>
+      <PaymentFailedContent />
+    </Suspense>
   );
 }

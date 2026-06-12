@@ -102,17 +102,24 @@ router.get('/team', async (req: Request, res: Response) => {
 // POST /api/cms/team
 router.post('/team', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
   try {
-    const { full_name, role_title, bio, avatar_url, linkedin_url, github_url, display_order } = req.body;
+    const {
+      full_name, role_title, bio, avatar_url, linkedin_url, github_url,
+      display_order, is_active, section, team_name, tenure_year,
+    } = req.body;
 
     if (!full_name || !role_title) {
       return res.status(400).json({ data: null, error: 'full_name and role_title are required' });
     }
 
     const result = await pool.query(
-      `INSERT INTO content.team_members (full_name, role_title, bio, avatar_url, linkedin_url, github_url, display_order, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+      `INSERT INTO content.team_members
+        (full_name, role_title, bio, avatar_url, linkedin_url, github_url, display_order, is_active, section, team_name, tenure_year)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [full_name, role_title, bio ?? null, avatar_url ?? null, linkedin_url ?? null, github_url ?? null, display_order ?? 0]
+      [
+        full_name, role_title, bio ?? null, avatar_url ?? null, linkedin_url ?? null, github_url ?? null,
+        display_order ?? 0, is_active ?? true, section ?? 'member', team_name ?? null, tenure_year ?? null,
+      ]
     );
 
     res.status(201).json({ data: result.rows[0], error: null });
@@ -124,7 +131,10 @@ router.post('/team', requireAuth, requireRole('admin', 'super_admin'), async (re
 // PATCH /api/cms/team/:id
 router.patch('/team/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
   try {
-    const { full_name, role_title, bio, avatar_url, linkedin_url, github_url, display_order, is_active } = req.body;
+    const {
+      full_name, role_title, bio, avatar_url, linkedin_url, github_url,
+      display_order, is_active, section, team_name, tenure_year,
+    } = req.body;
 
     const result = await pool.query(
       `UPDATE content.team_members SET
@@ -136,11 +146,15 @@ router.patch('/team/:id', requireAuth, requireRole('admin', 'super_admin'), asyn
         github_url    = COALESCE($6, github_url),
         display_order = COALESCE($7, display_order),
         is_active     = COALESCE($8, is_active),
+        section       = COALESCE($9, section),
+        team_name     = $10,
+        tenure_year   = $11,
         updated_at    = NOW()
-      WHERE member_id = $9
+      WHERE member_id = $12
       RETURNING *`,
       [full_name ?? null, role_title ?? null, bio ?? null, avatar_url ?? null,
-       linkedin_url ?? null, github_url ?? null, display_order ?? null, is_active ?? null, req.params.id]
+       linkedin_url ?? null, github_url ?? null, display_order ?? null, is_active ?? null,
+       section ?? null, team_name ?? null, tenure_year ?? null, req.params.id]
     );
 
     if (result.rows.length === 0) {
@@ -157,6 +171,101 @@ router.patch('/team/:id', requireAuth, requireRole('admin', 'super_admin'), asyn
 router.delete('/team/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
   try {
     await pool.query('DELETE FROM content.team_members WHERE member_id = $1', [req.params.id]);
+    res.json({ data: { deleted: true }, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── TEAMS (groupings members can belong to) ────────────────────────────────
+
+// GET /api/cms/teams — list all teams
+router.get('/teams', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM content.teams ORDER BY display_order ASC, name ASC'
+    );
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// POST /api/cms/teams — create a team
+router.post('/teams', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const { name, display_order } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ data: null, error: 'Team name is required' });
+    }
+    const result = await pool.query(
+      `INSERT INTO content.teams (name, display_order) VALUES ($1, $2) RETURNING *`,
+      [name.trim(), display_order ?? 0]
+    );
+    res.status(201).json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    if (err.code === '23505') {
+      return res.status(409).json({ data: null, error: 'A team with that name already exists' });
+    }
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// PATCH /api/cms/teams/:id — rename or reorder a team
+router.patch('/teams/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const { name, display_order } = req.body;
+    const newName = typeof name === 'string' ? name.trim() : null;
+
+    await client.query('BEGIN');
+
+    // Capture the current name first so we can cascade a rename to members (their
+    // team_name is stored as plain text and would otherwise be orphaned).
+    const current = await client.query(
+      'SELECT name FROM content.teams WHERE team_id = $1',
+      [req.params.id]
+    );
+    if (current.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ data: null, error: 'Team not found' });
+    }
+    const oldName: string = current.rows[0].name;
+
+    const result = await client.query(
+      `UPDATE content.teams SET
+        name          = COALESCE($1, name),
+        display_order = COALESCE($2, display_order)
+       WHERE team_id = $3
+       RETURNING *`,
+      [newName, display_order ?? null, req.params.id]
+    );
+
+    // If the name actually changed, re-tag every member that referenced the old name.
+    if (newName && newName !== oldName) {
+      await client.query(
+        'UPDATE content.team_members SET team_name = $1, updated_at = NOW() WHERE team_name = $2',
+        [newName, oldName]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    if (err.code === '23505') {
+      return res.status(409).json({ data: null, error: 'A team with that name already exists' });
+    }
+    res.status(500).json({ data: null, error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// DELETE /api/cms/teams/:id — remove a team
+router.delete('/teams/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    await pool.query('DELETE FROM content.teams WHERE team_id = $1', [req.params.id]);
     res.json({ data: { deleted: true }, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -485,6 +594,117 @@ router.delete('/featured-events/:id', requireAuth, requireRole('admin', 'super_a
       return res.status(404).json({ data: null, error: 'Featured event not found.' });
     }
 
+    res.json({ data: { deleted: true }, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
+
+// GET /api/cms/testimonials
+// Public — approved testimonials only
+router.get('/testimonials', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM content.testimonials
+       WHERE is_approved = TRUE
+       ORDER BY COALESCE(display_order, 0) ASC, created_at DESC`
+    );
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    console.error('GET /api/cms/testimonials error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// GET /api/cms/testimonials/all
+// Admin — all submissions including pending
+router.get('/testimonials/all', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM content.testimonials
+       ORDER BY is_approved ASC, created_at DESC`
+    );
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    console.error('GET /api/cms/testimonials/all error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// POST /api/cms/testimonials
+// Authenticated users — submit a testimonial (starts unapproved)
+router.post('/testimonials', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const { author_name, author_role, quote } = req.body;
+
+    if (!author_name?.trim() || !quote?.trim()) {
+      return res.status(400).json({ data: null, error: 'Name and quote are required.' });
+    }
+    if (quote.trim().length < 20) {
+      return res.status(400).json({ data: null, error: 'Quote must be at least 20 characters.' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO content.testimonials (user_id, author_name, author_role, quote, is_approved)
+       VALUES ($1, $2, $3, $4, FALSE)
+       RETURNING testimonial_id, created_at`,
+      [userId, author_name.trim(), author_role?.trim() ?? null, quote.trim()]
+    );
+
+    res.status(201).json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// PATCH /api/cms/testimonials/:id
+// Admin — approve/reject/edit/reorder
+router.patch('/testimonials/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    const { author_name, author_role, quote, is_approved, display_order } = req.body;
+
+    // Build SET clause dynamically — only touch columns the caller provided,
+    // and skip display_order if the column doesn't exist in the table.
+    const sets: string[] = [];
+    const values: any[] = [];
+
+    if (author_name !== undefined) { sets.push(`author_name = $${sets.length + 1}`); values.push(author_name?.trim() ?? null); }
+    if (author_role !== undefined) { sets.push(`author_role = $${sets.length + 1}`); values.push(author_role?.trim() ?? null); }
+    if (quote      !== undefined) { sets.push(`quote       = $${sets.length + 1}`); values.push(quote?.trim() ?? null); }
+    if (is_approved !== undefined) { sets.push(`is_approved = $${sets.length + 1}`); values.push(is_approved); }
+    if (display_order !== undefined) { sets.push(`display_order = $${sets.length + 1}`); values.push(display_order); }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ data: null, error: 'No fields to update.' });
+    }
+
+    values.push(req.params.id);
+    const result = await pool.query(
+      `UPDATE content.testimonials SET ${sets.join(', ')} WHERE testimonial_id = $${values.length} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Testimonial not found.' });
+    }
+
+    res.json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    console.error('PATCH /api/cms/testimonials/:id error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// DELETE /api/cms/testimonials/:id
+// Admin only
+router.delete('/testimonials/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+  try {
+    await pool.query('DELETE FROM content.testimonials WHERE testimonial_id = $1', [req.params.id]);
     res.json({ data: { deleted: true }, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });

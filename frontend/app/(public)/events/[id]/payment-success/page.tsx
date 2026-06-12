@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -18,7 +18,7 @@ type TransactionDetail = {
   event_id: string;
 };
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const params       = useParams();
   const router       = useRouter();
   const searchParams = useSearchParams();
@@ -205,5 +205,13 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

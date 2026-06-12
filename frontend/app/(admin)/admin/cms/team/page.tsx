@@ -49,13 +49,125 @@ export default function TeamCMSPage() {
   const [form, setForm]         = useState(emptyForm);
   const [filterSection, setFilterSection] = useState('all');
 
-  useEffect(() => { fetchMembers(); }, []);
+  // Teams
+  const [teams, setTeams]       = useState<any[]>([]);
+  const [tab, setTab]           = useState<'members' | 'teams'>('members');
+  const [newTeam, setNewTeam]   = useState('');
+  const [teamSaving, setTeamSaving] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<string | null>(null);
+  const [editTeamName, setEditTeamName] = useState('');
+
+  useEffect(() => { fetchMembers(); fetchTeams(); }, []);
 
   function fetchMembers() {
     fetch(`${API_URL}/api/cms/team`)
       .then((r) => r.json())
       .then((res) => setMembers(res.data ?? []))
       .catch(() => {});
+  }
+
+  function fetchTeams() {
+    fetch(`${API_URL}/api/cms/teams`)
+      .then((r) => r.json())
+      .then((res) => setTeams(res.data ?? []))
+      .catch(() => {});
+  }
+
+  async function handleCreateTeam() {
+    if (!newTeam.trim()) { setError('Team name is required.'); return; }
+    setTeamSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/api/cms/teams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name: newTeam.trim(), display_order: teams.length }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error || 'Failed to create team.'); return; }
+      setSuccess('Team created!');
+      setTimeout(() => setSuccess(''), 3000);
+      setNewTeam('');
+      fetchTeams();
+    } catch {
+      setError('Something went wrong.');
+    } finally {
+      setTeamSaving(false);
+    }
+  }
+
+  async function handleMoveTeam(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= teams.length) return;
+    const reordered = [...teams];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    // Persist: rewrite every team's display_order to its new position (robust even if old values were equal)
+    setTeams(reordered.map((t, i) => ({ ...t, display_order: i }))); // optimistic
+    try {
+      await Promise.all(
+        reordered.map((t, i) =>
+          fetch(`${API_URL}/api/cms/teams/${t.team_id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ display_order: i }),
+          })
+        )
+      );
+      fetchTeams();
+    } catch {
+      setError('Failed to reorder teams.');
+      fetchTeams();
+    }
+  }
+
+  function startEditTeam(t: any) {
+    setEditingTeam(t.team_id);
+    setEditTeamName(t.name);
+    setError('');
+  }
+
+  function cancelEditTeam() {
+    setEditingTeam(null);
+    setEditTeamName('');
+  }
+
+  async function handleRenameTeam(id: string) {
+    const name = editTeamName.trim();
+    if (!name) { setError('Team name is required.'); return; }
+    setTeamSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/api/cms/teams/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error || 'Failed to rename team.'); return; }
+      setSuccess('Team renamed!');
+      setTimeout(() => setSuccess(''), 3000);
+      cancelEditTeam();
+      // Members are re-tagged server-side, so refresh both lists.
+      fetchTeams();
+      fetchMembers();
+    } catch {
+      setError('Something went wrong.');
+    } finally {
+      setTeamSaving(false);
+    }
+  }
+
+  async function handleDeleteTeam(id: string, name: string) {
+    if (!confirm(`Delete team "${name}"? Members keep their tag but it won't be selectable anymore.`)) return;
+    try {
+      await fetch(`${API_URL}/api/cms/teams/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      fetchTeams();
+    } catch {
+      setError('Failed to delete team.');
+    }
   }
 
   function startEdit(member: any) {
@@ -189,12 +301,29 @@ export default function TeamCMSPage() {
             <h1 className="text-2xl font-bold text-gray-900">Team Editor</h1>
             <p className="text-sm text-gray-500 mt-0.5">{members.length} team members</p>
           </div>
-          <button
-            onClick={startAdd}
-            className="ml-auto px-4 py-2 rounded-xl bg-[#4285F4] text-white text-sm font-semibold hover:bg-blue-600 transition-all"
-          >
-            + Add Member
-          </button>
+          {tab === 'members' && (
+            <button
+              onClick={startAdd}
+              className="ml-auto px-4 py-2 rounded-xl bg-[#4285F4] text-white text-sm font-semibold hover:bg-blue-600 transition-all"
+            >
+              + Add Member
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-6 flex gap-2 border-b border-gray-200">
+          {([['members', 'Members'], ['teams', 'Teams']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => { setTab(key); cancelForm(); setError(''); }}
+              className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-all ${
+                tab === key ? 'border-[#4285F4] text-[#4285F4]' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}{key === 'teams' ? ` (${teams.length})` : ` (${members.length})`}
+            </button>
+          ))}
         </div>
 
         {/* Feedback */}
@@ -209,6 +338,8 @@ export default function TeamCMSPage() {
           </div>
         )}
 
+        {tab === 'members' && (
+        <>
         {/* Add / Edit Form */}
         {(adding || editing) && (
           <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-6 mb-6">
@@ -240,17 +371,34 @@ export default function TeamCMSPage() {
                 </select>
               </div>
 
-              {/* Team Name — only for co_lead and member */}
+              {/* Team — only for co_lead and member; choose from existing teams */}
               {(form.section === 'co_lead' || form.section === 'member') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Team Name</label>
-                  <input
-                    type="text"
-                    value={form.team_name}
-                    onChange={(e) => handleField('team_name', e.target.value)}
-                    className={inputClass}
-                    placeholder="e.g. Technical Team"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Team</label>
+                  {teams.length === 0 ? (
+                    <div className="text-sm text-gray-500 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 bg-gray-50">
+                      No teams yet — create one in the{' '}
+                      <button type="button" onClick={() => setTab('teams')} className="text-blue-600 font-medium hover:underline">
+                        Teams
+                      </button>{' '}
+                      tab first.
+                    </div>
+                  ) : (
+                    <select
+                      value={form.team_name}
+                      onChange={(e) => handleField('team_name', e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="">— Select a team —</option>
+                      {teams.map((t) => (
+                        <option key={t.team_id} value={t.name}>{t.name}</option>
+                      ))}
+                      {/* Keep a legacy/unlisted team name selectable so editing doesn't lose it */}
+                      {form.team_name && !teams.some((t) => t.name === form.team_name) && (
+                        <option value={form.team_name}>{form.team_name} (unlisted)</option>
+                      )}
+                    </select>
+                  )}
                 </div>
               )}
 
@@ -443,6 +591,122 @@ export default function TeamCMSPage() {
             ))
           )}
         </div>
+        </>
+        )}
+
+        {/* ── Teams tab ── */}
+        {tab === 'teams' && (
+          <div>
+            {/* Create a team */}
+            <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-6 mb-6">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Create a Team</h2>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={newTeam}
+                  onChange={(e) => setNewTeam(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateTeam(); }}
+                  className={`${inputClass} flex-1`}
+                  placeholder="e.g. Technical Team"
+                />
+                <button
+                  onClick={handleCreateTeam}
+                  disabled={teamSaving}
+                  className="px-5 py-2.5 rounded-xl bg-[#4285F4] text-white text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-60 whitespace-nowrap"
+                >
+                  {teamSaving ? 'Creating...' : '+ Create Team'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Teams appear as options when adding a Co-Lead or Team Member.</p>
+            </div>
+
+            {/* Teams list */}
+            <div className="space-y-3">
+              {teams.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">
+                  No teams yet. Create your first team above.
+                </div>
+              ) : (
+                teams.map((t, i) => {
+                  const count = members.filter((m) => m.team_name === t.name).length;
+                  return (
+                    <div key={t.team_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 hover:border-blue-100 transition-all">
+                      {/* Reorder controls */}
+                      <div className="flex flex-col gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => handleMoveTeam(i, -1)}
+                          disabled={i === 0}
+                          title="Move up"
+                          className="w-6 h-5 rounded-md border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
+                        </button>
+                        <button
+                          onClick={() => handleMoveTeam(i, 1)}
+                          disabled={i === teams.length - 1}
+                          title="Move down"
+                          className="w-6 h-5 rounded-md border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                      </div>
+                      <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        {t.name.charAt(0).toUpperCase()}
+                      </span>
+                      {editingTeam === t.team_id ? (
+                        <>
+                          <input
+                            type="text"
+                            value={editTeamName}
+                            autoFocus
+                            onChange={(e) => setEditTeamName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleRenameTeam(t.team_id);
+                              if (e.key === 'Escape') cancelEditTeam();
+                            }}
+                            className={`${inputClass} flex-1`}
+                          />
+                          <button
+                            onClick={() => handleRenameTeam(t.team_id)}
+                            disabled={teamSaving}
+                            className="px-3 py-1.5 rounded-lg bg-[#4285F4] text-white text-xs font-semibold hover:bg-blue-600 transition-all disabled:opacity-60 flex-shrink-0"
+                          >
+                            {teamSaving ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={cancelEditTeam}
+                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 transition-all flex-shrink-0"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">{t.name}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{count} member{count !== 1 ? 's' : ''}</p>
+                          </div>
+                          <button
+                            onClick={() => startEditTeam(t)}
+                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all flex-shrink-0"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTeam(t.team_id, t.name)}
+                            className="px-3 py-1.5 rounded-lg border border-red-100 text-xs font-medium text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
