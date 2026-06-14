@@ -294,75 +294,79 @@ export default function UpcomingEvents({
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           {/* Section Header */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16">
-            <div>
-              <div className="h-1.5 w-20 flex mb-4 overflow-hidden">
-                {GOOGLE_COLORS.map((c) => (
-                  <div key={c} className="flex-1" style={{ backgroundColor: c }} />
-                ))}
-              </div>
-              <h2
-                className={`text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.85] ${antonio.className}`}
-              >
-                <span className="text-[#4285F4]">UPCOMING</span>
-                <br />
-                <span className="text-slate-900">EVENTS</span>
-              </h2>
+          <div className="mb-16">
+            <div className="h-1.5 w-20 flex mb-4 overflow-hidden">
+              {GOOGLE_COLORS.map((c) => (
+                <div key={c} className="flex-1" style={{ backgroundColor: c }} />
+              ))}
             </div>
-
-            <p className="text-gray-600 text-lg sm:text-xl font-bold tracking-tight max-w-sm lg:text-right lg:mb-4 lg:self-end">
-              Don&apos;t miss out on the most impactful technical sessions in the
-              city.
+            <h2
+              className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-slate-900 leading-[0.9] ${antonio.className}`}
+            >
+              Upcoming Events
+            </h2>
+            <p className="mt-6 text-base md:text-lg text-gray-600 leading-relaxed">
+              Don&apos;t miss out on the most impactful technical sessions in the city.
             </p>
           </div>
 
-          {/* Event Cards Grid */}
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 ${combinedEvents.length > 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-2 lg:max-w-5xl lg:mx-auto'}`}>
-            {combinedEvents.length > 0 ? (
-              combinedEvents.map((event, idx) => {
-                const color = GOOGLE_COLORS[idx % GOOGLE_COLORS.length];
-                const isFeatured = idx === 0;
+          {/* ── Events Grid — featured spans 2 cols, rest fill ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
 
-                return (
+            {/* Empty state (no events) */}
+            {combinedEvents.length === 0 && (
+              <div>
+                <div className="event-card relative aspect-[4/3] bg-white border-[3px] border-slate-900 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center shadow-[8px_8px_0_#0f172a]">
+                  <div className="w-16 h-16 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#0f172a] rotate-3">
+                    <Calendar className="w-8 h-8 text-slate-900" />
+                  </div>
+                  <h3 className={`text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}>
+                    Still Cooking...
+                  </h3>
+                  <p className="text-slate-600 font-bold text-xs leading-relaxed max-w-xs px-2">
+                    Looks like we&apos;re still cooking something amazing. Come back later for new events!
+                  </p>
+                  <div className="mt-5 flex gap-1.5">
+                    {GOOGLE_COLORS.map((c, i) => (
+                      <div key={c} className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: c, animationDelay: `${i * 100}ms` }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Event cards — idx 0 is featured (2-col span) */}
+            {combinedEvents.map((event, idx) => {
+              const color = GOOGLE_COLORS[idx % GOOGLE_COLORS.length];
+              const isFeatured = idx === 0;
+              return (
+                <div key={event.event_id} className={isFeatured ? 'col-span-1 md:col-span-2 lg:col-span-2 md:row-span-2 md:self-stretch' : ''}>
                   <button
-                    key={event.event_id}
                     onClick={() => expandEvent(event)}
-                    className={`event-card group text-left relative overflow-hidden transition-all duration-300 cursor-pointer 
-                      border-[3px] border-slate-900 rounded-[2rem] shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-2 hover:translate-x-1
-                      ${
-                        isFeatured
-                          ? 'col-span-1 md:col-span-2 lg:col-span-3 aspect-[16/10] md:aspect-[21/9] bg-slate-950'
-                          : 'aspect-[16/10] bg-slate-900'
-                      }`}
+                    className={`event-card group text-left relative w-full overflow-hidden transition-all duration-300 cursor-pointer border-[3px] border-slate-900 rounded-[2rem] hover:-translate-y-2 hover:translate-x-1 ${isFeatured ? 'bg-slate-950 md:h-full min-h-[400px]' : 'bg-slate-900'}`}
+                    style={{ boxShadow: `4px 4px 0 ${color}, 0 16px 40px -10px ${color}40` }}
                   >
-                    {/* Image Background */}
-                    <div className="absolute inset-0">
-                      {event.banner_url ? (
-                        <img
-                          src={event.banner_url}
-                          alt={event.title}
-                          className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-50 transition-all duration-700"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full"
-                          style={{
-                            background: `linear-gradient(135deg, ${color} 0%, ${color}88 50%, #0f172a 100%)`,
-                          }}
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
-                    </div>
+                    {event.banner_url ? (
+                      <img
+                        src={event.banner_url}
+                        alt={event.title}
+                        className={`opacity-90 group-hover:opacity-50 transition-all duration-700 group-hover:scale-110 ${
+                          isFeatured
+                            ? 'absolute inset-0 w-full h-full object-cover'
+                            : 'w-full h-auto block'
+                        }`}
+                      />
+                    ) : (
+                      <div
+                        className={isFeatured ? 'absolute inset-0' : 'w-full min-h-[220px]'}
+                        style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}88 50%, #0f172a 100%)` }}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
 
-                    {/* Top Elements */}
-                    <div
-                      className={`absolute top-5 left-5 right-5 flex justify-between items-start z-10 ${isFeatured ? 'md:top-8 md:left-8 md:right-8' : ''}`}
-                    >
+                    <div className={`absolute top-5 left-5 right-5 ${isFeatured ? 'md:top-8 md:left-8 md:right-8' : ''} flex justify-between items-start z-10`}>
                       <div className="flex flex-col gap-3">
-                        <span
-                          className={`px-3 py-1 text-white text-[10px] font-black uppercase tracking-widest rounded-full border-2 border-slate-900 shadow-[2px_2px_0_#0f172a] w-fit`}
-                          style={{ backgroundColor: color }}
-                        >
+                        <span className="px-3 py-1 text-white text-[10px] font-black uppercase tracking-widest rounded-full border-2 border-slate-900 shadow-[2px_2px_0_#0f172a] w-fit" style={{ backgroundColor: color }}>
                           {event.category_name || 'General'}
                         </span>
                         {isFeatured && (
@@ -372,142 +376,102 @@ export default function UpcomingEvents({
                           </span>
                         )}
                       </div>
-
-                      <div className="bg-[#EA4335] border-2 border-slate-900 rounded-xl w-14 h-14 md:w-16 md:h-16 flex flex-col items-center justify-center shadow-[4px_4px_0_#0f172a] rotate-3 group-hover:rotate-0 transition-transform">
-                        <span className="text-[9px] md:text-[11px] font-black text-white uppercase leading-none mt-1">
-                          {event.start_datetime
-                            ? new Date(event.start_datetime).toLocaleDateString(
-                                'en-US',
-                                { month: 'short' }
-                              )
-                            : 'TBA'}
+                      <div className={`bg-[#EA4335] border-2 border-slate-900 rounded-xl flex flex-col items-center justify-center shadow-[4px_4px_0_#0f172a] rotate-3 group-hover:rotate-0 transition-transform ${isFeatured ? 'w-14 h-14 md:w-16 md:h-16' : 'w-14 h-14'}`}>
+                        <span className={`font-black text-white uppercase leading-none mt-1 ${isFeatured ? 'text-[9px] md:text-[11px]' : 'text-[9px]'}`}>
+                          {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short' }) : 'TBA'}
                         </span>
-                        <span className="text-xl md:text-2xl font-black text-white leading-none">
-                          {event.start_datetime
-                            ? new Date(event.start_datetime).toLocaleDateString(
-                                'en-US',
-                                { day: '2-digit' }
-                              )
-                            : '??'}
+                        <span className={`font-black text-white leading-none ${isFeatured ? 'text-xl md:text-2xl' : 'text-xl'}`}>
+                          {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString('en-US', { day: '2-digit' }) : '??'}
                         </span>
                       </div>
                     </div>
 
-                    {/* Bottom Content */}
-                    <div
-                      className={`absolute inset-x-0 bottom-0 p-6 z-20 ${isFeatured ? 'md:p-10 md:max-w-4xl' : ''}`}
-                    >
-                      <h3
-                        className={`font-black text-white uppercase tracking-tight leading-[0.9] ${antonio.className} line-clamp-3 
-                          ${isFeatured ? 'text-4xl sm:text-5xl lg:text-7xl' : 'text-2xl sm:text-3xl'}`}
-                      >
+                    <div className={`absolute inset-x-0 bottom-0 z-20 ${isFeatured ? 'p-6 md:p-10 md:max-w-3xl' : 'p-6'}`}>
+                      <h3 className={`font-black text-white uppercase tracking-tight leading-[0.9] line-clamp-3 ${isFeatured ? 'text-3xl sm:text-4xl lg:text-5xl' : 'text-2xl sm:text-3xl'} ${antonio.className}`}>
                         {event.title}
                       </h3>
-                      {isFeatured && event.description && (
-                        <p className="hidden md:block text-white/70 text-sm font-bold mt-4 line-clamp-2 max-w-xl">
-                          {event.description}
-                        </p>
-                      )}
-                      <div className="w-12 h-1 mt-6" style={{ backgroundColor: color }} />
-
-                      {/* Hover details / Info row */}
-                      <div
-                        className={`transition-opacity duration-500 mt-4 flex items-center gap-6 text-xs md:text-sm text-gray-300 font-bold 
-                          ${isFeatured ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 text-[#4285F4]" />
-                          {event.start_datetime
-                            ? formatTime(event.start_datetime)
-                            : 'TBA'}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <MapPin className="w-4 h-4 text-[#EA4335]" />
-                          {event.venue || 'Online'}
-                        </span>
-                        {isFeatured && event.seats_available > 0 && (
+                      <div className="w-12 h-1 mt-4" style={{ backgroundColor: color }} />
+                      {isFeatured ? (
+                        <div className="mt-4 flex items-center gap-6 text-xs md:text-sm text-gray-300 font-bold">
                           <span className="flex items-center gap-1.5">
-                            <Users className="w-4 h-4 text-[#34A853]" />
-                            {event.seats_available} Seats Available
+                            <Clock className="w-4 h-4 text-[#4285F4]" />
+                            {event.start_datetime ? formatTime(event.start_datetime) : 'TBA'}
                           </span>
-                        )}
-                      </div>
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-4 h-4 text-[#EA4335]" />
+                            {event.venue || 'Online'}
+                          </span>
+                          {event.seats_available > 0 && (
+                            <span className="flex items-center gap-1.5">
+                              <Users className="w-4 h-4 text-[#34A853]" />
+                              {event.seats_available} Seats Available
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 mt-4 flex items-center gap-4 text-xs text-gray-300 font-bold">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-[#4285F4]" />
+                            {event.start_datetime ? formatTime(event.start_datetime) : 'TBA'}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-[#EA4335]" />
+                            {event.venue || 'Online'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </button>
-                );
-              })
-            ) : (
-              /* Inline Empty State Card */
-              <div className="event-card relative aspect-[16/10] bg-white border-[3px] border-slate-900 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center shadow-[8px_8px_0_#0f172a]">
-                <div className="w-16 h-16 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-5 shadow-[4px_4px_0_#0f172a] rotate-3">
-                  <Calendar className="w-8 h-8 text-slate-900" />
                 </div>
-                <h3
-                  className={`text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-3 ${antonio.className}`}
+              );
+            })}
+
+            {/* Explore All CTA */}
+            {combinedEvents.length > 0 && (
+              <div>
+                <Link
+                  href="/events"
+                  className="event-card cta-card group relative aspect-[4/3] bg-[#4285F4] border-[3px] border-slate-900 rounded-[2rem] overflow-hidden hover:-translate-y-2 hover:translate-x-1 transition-all duration-300 block"
+                  style={{ boxShadow: '4px 4px 0 #4285F4, 0 16px 40px -10px #4285F440' }}
                 >
-                  Still Cooking...
-                </h3>
-                <p className="text-slate-600 font-bold text-xs leading-relaxed max-w-xs px-2">
-                  Looks like we&apos;re still cooking something amazing. Come back later for new events!
-                </p>
-                <div className="mt-5 flex gap-1.5">
-                  {GOOGLE_COLORS.map((c, i) => (
-                    <div
-                      key={c}
-                      className="w-2.5 h-2.5 rounded-full animate-bounce"
-                      style={{
-                        backgroundColor: c,
-                        animationDelay: `${i * 100}ms`,
-                      }}
-                    />
-                  ))}
-                </div>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,white/20,transparent)]" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
+                    <div className="w-16 h-16 bg-white border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 shadow-[4px_4px_0_#0f172a] group-hover:scale-110 group-hover:rotate-6 transition-transform">
+                      <ArrowRight className="w-8 h-8 text-[#4285F4]" />
+                    </div>
+                    <h3 className={`text-4xl font-black text-white uppercase tracking-tighter leading-none mb-4 ${antonio.className}`}>
+                      EXPLORE ALL EVENTS
+                    </h3>
+                    <p className="text-white/80 font-bold text-xs uppercase tracking-widest">
+                      View our full calendar
+                    </p>
+                  </div>
+                </Link>
               </div>
             )}
 
-            {/* Explore More Card - Only render when events exist */}
-            {combinedEvents.length > 0 && (
+            {/* Host an Event CTA */}
+            <div>
               <Link
-                href="/events"
-                className="event-card cta-card group relative aspect-[16/10] bg-[#4285F4] border-[3px] border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-2 hover:translate-x-1 transition-all duration-300"
+                href="/about"
+                className="event-card cta-card group relative aspect-[4/3] bg-[#FBBC05] border-[3px] border-slate-900 rounded-[2rem] overflow-hidden hover:-translate-y-2 hover:translate-x-1 transition-all duration-300 block"
+                style={{ boxShadow: '4px 4px 0 #FBBC05, 0 16px 40px -10px #FBBC0540' }}
               >
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,white/20,transparent)]" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-16 h-16 bg-white border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 shadow-[4px_4px_0_#0f172a] group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                    <ArrowRight className="w-8 h-8 text-[#4285F4]" />
+                  <div className="w-16 h-16 bg-white border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 shadow-[4px_4px_0_#0f172a] group-hover:scale-110 group-hover:-rotate-6 transition-transform">
+                    <Sparkles className="w-8 h-8 text-[#FBBC05]" />
                   </div>
-                  <h3
-                    className={`text-4xl font-black text-white uppercase tracking-tighter leading-none mb-4 ${antonio.className}`}
-                  >
-                    EXPLORE ALL EVENTS
+                  <h3 className={`text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-4 ${antonio.className}`}>
+                    HOST YOUR OWN EVENT
                   </h3>
-                  <p className="text-white/80 font-bold text-xs uppercase tracking-widest">
-                    View our full calendar
+                  <p className="text-slate-900/60 font-bold text-xs uppercase tracking-widest">
+                    Collaborate with us
                   </p>
                 </div>
               </Link>
-            )}
+            </div>
 
-            {/* Host an Event Card */}
-            <Link
-              href="/about"
-              className="event-card cta-card group relative aspect-[16/10] bg-[#FBBC05] border-[3px] border-slate-900 rounded-[2rem] overflow-hidden shadow-[8px_8px_0_#0f172a] hover:shadow-[4px_4px_0_#0f172a] hover:-translate-y-2 hover:translate-x-1 transition-all duration-300"
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,white/20,transparent)]" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                <div className="w-16 h-16 bg-white border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-6 shadow-[4px_4px_0_#0f172a] group-hover:scale-110 group-hover:-rotate-6 transition-transform">
-                  <Sparkles className="w-8 h-8 text-[#FBBC05]" />
-                </div>
-                <h3
-                  className={`text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-4 ${antonio.className}`}
-                >
-                  HOST YOUR OWN EVENT
-                </h3>
-                <p className="text-slate-900/60 font-bold text-xs uppercase tracking-widest">
-                  Collaborate with us
-                </p>
-              </div>
-            </Link>
           </div>
         </div>
       </div>

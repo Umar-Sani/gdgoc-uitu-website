@@ -65,19 +65,19 @@ function EventCard({ event }: { event: Event }) {
 
   return (
     <Link href={`/events/${event.event_id}`}>
-      <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-blue-100 transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col">
+      <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-blue-100 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col">
 
         {/* Banner */}
-        <div className="relative h-44 bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
+        <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
           {event.banner_url ? (
             <img
               src={event.banner_url}
               alt={event.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
             // Placeholder when no banner
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="h-44 w-full flex items-center justify-center">
               <svg className="w-16 h-16 text-white opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -399,9 +399,11 @@ export default function EventsPage() {
 
         {/* ── Events Grid ── */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <SkeletonCard key={i} />
+              <div key={i} className="break-inside-avoid mb-6">
+                <SkeletonCard />
+              </div>
             ))}
           </div>
         ) : events.length === 0 ? (
@@ -431,9 +433,11 @@ export default function EventsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
             {events.map((event) => (
-              <EventCard key={event.event_id} event={event} />
+              <div key={event.event_id} className="break-inside-avoid mb-6">
+                <EventCard event={event} />
+              </div>
             ))}
           </div>
         )}

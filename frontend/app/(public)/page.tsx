@@ -93,15 +93,6 @@ type Thread = {
   participants: Participant[];
 };
 
-type SocialPost = {
-  post_id: string;
-  platform: string;
-  caption: string;
-  media_urls: string[];
-  hashtags: string[];
-  posted_at: string | null;
-  status: string;
-};
 
 type TeamMember = {
   member_id: string;
@@ -138,15 +129,6 @@ const TEAM_THEMES = [
   { solid: '#34A853', gradient: 'linear-gradient(135deg, #4cc36a, #288a44)', glow: 'rgba(52,168,83,0.55)' },
 ] as const;
 type TeamTheme = typeof TEAM_THEMES[number];
-
-// ─── Platform Colors ──────────────────────────────────────────────────────────
-
-const PLATFORM_CONFIG: Record<string, { color: string; label: string }> = {
-  instagram: { color: '#E1306C', label: 'Instagram' },
-  twitter: { color: '#1DA1F2', label: 'Twitter' },
-  linkedin: { color: '#0A66C2', label: 'LinkedIn' },
-  facebook: { color: '#1877F2', label: 'Facebook' },
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -538,7 +520,7 @@ function ThreadFocusStack({ threads }: { threads: Thread[] }) {
             <div className="h-36 bg-gray-100 rounded-xl" />
           )}
         </div>
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 bg-gradient-to-t from-white via-white/85 to-white/10">
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 bg-gradient-to-t from-[#F4F4F0] via-[#F4F4F0]/85 to-[#F4F4F0]/10">
           <Link
             href="/forum"
             className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-[#4285F4] text-white text-sm font-black uppercase tracking-wider shadow-lg hover:bg-blue-600 hover:-translate-y-0.5 transition-all"
@@ -1278,7 +1260,6 @@ export default function HomePage() {
   const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null);
   const [featuredPastEvents, setFeaturedPastEvents] = useState<FeaturedEvent[]>([]);
   const [threads, setThreads] = useState<Thread[]>([]);
-  const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -1322,6 +1303,9 @@ export default function HomePage() {
   const tLoopRef = useRef<VLoop | null>(null);
   const tItemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+  // Sponsor marquee
+  const sTrackRef = useRef<HTMLDivElement | null>(null);
+
 
   // ─── Unified Events Hover State ─────────────────────────────────────────────
   const [activeEventIndex, setActiveEventIndex] = useState(0);
@@ -1335,12 +1319,11 @@ export default function HomePage() {
       fetch(`${API_URL}/api/events?status=upcoming&limit=4`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/featured-events`).then((r) => r.json()),
       fetch(`${API_URL}/api/forum/threads?limit=4&sort=latest`).then((r) => r.json()),
-      fetch(`${API_URL}/api/social/posts?limit=3&status=published`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/team`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/sponsors`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/testimonials`).then((r) => r.json()),
     ])
-      .then(([homepageRes, eventsRes, featuredPastRes, threadsRes, socialRes, teamRes, sponsorsRes, testimonialsRes]) => {
+      .then(([homepageRes, eventsRes, featuredPastRes, threadsRes, teamRes, sponsorsRes, testimonialsRes]) => {
         if (homepageRes.data) setHomepage(homepageRes.data);
         if (eventsRes.data) {
           const allEvents = eventsRes.data;
@@ -1349,7 +1332,6 @@ export default function HomePage() {
         }
         if (featuredPastRes.data) setFeaturedPastEvents(featuredPastRes.data)
         if (threadsRes.data) setThreads(threadsRes.data);
-        if (socialRes.data) setSocialPosts(socialRes.data);
         if (teamRes.data) setTeamMembers(teamRes.data.slice(0, 6));
         if (sponsorsRes.data) setSponsors(sponsorsRes.data);
         if (testimonialsRes.data) setTestimonials(testimonialsRes.data);
@@ -1363,11 +1345,27 @@ export default function HomePage() {
     if (testimonials.length < 2) return;
     const items = tItemRefs.current.filter((el): el is HTMLButtonElement => !!el);
     if (items.length < 2) return;
+    const n = items.length;
+
+    const updateOpacities = (active: number, instant = false) => {
+      items.forEach((item, j) => {
+        const dist = Math.min(Math.abs(j - active), n - Math.abs(j - active));
+        const op = dist === 0 ? 1 : dist === 1 ? 0.45 : dist === 2 ? 0.18 : 0.05;
+        if (instant) gsap.set(item, { opacity: op });
+        else gsap.to(item, { opacity: op, duration: 0.35, ease: 'power1.out', overwrite: 'auto' });
+      });
+    };
+
     const loop = buildVerticalLoop(items, {
       paused: true,
       center: true,
-      onChange: (_el, i) => setActiveTestimonial(i),
+      onChange: (_el, i) => {
+        setActiveTestimonial(i);
+        updateOpacities(i);
+      },
     });
+    // Set initial opacities without animation
+    updateOpacities(0, true);
     tLoopRef.current = loop;
     return () => { loop.cleanup(); tLoopRef.current = null; };
   }, [testimonials.length]);
@@ -1380,6 +1378,20 @@ export default function HomePage() {
     }, 4000);
     return () => clearInterval(timer);
   }, [testimonials.length]);
+
+  // ─── Sponsor horizontal marquee ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!sTrackRef.current || sponsors.length < 1) return;
+    const track = sTrackRef.current;
+    // 8 copies in DOM. Measure the real track width and translate by exactly
+    // one copy's pixel width so the loop point is visually identical to start.
+    const oneCopyPx = track.scrollWidth / 8;
+    const tween = gsap.fromTo(track,
+      { x: 0 },
+      { x: -oneCopyPx, ease: 'none', duration: 12, repeat: -1 },
+    );
+    return () => { tween.kill(); };
+  }, [sponsors.length]);
 
   // ─── Newsletter submit ──────────────────────────────────────────────────────
   async function handleNewsletter(e: React.FormEvent) {
@@ -1410,7 +1422,7 @@ export default function HomePage() {
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F4F4F0]">
 
       {/* ── Brutalist Grid Hero (with Advanced Ink Trail) ── */}
       <section
@@ -1608,7 +1620,7 @@ export default function HomePage() {
 
       {/* ── Latest Forum Discussions ── */}
       {!loading && (
-        <section className="py-20 bg-white">
+        <section className="py-20 bg-[#F4F4F0]">
           <div className="max-w-2xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
               <div className="h-1.5 w-16 mx-auto flex mb-6 rounded-full overflow-hidden">
@@ -1658,10 +1670,11 @@ export default function HomePage() {
       )}
 
       {/* ── Testimonials + Meet the Team share one continuous dark background ── */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
+        <ParallaxBackdrop src="/images/Android_Mascots_Classroom.png" className="opacity-[0.08] z-0" />
 
       {/* ── Testimonials ── */}
-      <section className="py-24">
+      <section className="py-24 relative z-[1]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Header */}
@@ -1706,17 +1719,14 @@ export default function HomePage() {
               >
 
                 {testimonials.map((t, i) => {
-                  const n = testimonials.length;
-                  const dist = Math.min(Math.abs(i - activeTestimonial), n - Math.abs(i - activeTestimonial));
                   const isActive = i === activeTestimonial;
-                  const opacity = dist === 0 ? 1 : dist === 1 ? 0.45 : dist === 2 ? 0.18 : 0.05;
                   return (
                     <button
                       key={t.testimonial_id}
                       ref={el => { tItemRefs.current[i] = el; }}
                       onClick={() => tLoopRef.current?.toIndex(i, { duration: 0.5, ease: 'power1.inOut' })}
                       className="flex items-center gap-3 w-full text-left"
-                      style={{ height: '64px', opacity, transition: 'opacity 0.4s ease' }}
+                      style={{ height: '64px', willChange: 'transform' }}
                     >
                       <div className={`relative flex-shrink-0 w-10 h-10 rounded-full overflow-hidden ${
                         isActive ? 'ring-2 ring-[#4285F4] ring-offset-2 ring-offset-slate-900' : ''
@@ -1746,7 +1756,7 @@ export default function HomePage() {
               </div>
 
               {/* Right: fixed-height glass card */}
-              <div className="relative h-64 sm:h-56">
+              <div className="relative h-80 sm:h-72">
                 {testimonials.map((t, i) => (
                   <div
                     key={t.testimonial_id}
@@ -1759,7 +1769,7 @@ export default function HomePage() {
                     <div className="h-full bg-white/10 border border-white/20 rounded-2xl p-6 flex flex-col overflow-hidden backdrop-blur-sm">
                       <div className="text-4xl font-black text-blue-400 leading-none select-none mb-3 -mt-1">"</div>
                       <p className="text-white/90 leading-relaxed italic text-sm sm:text-base flex-1 overflow-hidden"
-                         style={{ wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
+                         style={{ wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
                         {t.quote}
                       </p>
                       <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/15 flex-shrink-0">
@@ -1874,8 +1884,7 @@ export default function HomePage() {
 
       {/* ── Meet the Team ── */}
       {!loading && (
-        <section className="py-24 relative overflow-hidden">
-          <ParallaxBackdrop src="/images/Android_Mascots_Classroom.png" className="opacity-[0.08] z-0" />
+        <section className="py-24 relative z-[1] overflow-hidden">
 
           <div className="relative z-10">
             {/* Header */}
@@ -1984,82 +1993,90 @@ export default function HomePage() {
       </div>{/* end shared dark background wrapper */}
 
       {/* ── Sponsors Strip ── */}
-      {
-        !loading && (
-          <section className="py-14 bg-white border-t border-gray-100">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-8">
-                Supported By
-              </p>
-              {sponsors.length > 0 ? (
-                <div className="flex flex-wrap items-center justify-center gap-8">
-                  {sponsors.map((sponsor) => (
-                    <a
-                      key={sponsor.sponsor_id}
-                      href={sponsor.website_url ?? '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group"
-                    >
-                      {sponsor.logo_url ? (
-                        <img
-                          src={sponsor.logo_url}
-                          alt={sponsor.name}
-                          className="h-10 w-auto object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all"
-                        />
-                      ) : (
-                        <span className="text-sm font-bold text-gray-400 group-hover:text-gray-700 transition-colors">
-                          {sponsor.name}
-                        </span>
-                      )}
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div className="w-14 h-14 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-4 shadow-[4px_4px_0_#0f172a] rotate-3">
-                    <svg className="w-7 h-7 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                  </div>
-                  <h3 className={`text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-2 ${antonio.className}`}>
-                    No Sponsors Yet
-                  </h3>
-                  <p className="text-slate-500 font-bold text-sm leading-relaxed max-w-xs">
-                    Interested in supporting GDGOC-UITU?{' '}
-                    <Link href="/contact" className="text-[#4285F4] hover:underline">Get in touch!</Link>
-                  </p>
-                  <div className="mt-4 flex gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-[#4285F4] animate-bounce" />
-                    <div className="w-2 h-2 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              )}
+      {!loading && (
+        <section className="py-14 bg-[#F4F4F0] border-t border-gray-200">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-10">
+            Supported By
+          </p>
+          {sponsors.length > 0 ? (
+            <div className="py-3" style={{ overflowX: 'clip' }}>
+              <div
+                ref={sTrackRef}
+                className="flex items-center gap-6 flex-nowrap"
+                style={{ width: 'max-content', willChange: 'transform' }}
+              >
+                {Array.from({ length: 8 }, (_, ci) => sponsors.map((sponsor, si) => (
+                  <a
+                    key={`${sponsor.sponsor_id}-${ci}-${si}`}
+                    href={sponsor.website_url ?? '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex-shrink-0 w-52 h-40 flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg hover:-translate-y-2 transition-[border-color,box-shadow,transform]"
+                  >
+                    {sponsor.logo_url ? (
+                      <img
+                        src={sponsor.logo_url}
+                        alt={sponsor.name}
+                        className="max-h-16 max-w-full object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-[filter,opacity] duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-16 rounded-xl bg-gray-100 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-gray-400">{sponsor.name[0]}</span>
+                      </div>
+                    )}
+                    <p className="text-sm font-semibold text-gray-500 mt-3 text-center truncate w-full">{sponsor.name}</p>
+                  </a>
+                ))).flat()}
+              </div>
             </div>
-          </section>
-        )
-      }
+          ) : (
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="w-14 h-14 bg-[#FBBC05] border-[3px] border-slate-900 rounded-2xl flex items-center justify-center mb-4 shadow-[4px_4px_0_#0f172a] rotate-3">
+                  <svg className="w-7 h-7 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                </div>
+                <h3 className={`text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-2 ${antonio.className}`}>
+                  No Sponsors Yet
+                </h3>
+                <p className="text-slate-500 font-bold text-sm leading-relaxed max-w-xs">
+                  Interested in supporting GDGOC-UITU?{' '}
+                  <Link href="/contact" className="text-[#4285F4] hover:underline">Get in touch!</Link>
+                </p>
+                <div className="mt-4 flex gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#4285F4] animate-bounce" />
+                  <div className="w-2 h-2 rounded-full bg-[#EA4335] animate-bounce" style={{ animationDelay: '100ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-[#FBBC05] animate-bounce" style={{ animationDelay: '200ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-[#34A853] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── Newsletter + Join CTA ── */}
-      <section className="py-20 bg-gray-50 border-t border-gray-100">
+      <section className="py-20 bg-[#F4F4F0]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
             {/* Join CTA */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex flex-col justify-between">
+            <div
+              className="group bg-white rounded-[2rem] ring-1 ring-black/5 p-8 flex flex-col justify-between hover:-translate-y-1.5 transition-all duration-300"
+              style={{ boxShadow: '4px 4px 0 #4285F4, 0 16px 40px -10px rgba(66,133,244,0.35)' }}
+            >
               <div>
-                <div className="h-1 w-12 flex mb-4 rounded-full overflow-hidden">
+                <div className="h-2 w-16 flex mb-6 rounded-full overflow-hidden">
                   <div className="flex-1 bg-[#4285F4]" />
                   <div className="flex-1 bg-[#EA4335]" />
                   <div className="flex-1 bg-[#FBBC05]" />
                   <div className="flex-1 bg-[#34A853]" />
                 </div>
-                <h2 className={`text-2xl font-bold text-gray-900 tracking-tight ${antonio.className}`}>
-                  Ready to Join?
+                <h2 className={`text-4xl font-black text-slate-900 uppercase tracking-tighter leading-[0.9] ${antonio.className}`}>
+                  Ready to<br />Join?
                 </h2>
-                <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+                <p className="mt-4 text-sm text-gray-500 font-medium leading-relaxed">
                   Become part of a growing community of student developers at UIT University.
                   Register for free and start your journey today.
                 </p>
@@ -2067,13 +2084,13 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-3 mt-8">
                 <Link
                   href="/register"
-                  className="px-6 py-3 rounded-xl bg-[#4285F4] text-white font-bold text-sm hover:bg-blue-600 transition-all shadow-md hover:shadow-blue-200 text-center"
+                  className="px-6 py-3 rounded-full bg-[#4285F4] text-white font-black text-xs uppercase tracking-widest hover:-translate-y-0.5 transition-all text-center shadow-md hover:shadow-blue-200"
                 >
                   Create Free Account
                 </Link>
                 <Link
                   href="/about"
-                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:border-blue-300 hover:text-blue-600 transition-all text-center"
+                  className="px-6 py-3 rounded-full border border-gray-200 text-gray-600 font-bold text-xs uppercase tracking-widest hover:border-gray-400 hover:text-slate-900 transition-all text-center"
                 >
                   Learn More
                 </Link>
@@ -2081,23 +2098,26 @@ export default function HomePage() {
             </div>
 
             {/* Newsletter */}
-            <div className="bg-[#4285F4] rounded-2xl p-8 flex flex-col justify-between">
+            <div
+              className="group bg-[#4285F4] rounded-[2rem] ring-1 ring-white/10 p-8 flex flex-col justify-between hover:-translate-y-1.5 transition-all duration-300"
+              style={{ boxShadow: '4px 4px 0 #3474d4, 0 16px 40px -10px rgba(66,133,244,0.35)' }}
+            >
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-4">
                   Newsletter
                 </p>
-                <h2 className={`text-2xl font-bold text-white tracking-tight ${antonio.className}`}>
-                  Stay in the Loop
+                <h2 className={`text-4xl font-black text-white uppercase tracking-tighter leading-[0.9] ${antonio.className}`}>
+                  Stay in<br />the Loop
                 </h2>
-                <p className="mt-3 text-sm text-blue-100 leading-relaxed">
+                <p className="mt-4 text-sm text-blue-100 font-medium leading-relaxed">
                   Get notified about upcoming events, workshops, and community updates. No spam, ever.
                 </p>
               </div>
 
               {newsletterSuccess ? (
-                <div className="mt-6 p-4 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-20 text-center">
-                  <p className="text-white font-semibold text-sm">🎉 You're subscribed!</p>
-                  <p className="text-blue-200 text-xs mt-1">We'll keep you in the loop.</p>
+                <div className="mt-6 p-4 rounded-xl bg-white/15 border border-white/20 text-center">
+                  <p className="text-white font-black text-sm uppercase tracking-wide">You&apos;re subscribed!</p>
+                  <p className="text-blue-200 text-xs mt-1">We&apos;ll keep you in the loop.</p>
                 </div>
               ) : (
                 <form onSubmit={handleNewsletter} className="mt-6 space-y-3">
@@ -2106,7 +2126,7 @@ export default function HomePage() {
                     placeholder="Your name (optional)"
                     value={newsletterName}
                     onChange={(e) => setNewsletterName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-25 text-white placeholder-blue-200 text-sm outline-none focus:bg-opacity-20 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-blue-200 text-sm outline-none focus:bg-white/20 transition-all"
                   />
                   <input
                     type="email"
@@ -2114,7 +2134,7 @@ export default function HomePage() {
                     value={newsletterEmail}
                     onChange={(e) => setNewsletterEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 rounded-xl bg-white bg-opacity-15 border border-white border-opacity-25 text-white placeholder-blue-200 text-sm outline-none focus:bg-opacity-20 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-blue-200 text-sm outline-none focus:bg-white/20 transition-all"
                   />
                   {newsletterError && (
                     <p className="text-red-300 text-xs">{newsletterError}</p>
@@ -2122,7 +2142,7 @@ export default function HomePage() {
                   <button
                     type="submit"
                     disabled={newsletterLoading}
-                    className="w-full py-2.5 rounded-xl bg-white text-[#4285F4] font-bold text-sm hover:bg-gray-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 rounded-xl bg-white text-[#4285F4] font-bold text-sm hover:bg-gray-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {newsletterLoading ? 'Subscribing...' : 'Subscribe for Free'}
                   </button>

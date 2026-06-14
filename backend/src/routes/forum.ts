@@ -1,8 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
-import { requireAuth, requireRole } from '../middleware/auth';
+import { requireAuth, requireRole, requireUsername } from '../middleware/auth';
+import { createNotification, createBulkNotification } from '../lib/notifications';
+import { sendNewReplyNotification, sendMentionNotification } from '../lib/mailer';
 
 const router = Router();
+
+function parseMentions(text: string): string[] {
+  const matches = text.match(/\B@(\w+)/g) ?? [];
+  return [...new Set(matches.map(m => m.slice(1).toLowerCase()))];
+}
+
+function snippet(text: string, max = 110): string {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length <= max ? clean : clean.slice(0, max).trimEnd() + '…';
+}
 
 // ─── GET /api/forum/threads ───────────────────────────────────────────────────
 // Public — list threads with filters, search, pagination
@@ -199,7 +211,7 @@ router.post('/threads/:id/view', async (req: Request, res: Response) => {
 
 // ─── POST /api/forum/threads ──────────────────────────────────────────────────
 // Auth required — create a new thread
-router.post('/threads', requireAuth, async (req: Request, res: Response) => {
+router.post('/threads', requireAuth, requireUsername, async (req: Request, res: Response) => {
   try {
     const { title, body, category_id, tags } = req.body;
     const authorId = (req as any).user.id;
@@ -225,6 +237,53 @@ router.post('/threads', requireAuth, async (req: Request, res: Response) => {
       ]
     );
 
+    // Fire-and-forget: notify @mentioned users (not the author themselves)
+    const mentions = parseMentions(body.trim());
+    if (mentions.length > 0) {
+      const newThreadId = result.rows[0].thread_id;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      pool.query(
+        `SELECT
+           mu.user_id           AS mentioned_id,
+           mu.full_name         AS mentioned_name,
+           ae.email             AS mentioned_email,
+           a.full_name          AS mentioner_name,
+           COALESCE(np.email_enabled, false)                     AS email_enabled,
+           COALESCE((np.email->>'mention')::boolean, true)       AS mention_email_on
+         FROM users.users mu
+         JOIN (SELECT full_name FROM users.users WHERE user_id = $2) a ON TRUE
+         JOIN auth.users ae ON ae.id = mu.user_id
+         LEFT JOIN users.notification_preferences np ON np.user_id = mu.user_id
+         WHERE LOWER(mu.username) = ANY($1) AND mu.user_id != $2`,
+        [mentions, authorId]
+      ).then(r => {
+        if (!r.rows.length) return;
+        const mentionedIds  = r.rows.map((row: any) => row.mentioned_id);
+        const mentionerName = r.rows[0].mentioner_name;
+        createBulkNotification({
+          userIds:   mentionedIds,
+          type:      'mention',
+          title:     `${mentionerName} mentioned you in "${title.trim()}"`,
+          message:   snippet(body.trim()),
+          actionUrl: `/forum/${newThreadId}`,
+        }).catch(() => {});
+        // Send mention emails to users who have email + mention enabled
+        r.rows
+          .filter((row: any) => row.email_enabled && row.mention_email_on && row.mentioned_email)
+          .forEach((row: any) => {
+            sendMentionNotification({
+              to:            row.mentioned_email,
+              name:          row.mentioned_name || 'there',
+              mentionerName,
+              context:       'a thread',
+              threadTitle:   title.trim(),
+              threadUrl:     `${frontendUrl}/forum/${newThreadId}`,
+              snippet:       snippet(body.trim()),
+            }).catch(() => {});
+          });
+      }).catch(() => {});
+    }
+
     res.status(201).json({ data: result.rows[0], error: null });
 
   } catch (err: any) {
@@ -235,7 +294,7 @@ router.post('/threads', requireAuth, async (req: Request, res: Response) => {
 
 // ─── POST /api/forum/threads/:id/replies ─────────────────────────────────────
 // Auth required — add a reply to a thread
-router.post('/threads/:id/replies', requireAuth, async (req: Request, res: Response) => {
+router.post('/threads/:id/replies', requireAuth, requireUsername, async (req: Request, res: Response) => {
   try {
     const { body, parent_reply_id } = req.body;
     const authorId = (req as any).user.id;
@@ -275,6 +334,93 @@ router.post('/threads/:id/replies', requireAuth, async (req: Request, res: Respo
       [threadId]
     );
 
+    // Fire-and-forget: notify thread author and email them if it's not their own reply
+    pool.query(
+      `SELECT t.title, t.author_id,
+              u.full_name  AS replier_name,
+              au.full_name AS author_name,
+              ae.email     AS author_email
+       FROM forum.threads t
+       JOIN users.users u  ON u.user_id  = $2
+       JOIN users.users au ON au.user_id = t.author_id
+       JOIN auth.users  ae ON ae.id      = t.author_id
+       WHERE t.thread_id = $1`,
+      [threadId, authorId]
+    ).then((r) => {
+      if (!r.rows.length) return;
+      const { title, author_id, replier_name, author_name, author_email } = r.rows[0];
+      if (author_id === authorId) return; // don't notify self
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const threadUrl   = `${frontendUrl}/forum/${threadId}`;
+
+      createNotification({
+        userId:    author_id,
+        type:      'new_reply',
+        title:     `${replier_name} replied to "${title}"`,
+        message:   snippet(body.trim()),
+        actionUrl: `/forum/${threadId}`,
+      }).then(({ email: shouldEmail }) => {
+        if (shouldEmail && author_email) {
+          sendNewReplyNotification({
+            to: author_email, name: author_name || 'there',
+            replierName: replier_name, threadTitle: title, threadUrl,
+            snippet: snippet(body.trim()),
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }).catch(() => {});
+
+    // Fire-and-forget: notify @mentioned users (skip replier + thread author who gets new_reply)
+    const mentions = parseMentions(body.trim());
+    if (mentions.length > 0) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      pool.query(
+        `SELECT
+           mu.user_id           AS mentioned_id,
+           mu.full_name         AS mentioned_name,
+           ae.email             AS mentioned_email,
+           a.full_name          AS mentioner_name,
+           t.title              AS thread_title,
+           COALESCE(np.email_enabled, false)                     AS email_enabled,
+           COALESCE((np.email->>'mention')::boolean, true)       AS mention_email_on
+         FROM users.users mu
+         JOIN (SELECT full_name FROM users.users WHERE user_id = $2) a ON TRUE
+         JOIN forum.threads t ON t.thread_id = $3
+         JOIN auth.users ae ON ae.id = mu.user_id
+         LEFT JOIN users.notification_preferences np ON np.user_id = mu.user_id
+         WHERE LOWER(mu.username) = ANY($1)
+           AND mu.user_id != $2
+           AND mu.user_id != t.author_id`,
+        [mentions, authorId, threadId]
+      ).then(r => {
+        if (!r.rows.length) return;
+        const mentionedIds = r.rows.map((row: any) => row.mentioned_id);
+        const { mentioner_name, thread_title } = r.rows[0];
+        createBulkNotification({
+          userIds:   mentionedIds,
+          type:      'mention',
+          title:     `${mentioner_name} mentioned you in "${thread_title}"`,
+          message:   snippet(body.trim()),
+          actionUrl: `/forum/${threadId}`,
+        }).catch(() => {});
+        // Send mention emails
+        r.rows
+          .filter((row: any) => row.email_enabled && row.mention_email_on && row.mentioned_email)
+          .forEach((row: any) => {
+            sendMentionNotification({
+              to:            row.mentioned_email,
+              name:          row.mentioned_name || 'there',
+              mentionerName: mentioner_name,
+              context:       'a reply',
+              threadTitle:   thread_title,
+              threadUrl:     `${frontendUrl}/forum/${threadId}`,
+              snippet:       snippet(body.trim()),
+            }).catch(() => {});
+          });
+      }).catch(() => {});
+    }
+
     res.status(201).json({ data: result.rows[0], error: null });
 
   } catch (err: any) {
@@ -285,7 +431,7 @@ router.post('/threads/:id/replies', requireAuth, async (req: Request, res: Respo
 
 // ─── POST /api/forum/threads/:id/upvote ──────────────────────────────────────
 // Auth required — upvote a thread
-router.post('/threads/:id/upvote', requireAuth, async (req: Request, res: Response) => {
+router.post('/threads/:id/upvote', requireAuth, requireUsername, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const threadId = req.params.id;
@@ -323,6 +469,26 @@ router.post('/threads/:id/upvote', requireAuth, async (req: Request, res: Respon
        WHERE thread_id = $1`,
       [threadId]
     );
+
+    // Fire-and-forget: notify thread author (not self)
+    pool.query(
+      `SELECT t.title, t.author_id, u.full_name AS voter_name
+       FROM forum.threads t
+       JOIN users.users u ON u.user_id = $2
+       WHERE t.thread_id = $1`,
+      [threadId, userId]
+    ).then((r) => {
+      if (!r.rows.length) return;
+      const { title, author_id, voter_name } = r.rows[0];
+      if (author_id === userId) return;
+      createNotification({
+        userId:    author_id,
+        type:      'upvote_received',
+        title:     `${voter_name} upvoted your thread`,
+        message:   `"${title}"`,
+        actionUrl: `/forum/${threadId}`,
+      }).catch(() => {});
+    }).catch(() => {});
 
     res.json({ data: { upvoted: true }, error: null });
 

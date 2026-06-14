@@ -150,6 +150,11 @@ export default function EventDetailPage() {
       return;
     }
 
+    if (!user.username) {
+      router.push('/complete-profile');
+      return;
+    }
+
     // Paid events go to checkout page
     if (event && !event.is_free) {
       router.push(`/events/${params.id}/checkout`);
@@ -172,6 +177,10 @@ export default function EventDetailPage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.code === 'PROFILE_INCOMPLETE') {
+          router.push('/complete-profile');
+          return;
+        }
         setRegisterError(json.error || 'Registration failed. Please try again.');
         return;
       }

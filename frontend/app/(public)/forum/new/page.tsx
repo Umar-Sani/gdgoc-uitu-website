@@ -31,9 +31,10 @@ export default function NewThreadPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // Redirect if not logged in
+  // Redirect if not logged in or profile incomplete
   useEffect(() => {
-    if (!user) router.push('/login');
+    if (!user) { router.push('/login'); return; }
+    if (!user.username) { router.push('/complete-profile'); return; }
   }, [user, router]);
 
   // Fetch categories
@@ -86,6 +87,7 @@ export default function NewThreadPage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.code === 'PROFILE_INCOMPLETE') { router.push('/complete-profile'); return; }
         setGeneralError(json.error || 'Failed to create thread. Please try again.');
         return;
       }

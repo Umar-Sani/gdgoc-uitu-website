@@ -65,8 +65,7 @@ const Icons = {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',  href: '/admin/dashboard',    icon: Icons.dashboard },
   { label: 'Events',     href: '/admin/events',        icon: Icons.events },
-  { label: 'CMS',        href: '/admin/cms',  icon: Icons.cms,      adminOnly: true },
-  { label: 'Social',     href: '/admin/social',        icon: Icons.social },
+  { label: 'CMS',        href: '/admin/cms',           icon: Icons.cms,      adminOnly: true },
   { label: 'Users',      href: '/admin/users',         icon: Icons.users,    adminOnly: true },
   { label: 'Payments',   href: '/admin/payments',      icon: Icons.payments, superAdminOnly: true },
   { label: 'Audit Log',  href: '/admin/audit',         icon: Icons.audit,    superAdminOnly: true },
@@ -77,7 +76,7 @@ const NAV_ITEMS: NavItem[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, token, signOut } = useAuth();
+  const { user, token, signOut, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checking, setChecking] = useState(true);
 
@@ -87,6 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const hasAccess = isAdmin || isEditor;
   // ─── Auth guard ─────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (loading) return;
     if (!user) {
       router.push('/login');
       return;
@@ -96,7 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
     setChecking(false);
-  }, [user, hasAccess]);
+  }, [user, loading, hasAccess]);
 
   if (checking) {
     return (

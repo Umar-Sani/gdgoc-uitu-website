@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import SmoothScroll from '@/components/ui/smooth-scroll';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 const NAV_LINKS = [
   { label: 'Events', href: '/events' },
@@ -103,7 +104,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               {/* Right — Auth */}
               <div className="flex-1 hidden md:flex justify-end items-center gap-4">
                 {user ? (
-                  <div className="flex items-center gap-6 relative">
+                  <div className="flex items-center gap-4 relative">
                     <Link
                       href="/dashboard"
                       className={`text-xs font-black tracking-widest uppercase transition-colors ${lightGhost ? 'text-white/90 hover:text-white' : 'text-foreground hover:text-[#4285F4]'}`}
@@ -111,15 +112,18 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                       Dashboard
                     </Link>
 
+                    <NotificationBell light={lightGhost} />
+
                     <button
                       onClick={() => setProfileOpen(!profileOpen)}
                       onBlur={() => setTimeout(() => setProfileOpen(false), 200)}
-                      className={`w-7 h-7 rounded-full bg-[#4285F4] flex items-center justify-center hover:-translate-y-0.5 transition-all ${ghost
-                        ? `border-[2px] shadow-none ${lightGhost ? 'border-white/40' : 'border-foreground/40'}`
-                        : 'border-[3px] border-foreground shadow-[3px_3px_0_#000]'
-                        }`}
+                      className="w-7 h-7 rounded-full bg-[#4285F4] flex items-center justify-center hover:-translate-y-0.5 transition-all overflow-hidden"
                     >
-                      <span className="text-white font-black text-xs">{initials}</span>
+                      {user?.avatar_url ? (
+                        <img src={user.avatar_url} alt={initials} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white font-black text-xs">{initials}</span>
+                      )}
                     </button>
 
                     {profileOpen && (
@@ -129,6 +133,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                         </Link>
                         <Link href="/dashboard" className="px-4 py-2 font-bold uppercase tracking-wide text-sm hover:bg-[#4285F4] hover:text-white transition-colors">
                           Dashboard
+                        </Link>
+                        <Link href="/settings" className="px-4 py-2 font-bold uppercase tracking-wide text-sm hover:bg-[#4285F4] hover:text-white transition-colors">
+                          Settings
                         </Link>
                         <button
                           onClick={() => { signOut(); setProfileOpen(false); }}
@@ -207,6 +214,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                       <Link href="/profile" onClick={() => setMenuOpen(false)} className="block py-3 font-black uppercase tracking-widest text-foreground hover:text-[#4285F4]">
                         My Profile
                       </Link>
+                      <div className="flex items-center gap-2 py-2">
+                        <span className="font-black uppercase tracking-widest text-sm text-foreground">Notifications</span>
+                        <NotificationBell />
+                      </div>
                       <button
                         onClick={() => { signOut(); setMenuOpen(false); }}
                         className="w-full py-3 text-left font-black uppercase tracking-widest text-[#FF4C4C] hover:text-red-700"

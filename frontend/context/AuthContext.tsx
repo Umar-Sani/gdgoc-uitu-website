@@ -30,10 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (MOCK_ENABLED) return
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setToken(session.access_token)
-        fetchUserProfile(session.user.id, session.access_token)
+        await fetchUserProfile(session.user.id, session.access_token)
       }
       setLoading(false)
     })
@@ -61,6 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       )
       if (res.ok) {
         const json = await res.json()
+        if (!json.data?.is_active) {
+          await supabase.auth.signOut()
+          setUser(null)
+          setToken(null)
+          return
+        }
         setUser(json.data)
       }
     } catch (err) {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,17 +162,37 @@ export default function AdminDashboardPage() {
             <div className="flex-1 bg-[#FBBC05]" />
             <div className="flex-1 bg-[#34A853]" />
           </div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              {isEditor ? 'Editor Dashboard' : 'Admin Dashboard'}
-            </h1>
-            <RoleBadge role={role} />
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  {isEditor ? 'Editor Dashboard' : 'Admin Dashboard'}
+                </h1>
+                <RoleBadge role={role} />
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                {isSuperAdmin && 'Full platform access — all features enabled'}
+                {role === 'admin' && 'Admin access — users, events, payments and CMS'}
+                {isEditor && 'Editor access — create and manage events'}
+              </p>
+            </div>
+
+            {/* Right-side controls */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <NotificationBell />
+
+            {/* Switch to member dashboard */}
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 transition-all group flex-shrink-0"
+            >
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-sm font-semibold text-gray-400 group-hover:text-white transition-colors">Member View</span>
+            </Link>
+            </div>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            {isSuperAdmin && 'Full platform access — all features enabled'}
-            {role === 'admin' && 'Admin access — users, events, payments and CMS'}
-            {isEditor && 'Editor access — events and social media management'}
-          </p>
         </div>
 
         {/* ── Stat Cards ── */}
@@ -231,9 +252,6 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <Link href="/admin/events" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-green-600 bg-green-50 hover:bg-green-100">
             Manage Events
-          </Link>
-          <Link href="/admin/social" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-pink-600 bg-pink-50 hover:bg-pink-100">
-            Social Media
           </Link>
           {isAdmin && (
             <Link href="/admin/users" className="px-4 py-3 rounded-xl text-sm font-semibold text-center transition-all text-blue-600 bg-blue-50 hover:bg-blue-100">
@@ -299,15 +317,12 @@ export default function AdminDashboardPage() {
           <div className="bg-blue-50 rounded-2xl border border-blue-100 p-6">
             <h2 className="text-sm font-bold text-blue-800 mb-2">Your Access Level</h2>
             <p className="text-sm text-blue-600 leading-relaxed">
-              As an Editor you can create, edit and delete events and social media posts.
+              As an Editor you can create, edit and delete events.
               Contact a Super Admin if you need additional access.
             </p>
             <div className="flex gap-3 mt-4">
               <Link href="/admin/events" className="px-4 py-2 rounded-xl bg-white border border-blue-200 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-all">
                 Go to Events →
-              </Link>
-              <Link href="/admin/social" className="px-4 py-2 rounded-xl bg-white border border-blue-200 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-all">
-                Go to Social →
               </Link>
             </div>
           </div>

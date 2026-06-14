@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
-import { requireAuth, requireRole } from '../middleware/auth';
+import { requireAuth, requireRole, requireUsername } from '../middleware/auth';
+import { createNotification } from '../lib/notifications';
+import { sendRegistrationConfirmed } from '../lib/mailer';
 
 const router = Router();
 
@@ -117,7 +119,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // POST /api/events/:id/register
 // Requires auth — calls the register_user_for_event stored procedure
-router.post('/:id/register', requireAuth, async (req: Request, res: Response) => {
+router.post('/:id/register', requireAuth, requireUsername, async (req: Request, res: Response) => {
   const client = await pool.connect();
 
   try {
@@ -134,6 +136,41 @@ router.post('/:id/register', requireAuth, async (req: Request, res: Response) =>
     );
 
     await client.query('COMMIT');
+
+    // Fire-and-forget: notification + email (don't block the response)
+    Promise.all([
+      pool.query(
+        `SELECT e.title, e.start_datetime,
+                u.full_name, au.email
+         FROM events.events e
+         JOIN users.users u   ON u.user_id = $1
+         JOIN auth.users  au  ON au.id      = $1
+         WHERE e.event_id = $2`,
+        [userId, eventId]
+      ),
+    ]).then(([r]) => {
+      if (!r.rows.length) return;
+      const { title, start_datetime, full_name, email } = r.rows[0];
+      const formattedDate = new Date(start_datetime).toLocaleDateString('en-PK', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const eventUrl    = `${frontendUrl}/events/${eventId}`;
+
+      createNotification({
+        userId,
+        type:      'registration_confirmed',
+        title:     'Registration Confirmed!',
+        message:   `You're registered for "${title}" on ${formattedDate}`,
+        actionUrl: `/events/${eventId}`,
+      }).then(({ email: shouldEmail }) => {
+        if (shouldEmail && email) {
+          sendRegistrationConfirmed({ to: email, name: full_name || 'there', eventTitle: title, eventDate: formattedDate, eventUrl })
+            .catch(() => {});
+        }
+      }).catch(() => {});
+    }).catch(() => {});
 
     res.json({
       data: { message: 'Successfully registered for event' },
@@ -183,6 +220,7 @@ router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req: R
       ticket_price,
       tags,
       status = 'draft',
+      banner_url,
     } = req.body;
 
     const userId = (req as any).user.id;
@@ -200,9 +238,9 @@ router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req: R
         title, description, event_type, category_id,
         start_datetime, end_datetime, venue,
         max_seats, is_free, ticket_price,
-        tags, status, created_by
+        tags, status, created_by, banner_url
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
       ) RETURNING *`,
       [
         title,
@@ -218,6 +256,7 @@ router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req: R
         tags ?? [],
         status,
         userId,
+        banner_url ?? null,
       ]
     );
 
@@ -246,6 +285,7 @@ router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), async (re
       ticket_price,
       tags,
       status,
+      banner_url,
     } = req.body;
 
     // Check event exists
@@ -272,8 +312,9 @@ router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), async (re
         ticket_price  = COALESCE($10, ticket_price),
         tags          = COALESCE($11, tags),
         status        = COALESCE($12, status),
+        banner_url    = COALESCE($13, banner_url),
         updated_at    = NOW()
-      WHERE event_id = $13
+      WHERE event_id = $14
       RETURNING *`,
       [
         title ?? null,
@@ -288,6 +329,7 @@ router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), async (re
         ticket_price ?? null,
         tags ?? null,
         status ?? null,
+        banner_url ?? null,
         req.params.id,
       ]
     );

@@ -174,6 +174,7 @@ export default function ThreadDetailPage() {
   // ─── Upvote ─────────────────────────────────────────────────────────────────
   async function handleUpvote() {
     if (!user) { router.push('/login'); return; }
+    if (!user.username) { router.push('/complete-profile'); return; }
 
     try {
       const res = await fetch(`${API_URL}/api/forum/threads/${params.id}/upvote`, {
@@ -181,6 +182,7 @@ export default function ThreadDetailPage() {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       const json = await res.json();
+      if (json.code === 'PROFILE_INCOMPLETE') { router.push('/complete-profile'); return; }
       if (json.data) {
         setUpvoted(json.data.upvoted);
         setUpvoteCount((prev) => json.data.upvoted ? prev + 1 : prev - 1);
@@ -193,6 +195,8 @@ export default function ThreadDetailPage() {
   // ─── Submit reply ────────────────────────────────────────────────────────────
   async function handleReply(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) { router.push('/login'); return; }
+    if (!user.username) { router.push('/complete-profile'); return; }
     if (!replyBody.trim()) { setReplyError('Reply cannot be empty.'); return; }
     if (replyBody.trim().length < 5) { setReplyError('Reply must be at least 5 characters.'); return; }
 
@@ -212,6 +216,7 @@ export default function ThreadDetailPage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.code === 'PROFILE_INCOMPLETE') { router.push('/complete-profile'); return; }
         setReplyError(json.error || 'Failed to post reply.');
         return;
       }

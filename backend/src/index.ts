@@ -9,6 +9,8 @@ import usersRouter from './routes/users';
 import adminRouter from './routes/admin';
 import cmsRouter from './routes/cms';
 import socialRouter from './routes/social';
+import uploadRouter from './routes/upload';
+import notificationsRouter from './routes/notifications';
 
 dotenv.config()
 
@@ -48,6 +50,8 @@ app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/cms', cmsRouter);
 app.use('/api/social', socialRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/notifications', notificationsRouter);
 
 app.listen(PORT, () => {
   console.log(`✅ Express server running on http://localhost:${PORT}`)

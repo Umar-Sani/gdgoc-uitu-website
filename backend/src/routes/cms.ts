@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { sendNewsletterWelcome } from '../lib/mailer';
 
 const router = Router();
 
@@ -88,11 +89,27 @@ router.patch('/about/:id', requireAuth, requireRole('admin', 'super_admin'), asy
 // ─── TEAM MEMBERS ─────────────────────────────────────────────────────────────
 
 // GET /api/cms/team
+// Pass ?all=true to include inactive members (admin use)
 router.get('/team', async (req: Request, res: Response) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM content.team_members ORDER BY display_order ASC'
-    );
+    const includeAll = req.query.all === 'true';
+    const result = await pool.query(`
+      SELECT tm.*
+      FROM content.team_members tm
+      LEFT JOIN content.teams t ON tm.team_name = t.name
+      ${includeAll ? '' : "WHERE tm.is_active = true OR tm.section = 'past_leader'"}
+      ORDER BY
+        CASE tm.section
+          WHEN 'gdg_lead'    THEN 1
+          WHEN 'co_lead'     THEN 2
+          WHEN 'member'      THEN 3
+          WHEN 'mentor'      THEN 4
+          WHEN 'past_leader' THEN 5
+          ELSE 6
+        END ASC,
+        COALESCE(t.display_order, 999) ASC,
+        tm.display_order ASC
+    `);
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -438,14 +455,20 @@ router.post('/newsletter', async (req: Request, res: Response) => {
     }
 
     // Upsert — if email exists just reactivate
+    // (xmax = 0) is a Postgres trick: true on INSERT, false on UPDATE (conflict)
     const result = await pool.query(
       `INSERT INTO content.newsletter_subscribers (email, name)
        VALUES ($1, $2)
        ON CONFLICT (email) DO UPDATE
        SET is_active = TRUE, name = COALESCE($2, newsletter_subscribers.name)
-       RETURNING subscriber_id, email, subscribed_at`,
+       RETURNING subscriber_id, email, subscribed_at, (xmax = 0) AS is_new`,
       [email.trim().toLowerCase(), name?.trim() ?? null]
     );
+
+    // Fire welcome email only for brand-new subscriptions
+    if (result.rows[0]?.is_new) {
+      sendNewsletterWelcome({ to: email.trim().toLowerCase(), name: name?.trim() }).catch(() => {});
+    }
 
     res.status(201).json({ data: result.rows[0], error: null });
 

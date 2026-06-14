@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const SECTION_OPTIONS = [
   { value: 'gdg_lead',    label: 'GDG Lead' },
-  { value: 'co_lead',     label: 'Co-Lead' },
+  { value: 'co_lead',     label: 'Team Lead' },
   { value: 'member',      label: 'Team Member' },
   { value: 'mentor',      label: 'Mentor' },
   { value: 'past_leader', label: 'Past Leader' },
@@ -60,7 +61,7 @@ export default function TeamCMSPage() {
   useEffect(() => { fetchMembers(); fetchTeams(); }, []);
 
   function fetchMembers() {
-    fetch(`${API_URL}/api/cms/team`)
+    fetch(`${API_URL}/api/cms/team?all=true`)
       .then((r) => r.json())
       .then((res) => setMembers(res.data ?? []))
       .catch(() => {});
@@ -269,9 +270,41 @@ export default function TeamCMSPage() {
     }
   }
 
+  async function handleMoveMember(memberId: string, peers: any[], dir: -1 | 1) {
+    const idx = peers.findIndex((m) => m.member_id === memberId);
+    const target = idx + dir;
+    if (target < 0 || target >= peers.length) return;
+    const reordered = [...peers];
+    [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+    try {
+      await Promise.all(
+        reordered.map((m, i) =>
+          fetch(`${API_URL}/api/cms/team/${m.member_id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+              display_order: i,
+              team_name:     m.team_name    ?? null,
+              tenure_year:   m.tenure_year  ?? null,
+            }),
+          })
+        )
+      );
+      fetchMembers();
+    } catch {
+      setError('Failed to reorder members.');
+      fetchMembers();
+    }
+  }
+
   const filteredMembers = filterSection === 'all'
     ? members
     : members.filter((m) => m.section === filterSection);
+
+  const sortedTeams  = [...teams].sort((a, b) => a.display_order - b.display_order);
+  const gdgLeads     = members.filter((m) => m.section === 'gdg_lead');
+  const mentors      = members.filter((m) => m.section === 'mentor');
+  const pastLeaders  = members.filter((m) => m.section === 'past_leader').sort((a, b) => a.display_order - b.display_order);
 
   const inputClass = 'w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all';
 
@@ -416,10 +449,16 @@ export default function TeamCMSPage() {
                 </div>
               )}
 
-              {/* Avatar URL */}
+              {/* Avatar */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Avatar URL</label>
-                <input type="text" value={form.avatar_url} onChange={(e) => handleField('avatar_url', e.target.value)} className={inputClass} placeholder="https://..." />
+                <ImageUpload
+                  label="Avatar"
+                  value={form.avatar_url}
+                  onChange={(url) => handleField('avatar_url', url)}
+                  token={token}
+                  folder="gdgoc-uitu/team"
+                  shape="circle"
+                />
               </div>
 
               {/* LinkedIn */}
@@ -466,19 +505,6 @@ export default function TeamCMSPage() {
               <span className="text-sm text-gray-600">{form.is_active ? 'Active' : 'Inactive'}</span>
             </div>
 
-            {/* Avatar preview */}
-            {form.avatar_url && (
-              <div className="mt-4 flex items-center gap-3">
-                <img
-                  src={form.avatar_url}
-                  alt="Avatar preview"
-                  className="w-12 h-12 rounded-full object-cover border border-gray-200"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-                <p className="text-xs text-gray-400">Avatar preview</p>
-              </div>
-            )}
-
             {/* Actions */}
             <div className="flex gap-3 mt-5">
               <button
@@ -498,7 +524,7 @@ export default function TeamCMSPage() {
           </div>
         )}
 
-        {/* Filter by section */}
+        {/* Section filter — only used for non-grouped views */}
         <div className="flex flex-wrap gap-2 mb-5">
           <button
             onClick={() => setFilterSection('all')}
@@ -525,72 +551,124 @@ export default function TeamCMSPage() {
           })}
         </div>
 
-        {/* Members List */}
-        <div className="space-y-3">
-          {filteredMembers.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">
-              No members in this section yet.
-            </div>
-          ) : (
-            filteredMembers.map((member) => (
-              <div key={member.member_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 hover:border-blue-100 transition-all">
+        {/* ── Grouped view (All) ── */}
+        {filterSection === 'all' ? (
+          <div className="space-y-8">
 
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {member.avatar_url
-                    ? <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
-                    : <span className="text-sm font-bold text-white">{member.full_name?.charAt(0)}</span>
-                  }
+            {/* GDG Lead */}
+            {gdgLeads.length > 0 && (
+              <div>
+                <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.15em] mb-2 px-1">GDG Lead</p>
+                <div className="space-y-2">
+                  {gdgLeads.map((member) => (
+                    <MemberRow key={member.member_id} member={member} onEdit={() => startEdit(member)} onDelete={() => handleDelete(member.member_id, member.full_name)} isLead />
+                  ))}
                 </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-gray-800">{member.full_name}</p>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${SECTION_COLORS[member.section] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {SECTION_OPTIONS.find((o) => o.value === member.section)?.label ?? member.section}
-                    </span>
-                    {member.team_name && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">
-                        {member.team_name}
-                      </span>
-                    )}
-                    {member.tenure_year && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-100">
-                        {member.tenure_year}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-400 mt-0.5">{member.role_title}</p>
-                </div>
-
-                {/* Active badge */}
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${
-                  member.is_active ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-100'
-                }`}>
-                  {member.is_active ? 'Active' : 'Inactive'}
-                </span>
-
-                {/* Actions */}
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => startEdit(member)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(member.member_id, member.full_name)}
-                    className="px-3 py-1.5 rounded-lg border border-red-100 text-xs font-medium text-red-500 hover:bg-red-50 transition-all"
-                  >
-                    Delete
-                  </button>
-                </div>
-
               </div>
-            ))
-          )}
-        </div>
+            )}
+
+            {/* Teams — in display_order */}
+            {sortedTeams.map((team) => {
+              const lead = members.find((m) => m.section === 'co_lead' && m.team_name === team.name);
+              const teamMembers = members
+                .filter((m) => m.section === 'member' && m.team_name === team.name)
+                .sort((a, b) => a.display_order - b.display_order);
+              if (!lead && teamMembers.length === 0) return null;
+              return (
+                <div key={team.team_id}>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]">{team.name}</p>
+                    <span className="text-[10px] text-gray-400">{teamMembers.length + (lead ? 1 : 0)} members</span>
+                  </div>
+                  <div className="space-y-2">
+                    {lead && (
+                      <MemberRow member={lead} onEdit={() => startEdit(lead)} onDelete={() => handleDelete(lead.member_id, lead.full_name)} isLead />
+                    )}
+                    {teamMembers.map((member, idx) => (
+                      <MemberRow
+                        key={member.member_id}
+                        member={member}
+                        onEdit={() => startEdit(member)}
+                        onDelete={() => handleDelete(member.member_id, member.full_name)}
+                        onMoveUp={idx > 0 ? () => handleMoveMember(member.member_id, teamMembers, -1) : undefined}
+                        onMoveDown={idx < teamMembers.length - 1 ? () => handleMoveMember(member.member_id, teamMembers, 1) : undefined}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Unassigned members (member section, no team) */}
+            {(() => {
+              const unassigned = members
+                .filter((m) => m.section === 'member' && !m.team_name)
+                .sort((a, b) => a.display_order - b.display_order);
+              if (unassigned.length === 0) return null;
+              return (
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2 px-1">Unassigned</p>
+                  <div className="space-y-2">
+                    {unassigned.map((member, idx) => (
+                      <MemberRow
+                        key={member.member_id}
+                        member={member}
+                        onEdit={() => startEdit(member)}
+                        onDelete={() => handleDelete(member.member_id, member.full_name)}
+                        onMoveUp={idx > 0 ? () => handleMoveMember(member.member_id, unassigned, -1) : undefined}
+                        onMoveDown={idx < unassigned.length - 1 ? () => handleMoveMember(member.member_id, unassigned, 1) : undefined}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Mentors */}
+            {mentors.length > 0 && (
+              <div>
+                <p className="text-[10px] font-black text-yellow-600 uppercase tracking-[0.15em] mb-2 px-1">Mentors</p>
+                <div className="space-y-2">
+                  {mentors.map((member) => (
+                    <MemberRow key={member.member_id} member={member} onEdit={() => startEdit(member)} onDelete={() => handleDelete(member.member_id, member.full_name)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Past Leaders */}
+            {pastLeaders.length > 0 && (
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2 px-1">Past Leaders</p>
+                <div className="space-y-2">
+                  {pastLeaders.map((member) => (
+                    <MemberRow key={member.member_id} member={member} onEdit={() => startEdit(member)} onDelete={() => handleDelete(member.member_id, member.full_name)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {members.length === 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">
+                No members yet. Click "+ Add Member" to get started.
+              </div>
+            )}
+          </div>
+
+        ) : (
+          /* ── Flat filtered view (specific section) ── */
+          <div className="space-y-2">
+            {filteredMembers.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">
+                No members in this section yet.
+              </div>
+            ) : (
+              filteredMembers.map((member) => (
+                <MemberRow key={member.member_id} member={member} onEdit={() => startEdit(member)} onDelete={() => handleDelete(member.member_id, member.full_name)} />
+              ))
+            )}
+          </div>
+        )}
         </>
         )}
 
@@ -709,6 +787,91 @@ export default function TeamCMSPage() {
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ─── MemberRow ────────────────────────────────────────────────────────────────
+
+function MemberRow({
+  member,
+  onEdit,
+  onDelete,
+  isLead = false,
+  onMoveUp,
+  onMoveDown,
+}: {
+  member: any;
+  onEdit: () => void;
+  onDelete: () => void;
+  isLead?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+}) {
+  const showReorder = onMoveUp !== undefined || onMoveDown !== undefined;
+
+  return (
+    <div className={`bg-white rounded-2xl border shadow-sm p-4 flex items-center gap-3 transition-all ${isLead ? 'border-blue-200' : 'border-gray-100 hover:border-blue-100'}`}>
+
+      {/* Reorder controls */}
+      {showReorder && (
+        <div className="flex flex-col gap-0.5 flex-shrink-0">
+          <button
+            onClick={onMoveUp}
+            disabled={!onMoveUp}
+            className="w-6 h-5 rounded-md border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
+          </button>
+          <button
+            onClick={onMoveDown}
+            disabled={!onMoveDown}
+            className="w-6 h-5 rounded-md border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+          </button>
+        </div>
+      )}
+
+      {/* Avatar */}
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        {member.avatar_url
+          ? <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
+          : <span className="text-sm font-bold text-white">{member.full_name?.charAt(0)}</span>
+        }
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-semibold text-gray-800">{member.full_name}</p>
+          {isLead && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black text-white bg-blue-500 uppercase tracking-wide">Lead</span>
+          )}
+          {member.tenure_year && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-100">{member.tenure_year}</span>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mt-0.5">{member.role_title}</p>
+      </div>
+
+      {/* Active badge */}
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${
+        member.is_active ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-100'
+      }`}>
+        {member.is_active ? 'Active' : 'Inactive'}
+      </span>
+
+      {/* Actions */}
+      <div className="flex gap-2 flex-shrink-0">
+        <button onClick={onEdit} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all">
+          Edit
+        </button>
+        <button onClick={onDelete} className="px-3 py-1.5 rounded-lg border border-red-100 text-xs font-medium text-red-500 hover:bg-red-50 transition-all">
+          Delete
+        </button>
+      </div>
+
     </div>
   );
 }

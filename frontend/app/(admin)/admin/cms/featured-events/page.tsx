@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -341,13 +342,13 @@ export default function FeaturedEventsCMSPage() {
 
               {/* Image URL */}
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL</label>
-                <input
-                  type="url"
+                <ImageUpload
+                  label="Image"
                   value={form.image_url}
-                  onChange={(e) => handleField('image_url', e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className={inputClass}
+                  onChange={(url) => handleField('image_url', url)}
+                  token={token}
+                  folder="gdgoc-uitu/events"
+                  previewClass="w-32 h-20 rounded-xl"
                 />
                 {form.image_url && (
                   <img

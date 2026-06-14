@@ -28,10 +28,11 @@ type Sponsor = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const TIER_CONFIG: Record<string, { label: string; color: string }> = {
-  platinum: { label: 'Platinum', color: 'bg-slate-100 border-slate-300 text-slate-700' },
-  gold:     { label: 'Gold',     color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
-  silver:   { label: 'Silver',   color: 'bg-gray-50 border-gray-200 text-gray-600' },
-  bronze:   { label: 'Bronze',   color: 'bg-orange-50 border-orange-200 text-orange-700' },
+  platinum:          { label: 'Platinum',          color: 'bg-slate-100 border-slate-300 text-slate-700' },
+  gold:              { label: 'Gold',              color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
+  silver:            { label: 'Silver',            color: 'bg-gray-50 border-gray-200 text-gray-600' },
+  bronze:            { label: 'Bronze',            color: 'bg-orange-50 border-orange-200 text-orange-700' },
+  community_partner: { label: 'Community Partner', color: 'bg-green-50 border-green-200 text-green-700' },
 };
 
 // ─── Section Header ───────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ export default function AboutPage() {
   });
 
   // Group sponsors by tier
-  const tiers = ['platinum', 'gold', 'silver', 'bronze'];
+  const tiers = ['platinum', 'gold', 'silver', 'bronze', 'community_partner'];
   const sponsorsByTier = tiers.reduce((acc, tier) => {
     acc[tier] = sponsors.filter((s) => s.tier === tier).sort((a, b) => a.display_order - b.display_order);
     return acc;
@@ -275,7 +276,7 @@ export default function AboutPage() {
               <div className="flex-1 bg-[#34A853]" />
             </div>
             <h2 className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-slate-900 leading-[0.9] ${antonio.className}`}>
-              Our Sponsors
+              Our Partners
             </h2>
             <p className="mt-5 text-base md:text-lg text-gray-500 max-w-xl mx-auto">
               Organizations that make GDGOC-UITU possible.
