@@ -213,6 +213,9 @@ export default function SettingsPage() {
   const [pwSaved, setPwSaved]   = useState(false);
   const [pwError, setPwError]   = useState('');
 
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [prefsDirty, setPrefsDirty]     = useState(false);
+
   // Notification prefs state
   const [prefs, setPrefs]               = useState<PrefsData>(PREF_DEFAULTS);
   const [prefsFetching, setPrefsFetching] = useState(true);
@@ -268,6 +271,20 @@ export default function SettingsPage() {
     return () => { if (usernameTimer.current) clearTimeout(usernameTimer.current); };
   }, [profileData.username, originalUsername]);
 
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (profileDirty || prefsDirty) { e.preventDefault(); e.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [profileDirty, prefsDirty]);
+
+  function handleTabSwitch(newTab: Tab) {
+    const isDirty = (activeTab === 'profile' && profileDirty) || (activeTab === 'notifications' && prefsDirty);
+    if (isDirty && !window.confirm('You have unsaved changes. Discard them and switch tabs?')) return;
+    setActiveTab(newTab);
+  }
+
   async function handleSaveProfile() {
     if (!token) return;
     if (profileData.username.length < 3) { setProfileError('Username must be at least 3 characters.'); return; }
@@ -284,6 +301,7 @@ export default function SettingsPage() {
       if (!res.ok) { setProfileError(json.error || 'Failed to save.'); return; }
       setOriginalUsername(json.data.username || '');
       setUsernameStatus('same');
+      setProfileDirty(false);
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 3000);
     } catch { setProfileError('Something went wrong.'); }
@@ -327,6 +345,7 @@ export default function SettingsPage() {
       });
       const json = await res.json();
       if (!res.ok) { setPrefsError(json.error || 'Failed to save.'); return; }
+      setPrefsDirty(false);
       setPrefsSaved(true);
       setTimeout(() => setPrefsSaved(false), 3000);
     } catch { setPrefsError('Something went wrong.'); }
@@ -373,7 +392,7 @@ export default function SettingsPage() {
               {TABS.map(({ id, label, Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => handleTabSwitch(id)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-all text-left border-l-[3px] ${
                     activeTab === id
                       ? 'border-[#4285F4] bg-blue-50/70 text-[#4285F4]'
@@ -420,7 +439,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-5 pb-6 border-b border-gray-100">
                       <ImageUpload
                         value={profileData.avatar_url}
-                        onChange={v => setProfileData(prev => ({ ...prev, avatar_url: v }))}
+                        onChange={v => { setProfileData(prev => ({ ...prev, avatar_url: v })); setProfileDirty(true); }}
                         token={token}
                         folder="gdgoc-uitu/avatars"
                         shape="circle"
@@ -438,7 +457,7 @@ export default function SettingsPage() {
                         <input
                           type="text"
                           value={profileData.full_name}
-                          onChange={e => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
+                          onChange={e => { setProfileData(prev => ({ ...prev, full_name: e.target.value })); setProfileDirty(true); }}
                           placeholder="Your full name"
                           className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
                         />
@@ -450,7 +469,7 @@ export default function SettingsPage() {
                           <input
                             type="text"
                             value={profileData.username}
-                            onChange={e => setProfileData(prev => ({ ...prev, username: e.target.value.toLowerCase() }))}
+                            onChange={e => { setProfileData(prev => ({ ...prev, username: e.target.value.toLowerCase() })); setProfileDirty(true); }}
                             placeholder="yourname"
                             className="w-full pl-7 pr-24 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
                           />
@@ -467,7 +486,7 @@ export default function SettingsPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Bio</label>
                       <textarea
                         value={profileData.bio}
-                        onChange={e => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+                        onChange={e => { setProfileData(prev => ({ ...prev, bio: e.target.value })); setProfileDirty(true); }}
                         rows={3}
                         placeholder="Tell the community a bit about yourself…"
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
@@ -481,14 +500,15 @@ export default function SettingsPage() {
                           <button
                             key={skill}
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
                               setProfileData(prev => ({
                                 ...prev,
                                 skill_tags: prev.skill_tags.includes(skill)
                                   ? prev.skill_tags.filter(s => s !== skill)
                                   : [...prev.skill_tags, skill],
-                              }))
-                            }
+                              }));
+                              setProfileDirty(true);
+                            }}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                               profileData.skill_tags.includes(skill)
                                 ? 'bg-[#4285F4] text-white border-[#4285F4]'
@@ -582,7 +602,7 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-2">
                           <Toggle
                             checked={prefs.email_enabled}
-                            onChange={v => setPrefs(prev => ({ ...prev, email_enabled: v }))}
+                            onChange={v => { setPrefs(prev => ({ ...prev, email_enabled: v })); setPrefsDirty(true); }}
                             size="sm"
                           />
                           <span className="text-xs font-medium text-gray-500">
@@ -597,7 +617,7 @@ export default function SettingsPage() {
                           label={label}
                           desc={desc}
                           checked={emailAlwaysOn ? true : (prefs.email[key] === true)}
-                          onChange={emailAlwaysOn ? undefined : v => setPrefs(prev => ({ ...prev, email: { ...prev.email, [key]: v } }))}
+                          onChange={emailAlwaysOn ? undefined : v => { setPrefs(prev => ({ ...prev, email: { ...prev.email, [key]: v } })); setPrefsDirty(true); }}
                           disabled={!emailAlwaysOn && !prefs.email_enabled}
                           badge={
                             emailAlwaysOn ? (
@@ -621,7 +641,7 @@ export default function SettingsPage() {
                           label={label}
                           desc={desc}
                           checked={prefs.inapp[key] !== false}
-                          onChange={v => setPrefs(prev => ({ ...prev, inapp: { ...prev.inapp, [key]: v } }))}
+                          onChange={v => { setPrefs(prev => ({ ...prev, inapp: { ...prev.inapp, [key]: v } })); setPrefsDirty(true); }}
                         />
                       ))}
                     </NotifSection>

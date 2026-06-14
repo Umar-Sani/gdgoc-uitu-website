@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import { Bold, Italic, Quote, Link, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -46,7 +48,6 @@ export function MarkdownEditor({ value, onChange, placeholder = "Write something
       return;
     }
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       const res = await fetch(`${API_URL}/api/users/search?q=${query}`);
       const data = await res.json();
       setMentionOptions(data.data || []);

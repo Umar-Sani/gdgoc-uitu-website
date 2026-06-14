@@ -156,6 +156,40 @@ function mentionHtml(name: string, mentionerName: string, context: string, threa
   `);
 }
 
+function newEventAnnouncementHtml(
+  eventTitle: string,
+  eventDate: string,
+  venue: string | null,
+  description: string | null,
+  eventUrl: string,
+): string {
+  return layout(`
+    <h1 style="margin:0 0 6px;font-size:26px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:-0.5px;font-family:Arial,sans-serif;">
+      New Event
+    </h1>
+    <p style="margin:0 0 22px;color:#64748b;font-size:14px;font-family:Arial,sans-serif;">A new event has just been announced:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="background:#f8fafc;border-radius:12px;border:2px solid #e2e8f0;margin-bottom:24px;">
+      <tr><td style="padding:20px 24px;">
+        <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em;font-family:Arial,sans-serif;">Event</p>
+        <p style="margin:0 0 16px;font-size:18px;font-weight:800;color:#0f172a;font-family:Arial,sans-serif;">${eventTitle}</p>
+        <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em;font-family:Arial,sans-serif;">Date &amp; Time</p>
+        <p style="margin:0 0 ${venue || description ? '16' : '0'}px;font-size:15px;font-weight:600;color:#334155;font-family:Arial,sans-serif;">${eventDate}</p>
+        ${venue ? `
+        <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em;font-family:Arial,sans-serif;">Venue</p>
+        <p style="margin:0 0 ${description ? '16' : '0'}px;font-size:15px;font-weight:600;color:#334155;font-family:Arial,sans-serif;">${venue}</p>` : ''}
+        ${description ? `
+        <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em;font-family:Arial,sans-serif;">About</p>
+        <p style="margin:0;font-size:14px;color:#475569;line-height:1.6;font-family:Arial,sans-serif;">${description}</p>` : ''}
+      </td></tr>
+    </table>
+    <a href="${eventUrl}"
+      style="display:inline-block;padding:13px 32px;background:#34A853;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;border-radius:50px;border:3px solid #0f172a;box-shadow:4px 4px 0 #0f172a;font-family:Arial,sans-serif;">
+      View Event &#8594;
+    </a>
+  `);
+}
+
 function newsletterWelcomeHtml(name: string): string {
   return layout(`
     <h1 style="margin:0 0 6px;font-size:26px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:-0.5px;font-family:Arial,sans-serif;">
@@ -240,6 +274,24 @@ export async function sendMentionNotification({
     to,
     subject: `${mentionerName} mentioned you`,
     html: mentionHtml(name, mentionerName, context, threadTitle, threadUrl, snippet),
+  });
+}
+
+export async function sendNewEventAnnouncement({
+  to, eventTitle, eventDate, venue, description, eventUrl,
+}: {
+  to: string;
+  eventTitle: string;
+  eventDate: string;
+  venue?: string | null;
+  description?: string | null;
+  eventUrl: string;
+}): Promise<void> {
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `New Event: ${eventTitle}`,
+    html: newEventAnnouncementHtml(eventTitle, eventDate, venue ?? null, description ?? null, eventUrl),
   });
 }
 

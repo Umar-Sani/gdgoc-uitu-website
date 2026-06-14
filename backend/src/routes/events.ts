@@ -1,10 +1,60 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
 import { requireAuth, requireRole, requireUsername } from '../middleware/auth';
-import { createNotification } from '../lib/notifications';
-import { sendRegistrationConfirmed } from '../lib/mailer';
+import { createNotification, createBulkNotification } from '../lib/notifications';
+import { sendRegistrationConfirmed, sendNewEventAnnouncement } from '../lib/mailer';
+import { validate, createEventSchema, updateEventSchema } from '../lib/validate';
 
 const router = Router();
+
+// Fires in-app + email notifications when an event is published.
+// Called fire-and-forget — never awaited so it doesn't block the HTTP response.
+async function announceNewEvent(evt: {
+  event_id: string;
+  title: string;
+  description: string | null;
+  start_datetime: Date | string;
+  venue: string | null;
+}) {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const eventUrl = `${frontendUrl}/events/${evt.event_id}`;
+  const eventDate = new Date(evt.start_datetime).toLocaleString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+  const descSnippet = evt.description
+    ? evt.description.slice(0, 200).trim() + (evt.description.length > 200 ? '…' : '')
+    : null;
+
+  const [usersResult, subsResult] = await Promise.all([
+    pool.query('SELECT user_id FROM users.users WHERE is_active = TRUE'),
+    pool.query('SELECT email, name FROM content.newsletter_subscribers WHERE is_active = TRUE'),
+  ]);
+
+  const userIds: string[] = usersResult.rows.map((r: any) => r.user_id);
+  if (userIds.length) {
+    await createBulkNotification({
+      userIds,
+      type: 'event_reminder',
+      title: `New event: "${evt.title}"`,
+      message: evt.venue ? `${eventDate} · ${evt.venue}` : eventDate,
+      actionUrl: `/events/${evt.event_id}`,
+    });
+  }
+
+  await Promise.allSettled(
+    subsResult.rows.map((sub: any) =>
+      sendNewEventAnnouncement({
+        to: sub.email,
+        eventTitle: evt.title,
+        eventDate,
+        venue: evt.venue,
+        description: descSnippet,
+        eventUrl,
+      })
+    )
+  );
+}
 
 // GET /api/events
 // Public route — no auth required
@@ -208,7 +258,7 @@ router.post('/:id/register', requireAuth, requireUsername, async (req: Request, 
 
 // POST /api/events
 // Admin only — create a new event
-router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/', requireAuth, requireRole('admin', 'super_admin'), validate(createEventSchema), async (req: Request, res: Response) => {
   try {
     const {
       title,
@@ -227,14 +277,6 @@ router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req: R
     } = req.body;
 
     const userId = (req as any).user.id;
-
-    // Basic validation
-    if (!title || !event_type || !category_id || !start_datetime || !end_datetime || !max_seats) {
-      return res.status(400).json({
-        data: null,
-        error: 'Missing required fields: title, event_type, category_id, start_datetime, end_datetime, max_seats',
-      });
-    }
 
     const result = await pool.query(
       `INSERT INTO events.events (
@@ -265,6 +307,12 @@ router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req: R
 
     res.status(201).json({ data: result.rows[0], error: null });
 
+    if (status === 'published') {
+      announceNewEvent(result.rows[0]).catch(err =>
+        console.error('announceNewEvent error:', err.message)
+      );
+    }
+
   } catch (err: any) {
     console.error('POST /api/events error:', err.message);
     res.status(500).json({ data: null, error: err.message });
@@ -273,7 +321,7 @@ router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req: R
 
 // PATCH /api/events/:id
 // Admin only — edit an existing event
-router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateEventSchema), async (req: Request, res: Response) => {
   try {
     const {
       title,
@@ -291,9 +339,9 @@ router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), async (re
       banner_url,
     } = req.body;
 
-    // Check event exists
+    // Check event exists and capture current status for publish-transition detection
     const existing = await pool.query(
-      'SELECT event_id FROM events.events WHERE event_id = $1',
+      'SELECT event_id, status FROM events.events WHERE event_id = $1',
       [req.params.id]
     );
 
@@ -338,6 +386,12 @@ router.patch('/:id', requireAuth, requireRole('admin', 'super_admin'), async (re
     );
 
     res.json({ data: result.rows[0], error: null });
+
+    if (existing.rows[0].status !== 'published' && status === 'published') {
+      announceNewEvent(result.rows[0]).catch(err =>
+        console.error('announceNewEvent error:', err.message)
+      );
+    }
 
   } catch (err: any) {
     console.error('PATCH /api/events/:id error:', err.message);

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
 import { requireAuth } from '../middleware/auth';
 import { sendWelcomeEmail } from '../lib/mailer';
+import { validate, updateProfileSchema, updatePreferencesSchema } from '../lib/validate';
 
 const router = Router();
 
@@ -35,7 +36,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
 });
 
 // PATCH /api/users/me
-router.patch('/me', requireAuth, async (req: Request, res: Response) => {
+router.patch('/me', requireAuth, validate(updateProfileSchema), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { full_name, username, bio, skill_tags, avatar_url } = req.body;
@@ -192,7 +193,7 @@ router.get('/me/preferences', requireAuth, async (req: Request, res: Response) =
 
 // PATCH /api/users/me/preferences
 // Body: { email_enabled?: boolean, inapp?: Partial<Record<type, boolean>>, email?: Partial<Record<type, boolean>> }
-router.patch('/me/preferences', requireAuth, async (req: Request, res: Response) => {
+router.patch('/me/preferences', requireAuth, validate(updatePreferencesSchema), async (req: Request, res: Response) => {
   const userId = (req as any).user.id;
   const { email_enabled, inapp, email: emailPrefs } = req.body;
 
@@ -201,10 +202,18 @@ router.patch('/me/preferences', requireAuth, async (req: Request, res: Response)
   }
 
   try {
-    // Merge JSONB partial updates using || operator; COALESCE preserves existing when not provided
+    // Merge JSONB partial updates using || operator.
+    // INSERT must supply NOT NULL defaults for inapp/email when not provided,
+    // because passing null::jsonb into a NOT NULL column would throw a constraint error.
     const r = await pool.query(
       `INSERT INTO users.notification_preferences (user_id, email_enabled, inapp, email, updated_at)
-       VALUES ($1, COALESCE($2, FALSE), $3::jsonb, $4::jsonb, NOW())
+       VALUES (
+         $1,
+         COALESCE($2, FALSE),
+         COALESCE($3::jsonb, '{"new_reply":true,"mention":true,"upvote_received":true,"event_reminder":true,"registration_confirmed":true,"report_reviewed":true,"system_announcement":true}'::jsonb),
+         COALESCE($4::jsonb, '{"mention":true,"event_reminder":true,"system_announcement":true,"new_reply":false,"upvote_received":false,"report_reviewed":false}'::jsonb),
+         NOW()
+       )
        ON CONFLICT (user_id) DO UPDATE SET
          email_enabled = COALESCE($2, notification_preferences.email_enabled),
          inapp  = notification_preferences.inapp  || COALESCE($3::jsonb, '{}'::jsonb),
@@ -214,7 +223,7 @@ router.patch('/me/preferences', requireAuth, async (req: Request, res: Response)
       [
         userId,
         email_enabled ?? null,
-        inapp  ? JSON.stringify(inapp)      : null,
+        inapp      ? JSON.stringify(inapp)      : null,
         emailPrefs ? JSON.stringify(emailPrefs) : null,
       ]
     );

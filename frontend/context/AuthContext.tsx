@@ -9,6 +9,7 @@ type AuthContextType = {
   loading: boolean
   token: string | null
   signOut: () => Promise<void>
+  refreshUser: (overrideToken?: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   token: null,
   signOut: async () => {},
+  refreshUser: async () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -80,8 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
   }
 
+  const refreshUser = async (overrideToken?: string) => {
+    const t = overrideToken ?? token
+    if (!t) return
+    await fetchUserProfile('', t)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, token, signOut }}>
+    <AuthContext.Provider value={{ user, loading, token, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

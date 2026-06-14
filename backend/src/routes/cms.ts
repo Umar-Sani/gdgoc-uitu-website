@@ -2,6 +2,16 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { sendNewsletterWelcome } from '../lib/mailer';
+import {
+  validate,
+  updateHomepageSchema, updateAboutSchema,
+  createTeamMemberSchema, updateTeamMemberSchema,
+  createTeamSchema, updateTeamSchema,
+  createSponsorSchema, updateSponsorSchema,
+  contactSchema, newsletterSchema,
+  createFeaturedEventSchema, updateFeaturedEventSchema,
+  createTestimonialSchema, updateTestimonialSchema,
+} from '../lib/validate';
 
 const router = Router();
 
@@ -19,7 +29,7 @@ router.get('/homepage', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/cms/homepage
-router.patch('/homepage', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/homepage', requireAuth, requireRole('admin', 'super_admin'), validate(updateHomepageSchema), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { hero_title, hero_subtitle, hero_cta_text, hero_cta_url, stats_members, stats_events, stats_projects, announcement } = req.body;
@@ -62,7 +72,7 @@ router.get('/about', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/cms/about/:id
-router.patch('/about/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/about/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateAboutSchema), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { title, body } = req.body;
@@ -120,16 +130,12 @@ router.get('/team', async (req: Request, res: Response) => {
 });
 
 // POST /api/cms/team
-router.post('/team', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/team', requireAuth, requireRole('admin', 'super_admin'), validate(createTeamMemberSchema), async (req: Request, res: Response) => {
   try {
     const {
       full_name, role_title, bio, avatar_url, linkedin_url, github_url,
       display_order, is_active, section, team_name, tenure_year,
     } = req.body;
-
-    if (!full_name || !role_title) {
-      return res.status(400).json({ data: null, error: 'full_name and role_title are required' });
-    }
 
     const result = await pool.query(
       `INSERT INTO content.team_members
@@ -149,7 +155,7 @@ router.post('/team', requireAuth, requireRole('admin', 'super_admin'), async (re
 });
 
 // PATCH /api/cms/team/:id
-router.patch('/team/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/team/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateTeamMemberSchema), async (req: Request, res: Response) => {
   try {
     const {
       full_name, role_title, bio, avatar_url, linkedin_url, github_url,
@@ -213,7 +219,7 @@ router.get('/teams', async (req: Request, res: Response) => {
 });
 
 // POST /api/cms/teams — create a team
-router.post('/teams', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/teams', requireAuth, requireRole('admin', 'super_admin'), validate(createTeamSchema), async (req: Request, res: Response) => {
   try {
     const { name, display_order } = req.body;
     if (!name || !name.trim()) {
@@ -233,7 +239,7 @@ router.post('/teams', requireAuth, requireRole('admin', 'super_admin'), async (r
 });
 
 // PATCH /api/cms/teams/:id — rename or reorder a team
-router.patch('/teams/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/teams/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateTeamSchema), async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
     const { name, display_order } = req.body;
@@ -357,13 +363,9 @@ router.get('/sponsors', async (req: Request, res: Response) => {
 });
 
 // POST /api/cms/sponsors
-router.post('/sponsors', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/sponsors', requireAuth, requireRole('admin', 'super_admin'), validate(createSponsorSchema), async (req: Request, res: Response) => {
   try {
     const { name, logo_url, website_url, tier, description, display_order } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ data: null, error: 'name is required' });
-    }
 
     const result = await pool.query(
       `INSERT INTO content.sponsors (name, logo_url, website_url, tier, description, display_order, is_active)
@@ -379,7 +381,7 @@ router.post('/sponsors', requireAuth, requireRole('admin', 'super_admin'), async
 });
 
 // PATCH /api/cms/sponsors/:id
-router.patch('/sponsors/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/sponsors/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateSponsorSchema), async (req: Request, res: Response) => {
   try {
     const { name, logo_url, website_url, tier, description, display_order, is_active } = req.body;
 
@@ -421,16 +423,9 @@ router.delete('/sponsors/:id', requireAuth, requireRole('admin', 'super_admin'),
 
 // POST /api/cms/contact
 // Public — submit a contact form
-router.post('/contact', async (req: Request, res: Response) => {
+router.post('/contact', validate(contactSchema), async (req: Request, res: Response) => {
   try {
     const { full_name, email, subject, message } = req.body;
-
-    if (!full_name || !email || !message) {
-      return res.status(400).json({
-        data: null,
-        error: 'Missing required fields: full_name, email, message',
-      });
-    }
 
     const result = await pool.query(
       `INSERT INTO content.contact_submissions (sender_name, sender_email, subject, message)
@@ -449,16 +444,9 @@ router.post('/contact', async (req: Request, res: Response) => {
 
 // POST /api/cms/newsletter
 // Public — subscribe to newsletter
-router.post('/newsletter', async (req: Request, res: Response) => {
+router.post('/newsletter', validate(newsletterSchema), async (req: Request, res: Response) => {
   try {
     const { email, name } = req.body;
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({
-        data: null,
-        error: 'A valid email address is required.',
-      });
-    }
 
     // Upsert — if email exists just reactivate
     // (xmax = 0) is a Postgres trick: true on INSERT, false on UPDATE (conflict)
@@ -530,16 +518,12 @@ router.get('/featured-events/all', requireAuth, async (req: Request, res: Respon
 
 // POST /api/cms/featured-events
 // Admin — add a featured event
-router.post('/featured-events', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/featured-events', requireAuth, requireRole('admin', 'super_admin'), validate(createFeaturedEventSchema), async (req: Request, res: Response) => {
   try {
     const {
       event_id, title, description,
       image_url, event_date, category, display_order,
     } = req.body;
-
-    if (!title) {
-      return res.status(400).json({ data: null, error: 'Title is required.' });
-    }
 
     const result = await pool.query(
       `INSERT INTO content.featured_events (
@@ -567,7 +551,7 @@ router.post('/featured-events', requireAuth, requireRole('admin', 'super_admin')
 
 // PATCH /api/cms/featured-events/:id
 // Admin — edit a featured event
-router.patch('/featured-events/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/featured-events/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateFeaturedEventSchema), async (req: Request, res: Response) => {
   try {
     const {
       event_id, title, description,
@@ -668,17 +652,10 @@ router.get('/testimonials/all', requireAuth, requireRole('admin', 'super_admin')
 
 // POST /api/cms/testimonials
 // Authenticated users — submit a testimonial (starts unapproved)
-router.post('/testimonials', requireAuth, async (req: Request, res: Response) => {
+router.post('/testimonials', requireAuth, validate(createTestimonialSchema), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { author_name, author_role, quote } = req.body;
-
-    if (!author_name?.trim() || !quote?.trim()) {
-      return res.status(400).json({ data: null, error: 'Name and quote are required.' });
-    }
-    if (quote.trim().length < 20) {
-      return res.status(400).json({ data: null, error: 'Quote must be at least 20 characters.' });
-    }
 
     const result = await pool.query(
       `INSERT INTO content.testimonials (user_id, author_name, author_role, quote, is_approved)
@@ -695,7 +672,7 @@ router.post('/testimonials', requireAuth, async (req: Request, res: Response) =>
 
 // PATCH /api/cms/testimonials/:id
 // Admin — approve/reject/edit/reorder
-router.patch('/testimonials/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/testimonials/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateTestimonialSchema), async (req: Request, res: Response) => {
   try {
     const { author_name, author_role, quote, is_approved, display_order } = req.body;
 

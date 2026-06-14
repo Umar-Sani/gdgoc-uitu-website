@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/ui/ImageUpload';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -14,6 +15,7 @@ const SKILL_TAGS = [
 
 export default function CompleteProfilePage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   // Use Supabase session directly — AuthContext may still be resolving
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -136,14 +138,17 @@ export default function CompleteProfilePage() {
         return;
       }
 
-      // Fire-and-forget: save email notification preference
       if (wantsEmailNotifs) {
-        fetch(`${API_URL}/api/users/me/preferences`, {
+        await fetch(`${API_URL}/api/users/me/preferences`, {
           method:  'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
           body:    JSON.stringify({ email_enabled: true }),
         }).catch(() => {});
       }
+
+      // Sync AuthContext with the newly saved username so MemberLayout
+      // doesn't see user.username === null and flicker back to this page.
+      await refreshUser(accessToken ?? undefined);
 
       router.replace('/dashboard');
     } catch {

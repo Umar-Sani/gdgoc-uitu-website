@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAdmin } from '@/hooks/useRequireAdmin';
+import { supabase } from '@/lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ function roleColor(role: string): string {
     case 'super_admin': return 'bg-red-100 text-red-700';
     case 'admin':       return 'bg-orange-100 text-orange-700';
     case 'editor':      return 'bg-blue-100 text-blue-700';
-    case 'member':      return 'bg-green-100 text-green-700';
+    case 'user':        return 'bg-green-100 text-green-700';
     default:            return 'bg-gray-100 text-gray-700';
   }
 }
@@ -57,48 +58,63 @@ function ConfirmModal({
   loading,
 }: {
   action: ModalAction;
-  onConfirm: () => void;
+  onConfirm: (password?: string) => void;
   onCancel: () => void;
   loading: boolean;
 }) {
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw]     = useState(false);
+
+  // Reset password field whenever the modal opens for a different action
+  useEffect(() => { setPassword(''); setShowPw(false); }, [action]);
+
   if (!action) return null;
 
-  const isDelete     = action.type === 'delete';
-  const isDisable    = action.type === 'disable';
-  const isRoleChange = action.type === 'change_role';
+  const isDelete          = action.type === 'delete';
+  const isDisable         = action.type === 'disable';
+  const isRoleChange      = action.type === 'change_role';
+  const isSuperAdminGrant = isRoleChange && (action as any).newRole === 'super_admin';
 
-  const title = isDelete     ? 'Delete Account'
-              : isDisable    ? 'Disable Account'
-              : isRoleChange ? 'Change Role'
-              :                'Enable Account';
+  const title = isDelete          ? 'Delete Account'
+              : isDisable         ? 'Disable Account'
+              : isSuperAdminGrant ? 'Grant Super Admin'
+              : isRoleChange      ? 'Change Role'
+              :                     'Enable Account';
 
   const body = isDelete
     ? `This will permanently delete ${action.user.full_name}'s account and revoke all access. This cannot be undone.`
     : isDisable
     ? `${action.user.full_name} will be immediately signed out and unable to log back in until re-enabled.`
+    : isSuperAdminGrant
+    ? `You are about to grant full super admin access to ${action.user.full_name}. Enter your password to authorize this change.`
     : isRoleChange
-    ? `${action.user.full_name}'s role will change from ${action.user.role_name.replace('_', ' ')} to ${(action as any).newRole.replace('_', ' ')}. Their permissions will update immediately.`
+    ? `${action.user.full_name}'s role will change from ${action.user.role_name.replace(/_/g, ' ')} to ${(action as any).newRole.replace(/_/g, ' ')}. Their permissions will update immediately.`
     : `${action.user.full_name}'s account will be re-enabled and they will be able to log in again.`;
 
-  const confirmLabel = isDelete     ? 'Delete permanently'
-                     : isDisable    ? 'Disable account'
-                     : isRoleChange ? 'Change role'
-                     :               'Enable account';
+  const confirmLabel = isDelete          ? 'Delete permanently'
+                     : isDisable         ? 'Disable account'
+                     : isSuperAdminGrant ? 'Grant super admin'
+                     : isRoleChange      ? 'Change role'
+                     :                    'Enable account';
 
-  const accentColor  = isDelete     ? 'bg-red-500'
-                     : isDisable    ? 'bg-yellow-500'
-                     : isRoleChange ? 'bg-blue-500'
-                     :               'bg-green-500';
+  const accentColor  = isDelete          ? 'bg-red-500'
+                     : isDisable         ? 'bg-yellow-500'
+                     : isSuperAdminGrant ? 'bg-red-500'
+                     : isRoleChange      ? 'bg-blue-500'
+                     :                    'bg-green-500';
 
-  const confirmClass = isDelete     ? 'bg-red-600 hover:bg-red-700 text-white'
-                     : isDisable    ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                     : isRoleChange ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                     :               'bg-green-500 hover:bg-green-600 text-white';
+  const confirmClass = isDelete          ? 'bg-red-600 hover:bg-red-700 text-white'
+                     : isDisable         ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                     : isSuperAdminGrant ? 'bg-red-600 hover:bg-red-700 text-white'
+                     : isRoleChange      ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                     :                    'bg-green-500 hover:bg-green-600 text-white';
 
-  const iconBg      = isDelete     ? 'bg-red-50'
-                    : isDisable    ? 'bg-yellow-50'
-                    : isRoleChange ? 'bg-blue-50'
-                    :               'bg-green-50';
+  const iconBg       = isDelete || isSuperAdminGrant ? 'bg-red-50'
+                     : isDisable                     ? 'bg-yellow-50'
+                     : isRoleChange                  ? 'bg-blue-50'
+                     :                                 'bg-green-50';
+
+  const confirmDisabled = loading || (isSuperAdminGrant && password.length < 6);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -113,9 +129,12 @@ function ConfirmModal({
         <div className="p-6">
           {/* Icon */}
           <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4 ${iconBg}`}>
-            {isDelete ? (
+            {isDelete || isSuperAdminGrant ? (
               <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                {isSuperAdminGrant
+                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                }
               </svg>
             ) : isDisable ? (
               <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,9 +153,39 @@ function ConfirmModal({
 
           <h3 className="text-base font-bold text-gray-900 mb-1">{title}</h3>
           <p className="text-sm text-gray-500 leading-relaxed mb-1">{body}</p>
-          <p className="text-xs font-medium text-gray-400 mb-6">
+          <p className="text-xs font-medium text-gray-400 mb-4">
             {action.user.email}
           </p>
+
+          {/* Password field — only for super_admin grant */}
+          {isSuperAdminGrant && (
+            <div className="mb-5">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Your password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter your password to confirm"
+                  autoComplete="current-password"
+                  className="w-full pr-10 pl-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showPw
+                    ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  }
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button
@@ -147,8 +196,8 @@ function ConfirmModal({
               Cancel
             </button>
             <button
-              onClick={onConfirm}
-              disabled={loading}
+              onClick={() => onConfirm(isSuperAdminGrant ? password : undefined)}
+              disabled={confirmDisabled}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ${confirmClass}`}
             >
               {loading ? (
@@ -244,11 +293,31 @@ export default function AdminUsersPage() {
   }, [searchInput]);
 
   // ─── Confirm modal action ─────────────────────────────────────────────────────
-  async function handleConfirm() {
+  async function handleConfirm(password?: string) {
     if (!modal) return;
     setModalLoading(true);
 
     try {
+      // Password verification required before granting super_admin
+      if (modal.type === 'change_role' && modal.newRole === 'super_admin') {
+        if (!password) {
+          setFeedback({ id: modal.user.user_id, message: 'Password required', type: 'error' });
+          setModal(null);
+          setTimeout(() => setFeedback(null), 3000);
+          return;
+        }
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: adminUser!.email,
+          password,
+        });
+        if (authError) {
+          setFeedback({ id: modal.user.user_id, message: 'Incorrect password — role not changed', type: 'error' });
+          setModal(null);
+          setTimeout(() => setFeedback(null), 4000);
+          return;
+        }
+      }
+
       if (modal.type === 'delete') {
         const res  = await fetch(`${API_URL}/api/admin/users/${modal.user.user_id}`, {
           method: 'DELETE',
@@ -414,7 +483,8 @@ export default function AdminUsersPage() {
                         )}
                       </div>
 
-                      {/* Role selector — disabled for super_admin rows */}
+                      {/* Role selector — disabled for super_admin rows;
+                          super_admin option only visible to super_admins */}
                       <select
                         value={user.role_name}
                         onChange={(e) => {
@@ -424,9 +494,14 @@ export default function AdminUsersPage() {
                         disabled={updatingUser === user.user_id || isSuperAdminRow}
                         className={`px-3 py-1.5 rounded-xl border text-xs font-medium outline-none transition-all ${roleColor(user.role_name)} border-transparent disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        {roles.map((role) => (
-                          <option key={role.role_id} value={role.role_name}>{role.role_name}</option>
-                        ))}
+                        {roles
+                          .filter(role => isSuperAdmin || role.role_name !== 'super_admin')
+                          .map((role) => (
+                            <option key={role.role_id} value={role.role_name}>
+                              {role.role_name.replace(/_/g, ' ')}
+                            </option>
+                          ))
+                        }
                       </select>
 
                       {/* Enable / disable toggle — hidden for super_admin */}

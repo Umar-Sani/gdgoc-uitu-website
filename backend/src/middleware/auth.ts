@@ -7,6 +7,10 @@ const getSupabaseAdmin = () => createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Only active when BOTH conditions are true — never set ALLOW_MOCK_AUTH in staging/production
+const MOCK_ENABLED = process.env.NODE_ENV !== 'production' && process.env.ALLOW_MOCK_AUTH === 'true';
+const MOCK_UUID    = '30d7d27e-2a0c-44cb-8db4-bcc915a69067';
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace('Bearer ', '');
 
@@ -14,9 +18,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return res.status(401).json({ data: null, error: 'Authentication required' });
   }
 
-  // Allow mock token during development
-  if (token === 'mock-token') {
-    (req as any).user = { id: '30d7d27e-2a0c-44cb-8db4-bcc915a69067' };
+  if (MOCK_ENABLED && token === 'mock-token') {
+    (req as any).user = { id: MOCK_UUID };
     return next();
   }
 
@@ -43,7 +46,7 @@ export async function requireUsername(req: Request, res: Response, next: NextFun
     return res.status(401).json({ data: null, error: 'Not authenticated' });
   }
 
-  if (userId === '30d7d27e-2a0c-44cb-8db4-bcc915a69067') {
+  if (MOCK_ENABLED && userId === MOCK_UUID) {
     return next();
   }
 
@@ -71,8 +74,7 @@ export function requireRole(...roles: string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req as any).user?.id;
 
-    // Allow mock user to pass role check during development
-    if (userId === '30d7d27e-2a0c-44cb-8db4-bcc915a69067') {
+    if (MOCK_ENABLED && userId === MOCK_UUID) {
       (req as any).userRole = 'admin';
       return next();
     }

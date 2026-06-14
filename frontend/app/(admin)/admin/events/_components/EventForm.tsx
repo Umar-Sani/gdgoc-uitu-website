@@ -8,7 +8,7 @@ import ImageUpload from '@/components/ui/ImageUpload';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Category = {
-  category_id: number;
+  category_id: string;
   name: string;
 };
 
@@ -56,7 +56,7 @@ type EventFormProps = {
   eventId?: string;
 };
 
-const EVENT_TYPES = ['workshop', 'seminar', 'hackathon', 'session', 'social', 'bootcamp'];
+const EVENT_TYPES = ['workshop', 'seminar', 'hackathon', 'session', 'social'];
 
 const PERSON_ROLES = ['Host', 'Speaker', 'Guest', 'Panelist', 'Moderator'];
 
@@ -324,7 +324,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         title:          form.title.trim(),
         description:    form.description.trim() || null,
         event_type:     form.event_type,
-        category_id:    Number(form.category_id),
+        category_id:    form.category_id,
         start_datetime: combineDatetime(form.start_date, form.start_time),
         end_datetime:   combineDatetime(form.end_date, form.end_time),
         venue:          form.venue.trim() || null,
@@ -702,6 +702,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <option value="draft">Draft — not visible to public</option>
                 <option value="published">Published — visible to public</option>
+                <option value="ongoing">Ongoing — event in progress</option>
+                <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
             </Field>

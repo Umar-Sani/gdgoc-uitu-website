@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { pool } from '../db/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { validate, updateRoleSchema, updateStatusSchema } from '../lib/validate';
 
 const router = Router();
 
@@ -115,12 +116,21 @@ router.get('/users', requireRole('admin', 'super_admin'), async (req: Request, r
 
 // ─── PATCH /api/admin/users/:id/role ─────────────────────────────────────────
 // Change a user's role
-router.patch('/users/:id/role', requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/users/:id/role', requireRole('admin', 'super_admin'), validate(updateRoleSchema), async (req: Request, res: Response) => {
   try {
     const { role_name } = req.body;
 
-    if (!role_name) {
-      return res.status(400).json({ data: null, error: 'role_name is required' });
+    // Only a super_admin may elevate another account to super_admin
+    if (role_name === 'super_admin') {
+      const callerRow = await pool.query(
+        `SELECT r.role_name FROM users.users u
+         JOIN users.roles r ON u.role_id = r.role_id
+         WHERE u.user_id = $1`,
+        [(req as any).user.id]
+      );
+      if (callerRow.rows[0]?.role_name !== 'super_admin') {
+        return res.status(403).json({ data: null, error: 'Only a super admin can assign the super_admin role.' });
+      }
     }
 
     // Get role_id from role_name
@@ -157,13 +167,9 @@ router.patch('/users/:id/role', requireRole('admin', 'super_admin'), async (req:
 
 // ─── PATCH /api/admin/users/:id/status ───────────────────────────────────────
 // Activate or deactivate a user
-router.patch('/users/:id/status', requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/users/:id/status', requireRole('admin', 'super_admin'), validate(updateStatusSchema), async (req: Request, res: Response) => {
   try {
     const { is_active } = req.body;
-
-    if (typeof is_active !== 'boolean') {
-      return res.status(400).json({ data: null, error: 'is_active must be a boolean' });
-    }
 
     // Prevent modifying super_admin accounts
     const roleCheck = await pool.query(
@@ -431,11 +437,14 @@ router.get('/audit', requireRole('super_admin'), async (req: Request, res: Respo
 });
 
 // ─── GET /api/admin/roles ─────────────────────────────────────────────────────
-// List all available roles
+// List assignable roles. 'viewer' is excluded — users are either member (user),
+// editor, admin, or super_admin. super_admin assignment is guarded separately.
 router.get('/roles', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
-      `SELECT role_id, role_name, description FROM users.roles ORDER BY role_id ASC`
+      `SELECT role_id, role_name, description FROM users.roles
+       WHERE role_name != 'viewer'
+       ORDER BY role_id ASC`
     );
     res.json({ data: result.rows, error: null });
   } catch (err: any) {

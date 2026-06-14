@@ -3,6 +3,7 @@ import { pool } from '../db/client';
 import { requireAuth, requireRole, requireUsername } from '../middleware/auth';
 import { createNotification, createBulkNotification } from '../lib/notifications';
 import { sendNewReplyNotification, sendMentionNotification } from '../lib/mailer';
+import { validate, createThreadSchema, createReplySchema } from '../lib/validate';
 
 const router = Router();
 
@@ -212,17 +213,10 @@ router.post('/threads/:id/view', async (req: Request, res: Response) => {
 
 // ─── POST /api/forum/threads ──────────────────────────────────────────────────
 // Auth required — create a new thread
-router.post('/threads', requireAuth, requireUsername, async (req: Request, res: Response) => {
+router.post('/threads', requireAuth, requireUsername, validate(createThreadSchema), async (req: Request, res: Response) => {
   try {
     const { title, body, category_id, tags } = req.body;
     const authorId = (req as any).user.id;
-
-    if (!title || !body || !category_id) {
-      return res.status(400).json({
-        data: null,
-        error: 'Missing required fields: title, body, category_id',
-      });
-    }
 
     const result = await pool.query(
       `INSERT INTO forum.threads (
@@ -295,15 +289,11 @@ router.post('/threads', requireAuth, requireUsername, async (req: Request, res: 
 
 // ─── POST /api/forum/threads/:id/replies ─────────────────────────────────────
 // Auth required — add a reply to a thread
-router.post('/threads/:id/replies', requireAuth, requireUsername, async (req: Request, res: Response) => {
+router.post('/threads/:id/replies', requireAuth, requireUsername, validate(createReplySchema), async (req: Request, res: Response) => {
   try {
     const { body, parent_reply_id } = req.body;
     const authorId = (req as any).user.id;
     const threadId = req.params.id;
-
-    if (!body) {
-      return res.status(400).json({ data: null, error: 'Reply body is required' });
-    }
 
     // Check thread exists and is not locked
     const thread = await pool.query(
