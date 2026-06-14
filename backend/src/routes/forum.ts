@@ -107,6 +107,7 @@ router.get('/threads', async (req: Request, res: Response) => {
 
     const result = await pool.query(query, params);
 
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({
       data: result.rows,
       total,
@@ -552,6 +553,7 @@ router.get('/categories', async (req: Request, res: Response) => {
        FROM forum.categories
        ORDER BY display_order ASC`
     );
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });

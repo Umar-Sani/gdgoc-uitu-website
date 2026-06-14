@@ -71,6 +71,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const result = await pool.query(query, params);
 
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({
       data: result.rows,
       total,
@@ -92,6 +93,7 @@ router.get('/categories', async (req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT category_id, name FROM events.categories ORDER BY name ASC'
     );
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -111,6 +113,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ data: null, error: 'Event not found' });
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({ data: result.rows[0], error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });

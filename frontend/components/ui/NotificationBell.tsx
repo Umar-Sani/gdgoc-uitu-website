@@ -78,8 +78,23 @@ export default function NotificationBell({ light = false }: { light?: boolean })
   useEffect(() => {
     if (!user) return;
     fetchCount();
-    const interval = setInterval(fetchCount, 60_000);
-    return () => clearInterval(interval);
+
+    let interval: ReturnType<typeof setInterval> | null = setInterval(fetchCount, 60_000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCount();
+        if (!interval) interval = setInterval(fetchCount, 60_000);
+      } else {
+        if (interval) { clearInterval(interval); interval = null; }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [user, fetchCount]);
 
   // ── Fetch full list when panel opens ────────────────────────────────────────

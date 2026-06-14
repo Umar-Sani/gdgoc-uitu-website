@@ -11,6 +11,7 @@ const router = Router();
 router.get('/homepage', async (req: Request, res: Response) => {
   try {
     const result = await pool.query('SELECT * FROM content.homepage LIMIT 1');
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows[0] ?? null, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -53,6 +54,7 @@ router.patch('/homepage', requireAuth, requireRole('admin', 'super_admin'), asyn
 router.get('/about', async (req: Request, res: Response) => {
   try {
     const result = await pool.query('SELECT * FROM content.about_sections ORDER BY display_order ASC');
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -110,6 +112,7 @@ router.get('/team', async (req: Request, res: Response) => {
         COALESCE(t.display_order, 999) ASC,
         tm.display_order ASC
     `);
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -202,6 +205,7 @@ router.get('/teams', async (req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT * FROM content.teams ORDER BY display_order ASC, name ASC'
     );
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -297,6 +301,7 @@ router.get('/gallery', async (req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT * FROM content.gallery ORDER BY display_order ASC'
     );
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -344,6 +349,7 @@ router.get('/sponsors', async (req: Request, res: Response) => {
     const result = await pool.query(
       'SELECT * FROM content.sponsors WHERE is_active = true ORDER BY display_order ASC'
     );
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -494,6 +500,7 @@ router.get('/featured-events', async (req: Request, res: Response) => {
        WHERE fe.is_active = TRUE
        ORDER BY fe.display_order ASC`
     );
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     console.error('GET /api/cms/featured-events error:', err.message);
@@ -635,6 +642,7 @@ router.get('/testimonials', async (req: Request, res: Response) => {
        WHERE is_approved = TRUE
        ORDER BY COALESCE(display_order, 0) ASC, created_at DESC`
     );
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ data: result.rows, error: null });
   } catch (err: any) {
     console.error('GET /api/cms/testimonials error:', err.message);
