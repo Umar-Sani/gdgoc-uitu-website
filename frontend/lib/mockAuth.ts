@@ -1,6 +1,6 @@
-import type { User } from '../../shared/types'
+import type { User } from '@shared/types'
 
-export const MOCK_ENABLED = true
+export const MOCK_ENABLED = false
 
 export const mockUsers: Record<string, User> = {
   member: {
@@ -17,8 +17,8 @@ export const mockUsers: Record<string, User> = {
     created_at: new Date().toISOString(),
     last_login: new Date().toISOString(),
   },
-  admin: {
-    user_id: 'mock-admin-001',
+  super_admin: {
+    user_id: '30d7d27e-2a0c-44cb-8db4-bcc915a69067',
     email: 'admin@gdgoc.com',
     full_name: 'Test Admin',
     username: 'testadmin',
@@ -31,8 +31,22 @@ export const mockUsers: Record<string, User> = {
     created_at: new Date().toISOString(),
     last_login: new Date().toISOString(),
   },
+  admin: {
+    user_id: '30d7d27e-2a0c-44cb-8db4-bcc915a69067',
+    email: 'admin@gdgoc.com',
+    full_name: 'Test Admin',
+    username: 'testadmin',
+    role_name: 'admin',
+    avatar_url: null,
+    bio: null,
+    skill_tags: [],
+    is_verified: true,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    last_login: new Date().toISOString(),
+  },
   editor: {
-    user_id: 'mock-editor-001',
+    user_id: '30d7d27e-2a0c-44cb-8db4-bcc915a69067',
     email: 'editor@gdgoc.com',
     full_name: 'Test Editor',
     username: 'testeditor',

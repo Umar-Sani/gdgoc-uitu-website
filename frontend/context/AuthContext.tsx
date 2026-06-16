@@ -2,13 +2,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { MOCK_ENABLED, ACTIVE_MOCK_USER } from '@/lib/mockAuth'
-import type { User } from '../../shared/types'
+import type { User } from '@shared/types'
 
 type AuthContextType = {
   user: User | null
   loading: boolean
   token: string | null
   signOut: () => Promise<void>
+  refreshUser: (overrideToken?: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   token: null,
   signOut: async () => {},
+  refreshUser: async () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -30,10 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (MOCK_ENABLED) return
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setToken(session.access_token)
-        fetchUserProfile(session.user.id, session.access_token)
+        await fetchUserProfile(session.user.id, session.access_token)
       }
       setLoading(false)
     })
@@ -61,6 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       )
       if (res.ok) {
         const json = await res.json()
+        if (!json.data?.is_active) {
+          await supabase.auth.signOut()
+          setUser(null)
+          setToken(null)
+          return
+        }
         setUser(json.data)
       }
     } catch (err) {
@@ -74,8 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
   }
 
+  const refreshUser = async (overrideToken?: string) => {
+    const t = overrideToken ?? token
+    if (!t) return
+    await fetchUserProfile('', t)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, token, signOut }}>
+    <AuthContext.Provider value={{ user, loading, token, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

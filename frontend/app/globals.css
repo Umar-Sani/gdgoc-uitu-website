@@ -89,5 +89,25 @@
 
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
+}
+
+/* ── Latest Discussions: card cycle entrance ── */
+@keyframes discussion-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.discussion-in { animation: discussion-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+
+/* ── Testimonials: animated connecting line ── */
+@keyframes testimonial-flow {
+  0%   { top: -35%; }
+  100% { top: 110%; }
+}
+.testimonial-flow-line {
+  height: 35%;
+  background: linear-gradient(to bottom, transparent, #4285F4, transparent);
+  animation: testimonial-flow 2.4s ease-in-out infinite;
 }
