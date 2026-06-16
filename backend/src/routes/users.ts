@@ -119,6 +119,42 @@ router.get('/me/registrations', requireAuth, async (req: Request, res: Response)
   }
 });
 
+// GET /api/users/me/activity
+// Returns the current user's recent activity across registrations + forum
+// (threads, replies, upvotes) as a flat, timestamped list for the dashboard
+// activity chart. Window covers the last 14 days (this week + last week for
+// the week-over-week comparison).
+router.get('/me/activity', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+
+    const result = await pool.query(
+      `SELECT 'registration' AS type, registered_at AS created_at
+         FROM events.registrations
+        WHERE user_id = $1 AND registered_at >= NOW() - INTERVAL '14 days'
+       UNION ALL
+       SELECT 'thread' AS type, created_at
+         FROM forum.threads
+        WHERE author_id = $1 AND is_deleted = FALSE AND created_at >= NOW() - INTERVAL '14 days'
+       UNION ALL
+       SELECT 'reply' AS type, created_at
+         FROM forum.replies
+        WHERE author_id = $1 AND is_deleted = FALSE AND created_at >= NOW() - INTERVAL '14 days'
+       UNION ALL
+       SELECT 'upvote' AS type, created_at
+         FROM forum.upvotes
+        WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '14 days'
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+
+    res.json({ data: result.rows, error: null });
+
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
 // POST /api/recommendations/generate
 router.post('/recommendations/generate', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -272,6 +308,75 @@ router.get('/search', async (req: Request, res: Response) => {
     );
 
     res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// GET /api/users/:username
+// Public — a visitable member profile by username. Returns the user's public
+// profile plus light forum engagement (recent threads + total counts) and
+// their upcoming registered events. Defined LAST so it never shadows the more
+// specific /me, /search, /recommendations routes above.
+router.get('/:username', async (req: Request, res: Response) => {
+  try {
+    const username = req.params.username;
+
+    const profileResult = await pool.query(
+      `SELECT
+         u.user_id, u.full_name, u.username, u.avatar_url, u.bio,
+         u.skill_tags, u.is_verified, u.created_at,
+         r.role_name,
+         (SELECT COUNT(*) FROM forum.threads  WHERE author_id = u.user_id AND is_deleted = FALSE) AS thread_count,
+         (SELECT COUNT(*) FROM forum.replies  WHERE author_id = u.user_id AND is_deleted = FALSE) AS reply_count
+       FROM users.users u
+       JOIN users.roles r ON u.role_id = r.role_id
+       WHERE LOWER(u.username) = LOWER($1) AND u.is_active = TRUE`,
+      [username]
+    );
+
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'User not found' });
+    }
+
+    const profile = profileResult.rows[0];
+
+    // Recent forum threads + upcoming registered events, in parallel.
+    const [threadsResult, eventsResult] = await Promise.all([
+      pool.query(
+        `SELECT
+           t.thread_id, t.title, t.upvote_count, t.reply_count, t.created_at,
+           c.name AS category_name, c.color_hex AS category_color
+         FROM forum.threads t
+         LEFT JOIN forum.categories c ON t.category_id = c.category_id
+         WHERE t.author_id = $1 AND t.is_deleted = FALSE
+         ORDER BY t.created_at DESC
+         LIMIT 5`,
+        [profile.user_id]
+      ),
+      pool.query(
+        `SELECT
+           e.event_id, e.title, e.start_datetime, e.venue, e.is_online,
+           ec.name AS category_name, ec.color_hex AS category_color
+         FROM events.registrations r
+         JOIN events.events e ON r.event_id = e.event_id
+         LEFT JOIN events.categories ec ON e.category_id = ec.category_id
+         WHERE r.user_id = $1 AND e.start_datetime >= NOW()
+         ORDER BY e.start_datetime ASC
+         LIMIT 5`,
+        [profile.user_id]
+      ),
+    ]);
+
+    res.json({
+      data: {
+        ...profile,
+        recent_threads: threadsResult.rows,
+        upcoming_events: eventsResult.rows,
+      },
+      error: null,
+    });
+
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
   }
