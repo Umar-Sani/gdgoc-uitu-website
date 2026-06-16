@@ -2159,13 +2159,13 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 mb-10">
             <div className="sm:col-span-2">
-              <div className="flex items-center mb-3">
+              <Link href="/" className="flex items-center mb-3 hover:opacity-80 transition-opacity">
                 <img
-                  src="/images/GDGOC-UITU%20LOGO(1).png"
+                  src="/images/logolight.png"
                   alt="GDGOC-UITU Logo"
                   className="h-10 w-auto object-contain"
                 />
-              </div>
+              </Link>
               <p className="text-xs leading-relaxed max-w-xs">
                 Google Developer Groups on Campus at UIT University Karachi. Building the next generation of developers.
               </p>

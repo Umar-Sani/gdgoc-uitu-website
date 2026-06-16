@@ -128,17 +128,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       `}>
 
         {/* Logo */}
-        <div className="px-5 py-4 border-b border-gray-100">
-          <div className="h-0.5 w-10 flex mb-3 rounded-full overflow-hidden">
-            <div className="flex-1 bg-[#4285F4]" />
-            <div className="flex-1 bg-[#EA4335]" />
-            <div className="flex-1 bg-[#FBBC05]" />
-            <div className="flex-1 bg-[#34A853]" />
-          </div>
-          <p className="text-sm font-bold text-gray-900">GDGOC-UITU</p>
-          <p className="text-xs text-gray-400 mt-0.5 capitalize">
-            {user?.role_name} Panel
-          </p>
+        <div className="px-5 py-5 border-b border-gray-100">
+          <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
+            <img src="/images/logodark.png" alt="GDGOC-UITU" className="h-11 w-auto object-contain" />
+          </Link>
         </div>
 
         {/* Nav */}
@@ -226,7 +219,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <p className="text-sm font-bold text-gray-900">GDGOC-UITU</p>
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <img src="/images/logodark.png" alt="GDGOC-UITU" className="h-9 w-auto object-contain" />
+          </Link>
           <div className="w-9" />
         </div>
 
