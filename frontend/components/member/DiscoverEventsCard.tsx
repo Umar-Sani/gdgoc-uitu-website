@@ -1,24 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Sparkles, MapPin, Calendar, ArrowRight } from 'lucide-react';
-import type { Event } from '@shared/types';
+import { useMemberData } from '@/context/MemberDataContext';
 import { formatDate } from '@/lib/formatters';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export default function DiscoverEventsCard() {
-  const [event, setEvent] = useState<Event | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/events?status=upcoming&limit=1`)
-      .then(r => r.json())
-      .then(res => setEvent(res.data?.[0] ?? null))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { events, eventsLoading: loading } = useMemberData();
+  const event = events[0] ?? null;
 
   return (
     <div className="rounded-2xl bg-gradient-to-br from-[#4285F4] to-indigo-600 p-6 text-white overflow-hidden relative">
@@ -54,7 +43,7 @@ export default function DiscoverEventsCard() {
             </div>
 
             <Link
-              href="/events"
+              href="/dashboard/events"
               className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white text-[#4285F4] text-sm font-semibold hover:bg-white/90 transition-all group"
             >
               Browse all events
@@ -66,7 +55,7 @@ export default function DiscoverEventsCard() {
             <h3 className="text-lg font-bold leading-snug mb-2">No upcoming events</h3>
             <p className="text-sm text-white/85 mb-5">Check back soon — new events are added regularly.</p>
             <Link
-              href="/events"
+              href="/dashboard/events"
               className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white text-[#4285F4] text-sm font-semibold hover:bg-white/90 transition-all group"
             >
               Browse events

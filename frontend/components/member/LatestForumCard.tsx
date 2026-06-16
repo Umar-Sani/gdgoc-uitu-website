@@ -1,45 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MessageSquare, ThumbsUp } from 'lucide-react';
 import { timeAgo } from '@/lib/formatters';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type Thread = {
-  thread_id: string;
-  title: string;
-  category_name: string | null;
-  category_color: string | null;
-  reply_count: number;
-  upvote_count: number;
-  created_at: string;
-  author_name: string | null;
-  author_avatar: string | null;
-};
+import { useMemberData } from '@/context/MemberDataContext';
 
 function getInitials(name: string): string {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
 export default function LatestForumCard() {
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/forum/threads?sort=latest&limit=3`)
-      .then(r => r.json())
-      .then(res => setThreads(res.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { threads: allThreads, threadsLoading: loading } = useMemberData();
+  const threads = allThreads.slice(0, 3);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-bold text-gray-900">Latest Discussions</h2>
-        <Link href="/forum" className="text-xs text-blue-500 hover:underline">
+        <Link href="/dashboard/forums" className="text-xs text-blue-500 hover:underline">
           See all →
         </Link>
       </div>
@@ -53,7 +31,7 @@ export default function LatestForumCard() {
       ) : threads.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-sm text-gray-400">No discussions yet</p>
-          <Link href="/forum" className="mt-2 inline-block text-xs text-blue-500 hover:underline">
+          <Link href="/forum/new" className="mt-2 inline-block text-xs text-blue-500 hover:underline">
             Start one →
           </Link>
         </div>

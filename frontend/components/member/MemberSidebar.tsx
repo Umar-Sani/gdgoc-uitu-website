@@ -17,8 +17,8 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',       href: '/dashboard',               icon: <LayoutDashboard className="w-4 h-4" />, exact: true },
-  { label: 'Events',          href: '/events',                  icon: <CalendarDays className="w-4 h-4" /> },
-  { label: 'Forum',           href: '/forum',                   icon: <MessageSquare className="w-4 h-4" /> },
+  { label: 'Events',          href: '/dashboard/events',        icon: <CalendarDays className="w-4 h-4" /> },
+  { label: 'Forums',          href: '/dashboard/forums',        icon: <MessageSquare className="w-4 h-4" /> },
   { label: 'My Registrations', href: '/dashboard/registrations', icon: <Ticket className="w-4 h-4" /> },
   { label: 'Settings',        href: '/settings',                icon: <Settings className="w-4 h-4" /> },
 ];
