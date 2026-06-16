@@ -146,7 +146,8 @@ router.get('/threads/:id', async (req: Request, res: Response) => {
         t.updated_at,
         t.author_id,
         u.full_name AS author_name,
-        u.avatar_url AS author_avatar
+        u.avatar_url AS author_avatar,
+        u.username AS author_username
        FROM forum.threads t
        LEFT JOIN forum.categories c ON t.category_id = c.category_id
        LEFT JOIN users.users u ON t.author_id = u.user_id

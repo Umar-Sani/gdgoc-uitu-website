@@ -26,6 +26,7 @@ type Thread = {
   author_id: string;
   author_name: string;
   author_avatar: string | null;
+  author_username: string | null;
 };
 
 type Reply = {
@@ -82,9 +83,12 @@ const markdownComponents = {
     if (href?.startsWith('mention:')) {
       const username = href.replace('mention:', '');
       return (
-        <span className="inline-block px-1.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-colors">
+        <Link
+          href={`/u/${username}`}
+          className="inline-block px-1.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-colors"
+        >
           @{username}
-        </span>
+        </Link>
       );
     }
     return (
@@ -100,10 +104,22 @@ const markdownComponents = {
 function ReplyCard({ reply }: { reply: Reply }) {
   return (
     <div className={`flex gap-3 ${reply.parent_reply_id ? 'ml-10 pl-4 border-l-2 border-gray-100' : ''}`}>
-      <Avatar name={reply.author_name} avatar={reply.author_avatar} size="sm" />
+      {reply.author_username ? (
+        <Link href={`/u/${reply.author_username}`} className="hover:opacity-80 transition-opacity">
+          <Avatar name={reply.author_name} avatar={reply.author_avatar} size="sm" />
+        </Link>
+      ) : (
+        <Avatar name={reply.author_name} avatar={reply.author_avatar} size="sm" />
+      )}
       <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm font-semibold text-gray-900">{reply.author_name}</span>
+          {reply.author_username ? (
+            <Link href={`/u/${reply.author_username}`} className="text-sm font-semibold text-gray-900 hover:text-[#4285F4] transition-colors">
+              {reply.author_name}
+            </Link>
+          ) : (
+            <span className="text-sm font-semibold text-gray-900">{reply.author_name}</span>
+          )}
           {reply.author_username && (
             <span className="text-xs text-gray-400">@{reply.author_username}</span>
           )}
@@ -349,9 +365,21 @@ export default function ThreadDetailPage() {
 
           {/* Author row */}
           <div className="flex items-center gap-3 mb-4">
-            <Avatar name={thread.author_name} avatar={thread.author_avatar} />
+            {thread.author_username ? (
+              <Link href={`/u/${thread.author_username}`} className="hover:opacity-80 transition-opacity">
+                <Avatar name={thread.author_name} avatar={thread.author_avatar} />
+              </Link>
+            ) : (
+              <Avatar name={thread.author_name} avatar={thread.author_avatar} />
+            )}
             <div>
-              <p className="text-sm font-semibold text-gray-900">{thread.author_name}</p>
+              {thread.author_username ? (
+                <Link href={`/u/${thread.author_username}`} className="text-sm font-semibold text-gray-900 hover:text-[#4285F4] transition-colors">
+                  {thread.author_name}
+                </Link>
+              ) : (
+                <p className="text-sm font-semibold text-gray-900">{thread.author_name}</p>
+              )}
               <p className="text-xs text-gray-400">{timeAgo(thread.created_at)}</p>
             </div>
           </div>
