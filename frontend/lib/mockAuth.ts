@@ -1,6 +1,6 @@
 import type { User } from '@shared/types'
 
-export const MOCK_ENABLED = true
+export const MOCK_ENABLED = false
 
 export const mockUsers: Record<string, User> = {
   member: {

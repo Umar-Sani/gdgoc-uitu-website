@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const SKILL_COLORS: Record<string, string> = {
   'Flutter':         'bg-blue-50 text-blue-600 border-blue-100',
@@ -27,30 +25,14 @@ function formatDate(dateStr: string): string {
 }
 
 export default function ProfilePage() {
-  const { user, token, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (!user || !token) return;
-
-    fetch(`${API_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(res => setProfile(res.data))
-      .catch(() => {})
-      .finally(() => setProfileLoading(false));
-  }, [user, token]);
-
-  if (loading || !user) return null;
-
-  if (profileLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 py-10 animate-pulse space-y-4">
@@ -61,7 +43,9 @@ export default function ProfilePage() {
     );
   }
 
-  const data = profile ?? user;
+  if (!user) return null;
+
+  const data = user;
 
   return (
     <div className="min-h-screen bg-gray-50">

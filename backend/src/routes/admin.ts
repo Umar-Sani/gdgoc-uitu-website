@@ -1,12 +1,14 @@
 import { Router, Request, Response } from 'express';
+import { createClient } from '@supabase/supabase-js';
 import { pool } from '../db/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { validate, updateRoleSchema, updateStatusSchema } from '../lib/validate';
 
 const router = Router();
 
-// All admin routes require auth + admin role
+// All admin routes require auth + at minimum editor role
 router.use(requireAuth);
-router.use(requireRole('admin', 'super_admin'));
+router.use(requireRole('editor', 'admin', 'super_admin'));
 
 // ─── GET /api/admin/stats ─────────────────────────────────────────────────────
 // Dashboard stats — total users, events, revenue, registrations
@@ -43,11 +45,12 @@ router.get('/stats', async (req: Request, res: Response) => {
 
 // ─── GET /api/admin/users ─────────────────────────────────────────────────────
 // List all users with filters and pagination
-router.get('/users', async (req: Request, res: Response) => {
+router.get('/users', requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
   try {
     const {
       search,
       role,
+      status,
       page  = '1',
       limit = '20',
     } = req.query;
@@ -56,21 +59,33 @@ router.get('/users', async (req: Request, res: Response) => {
     const params: any[] = [];
     let paramIndex = 1;
 
+    // Query base tables directly so is_active = FALSE rows are always included
     let query = `
-      SELECT * FROM users.v_user_profile
+      SELECT
+        u.user_id, u.email, u.full_name, u.username, u.avatar_url,
+        u.is_active, u.is_verified, u.created_at, u.last_login,
+        r.role_name
+      FROM users.users u
+      LEFT JOIN users.roles r ON u.role_id = r.role_id
       WHERE 1=1
     `;
 
     if (search) {
-      query += ` AND (full_name ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR username ILIKE $${paramIndex})`;
+      query += ` AND (u.full_name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
 
     if (role && role !== 'all') {
-      query += ` AND role_name = $${paramIndex}`;
+      query += ` AND r.role_name = $${paramIndex}`;
       params.push(role);
       paramIndex++;
+    }
+
+    if (status === 'active') {
+      query += ` AND u.is_active = TRUE`;
+    } else if (status === 'inactive') {
+      query += ` AND u.is_active = FALSE`;
     }
 
     const countResult = await pool.query(
@@ -101,12 +116,21 @@ router.get('/users', async (req: Request, res: Response) => {
 
 // ─── PATCH /api/admin/users/:id/role ─────────────────────────────────────────
 // Change a user's role
-router.patch('/users/:id/role', async (req: Request, res: Response) => {
+router.patch('/users/:id/role', requireRole('admin', 'super_admin'), validate(updateRoleSchema), async (req: Request, res: Response) => {
   try {
     const { role_name } = req.body;
 
-    if (!role_name) {
-      return res.status(400).json({ data: null, error: 'role_name is required' });
+    // Only a super_admin may elevate another account to super_admin
+    if (role_name === 'super_admin') {
+      const callerRow = await pool.query(
+        `SELECT r.role_name FROM users.users u
+         JOIN users.roles r ON u.role_id = r.role_id
+         WHERE u.user_id = $1`,
+        [(req as any).user.id]
+      );
+      if (callerRow.rows[0]?.role_name !== 'super_admin') {
+        return res.status(403).json({ data: null, error: 'Only a super admin can assign the super_admin role.' });
+      }
     }
 
     // Get role_id from role_name
@@ -143,12 +167,17 @@ router.patch('/users/:id/role', async (req: Request, res: Response) => {
 
 // ─── PATCH /api/admin/users/:id/status ───────────────────────────────────────
 // Activate or deactivate a user
-router.patch('/users/:id/status', async (req: Request, res: Response) => {
+router.patch('/users/:id/status', requireRole('admin', 'super_admin'), validate(updateStatusSchema), async (req: Request, res: Response) => {
   try {
     const { is_active } = req.body;
 
-    if (typeof is_active !== 'boolean') {
-      return res.status(400).json({ data: null, error: 'is_active must be a boolean' });
+    // Prevent modifying super_admin accounts
+    const roleCheck = await pool.query(
+      `SELECT r.role_name FROM users.users u JOIN users.roles r ON u.role_id = r.role_id WHERE u.user_id = $1`,
+      [req.params.id]
+    );
+    if (roleCheck.rows[0]?.role_name === 'super_admin') {
+      return res.status(403).json({ data: null, error: 'Super admin accounts cannot be deactivated.' });
     }
 
     const result = await pool.query(
@@ -167,6 +196,53 @@ router.patch('/users/:id/status', async (req: Request, res: Response) => {
 
   } catch (err: any) {
     console.error('PATCH /api/admin/users/:id/status error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── DELETE /api/admin/users/:id ─────────────────────────────────────────────
+// Permanently delete a user account — super_admin only
+router.delete('/users/:id', requireRole('super_admin'), async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id;
+
+    // Prevent deleting your own account
+    if ((req as any).user?.id === userId) {
+      return res.status(400).json({ data: null, error: 'You cannot delete your own account.' });
+    }
+
+    const check = await pool.query(
+      `SELECT u.user_id, u.email, u.full_name, r.role_name
+       FROM users.users u LEFT JOIN users.roles r ON u.role_id = r.role_id
+       WHERE u.user_id = $1`,
+      [userId]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'User not found.' });
+    }
+
+    if (check.rows[0].role_name === 'super_admin') {
+      return res.status(403).json({ data: null, error: 'Super admin accounts cannot be deleted.' });
+    }
+
+    const deleted = check.rows[0];
+
+    // Remove from Supabase auth first — revokes all active sessions immediately
+    const supabaseAdmin = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    // Remove from our database
+    await pool.query(`DELETE FROM users.users WHERE user_id = $1`, [userId]);
+
+    res.json({ data: deleted, error: null });
+
+  } catch (err: any) {
+    console.error('DELETE /api/admin/users/:id error:', err.message);
     res.status(500).json({ data: null, error: err.message });
   }
 });
@@ -252,7 +328,7 @@ router.delete('/events/:id', async (req: Request, res: Response) => {
 
 // ─── GET /api/admin/payments ──────────────────────────────────────────────────
 // List all transactions with filters
-router.get('/payments', async (req: Request, res: Response) => {
+router.get('/payments', requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
   try {
     const {
       search,
@@ -361,11 +437,14 @@ router.get('/audit', requireRole('super_admin'), async (req: Request, res: Respo
 });
 
 // ─── GET /api/admin/roles ─────────────────────────────────────────────────────
-// List all available roles
+// List assignable roles. 'viewer' is excluded — users are either member (user),
+// editor, admin, or super_admin. super_admin assignment is guarded separately.
 router.get('/roles', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
-      `SELECT role_id, role_name, description FROM users.roles ORDER BY role_id ASC`
+      `SELECT role_id, role_name, description FROM users.roles
+       WHERE role_name != 'viewer'
+       ORDER BY role_id ASC`
     );
     res.json({ data: result.rows, error: null });
   } catch (err: any) {

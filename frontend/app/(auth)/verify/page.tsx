@@ -1,15 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 type VerifyState = 'loading' | 'success' | 'expired' | 'already_verified' | 'error';
 
 export default function VerifyPage() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [state, setState]       = useState<VerifyState>('loading');
   const [countdown, setCountdown] = useState(5);

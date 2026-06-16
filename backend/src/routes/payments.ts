@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { pool } from '../db/client';
 import { requireAuth } from '../middleware/auth';
+import { validate, createCheckoutSchema } from '../lib/validate';
 
 const router = Router();
 
@@ -12,15 +13,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // ─── POST /api/payments/create-checkout-session ──────────────────────────────
 // Creates a Stripe Checkout Session for a paid event.
 // Returns the Stripe-hosted checkout URL to redirect the user to.
-router.post('/create-checkout-session', requireAuth, async (req: Request, res: Response) => {
+router.post('/create-checkout-session', requireAuth, validate(createCheckoutSchema), async (req: Request, res: Response) => {
   try {
     const { event_id } = req.body;
     const userId = (req as any).user.id;
     const userEmail = (req as any).user.email;
-
-    if (!event_id) {
-      return res.status(400).json({ data: null, error: 'event_id is required' });
-    }
 
     // Fetch event details to get price and title
     const eventResult = await pool.query(

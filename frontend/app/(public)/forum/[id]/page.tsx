@@ -4,13 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Thread = {
   thread_id: string;
   title: string;
-  body_preview: string;
+  body: string;
   category_name: string;
   category_color: string;
   tags: string[];
@@ -67,6 +70,31 @@ function Avatar({ name, avatar, size = 'md' }: { name: string; avatar: string | 
   );
 }
 
+// ─── Preprocessing for Mentions ───────────────────────────────────────────────
+
+function preprocessMarkdown(text: string): string {
+  if (!text) return '';
+  return text.replace(/\B@([a-zA-Z0-9_]+)/g, '[@$1](mention:$1)');
+}
+
+const markdownComponents = {
+  a: ({ href, children, ...props }: any) => {
+    if (href?.startsWith('mention:')) {
+      const username = href.replace('mention:', '');
+      return (
+        <span className="inline-block px-1.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-colors">
+          @{username}
+        </span>
+      );
+    }
+    return (
+      <a href={href} className="text-blue-600 hover:underline" {...props}>
+        {children}
+      </a>
+    );
+  }
+};
+
 // ─── Reply Card ───────────────────────────────────────────────────────────────
 
 function ReplyCard({ reply }: { reply: Reply }) {
@@ -81,7 +109,11 @@ function ReplyCard({ reply }: { reply: Reply }) {
           )}
           <span className="text-xs text-gray-400 ml-auto">{timeAgo(reply.created_at)}</span>
         </div>
-        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{reply.body}</p>
+        <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line prose prose-sm prose-blue max-w-none prose-img:rounded-lg prose-img:max-h-96">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {preprocessMarkdown(reply.body)}
+          </ReactMarkdown>
+        </div>
         <div className="flex items-center gap-1 mt-3">
           <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -114,10 +146,11 @@ export default function ThreadDetailPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // ─── Fetch thread ───────────────────────────────────────────────────────────
+  // ─── Fetch thread and record view ──────────────────────────────────────────
   useEffect(() => {
     if (!params.id) return;
 
+    // Fetch thread details
     fetch(`${API_URL}/api/forum/threads/${params.id}`)
       .then((r) => r.json())
       .then((res) => {
@@ -128,11 +161,20 @@ export default function ThreadDetailPage() {
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
+
+    // Record view once per session per thread
+    const sessionKey = `viewed_thread_${params.id}`;
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, 'true');
+      fetch(`${API_URL}/api/forum/threads/${params.id}/view`, { method: 'POST' })
+        .catch((err) => console.error('Failed to register view:', err));
+    }
   }, [params.id]);
 
   // ─── Upvote ─────────────────────────────────────────────────────────────────
   async function handleUpvote() {
     if (!user) { router.push('/login'); return; }
+    if (!user.username) { router.push('/complete-profile'); return; }
 
     try {
       const res = await fetch(`${API_URL}/api/forum/threads/${params.id}/upvote`, {
@@ -140,6 +182,7 @@ export default function ThreadDetailPage() {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       const json = await res.json();
+      if (json.code === 'PROFILE_INCOMPLETE') { router.push('/complete-profile'); return; }
       if (json.data) {
         setUpvoted(json.data.upvoted);
         setUpvoteCount((prev) => json.data.upvoted ? prev + 1 : prev - 1);
@@ -152,6 +195,8 @@ export default function ThreadDetailPage() {
   // ─── Submit reply ────────────────────────────────────────────────────────────
   async function handleReply(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) { router.push('/login'); return; }
+    if (!user.username) { router.push('/complete-profile'); return; }
     if (!replyBody.trim()) { setReplyError('Reply cannot be empty.'); return; }
     if (replyBody.trim().length < 5) { setReplyError('Reply must be at least 5 characters.'); return; }
 
@@ -171,6 +216,7 @@ export default function ThreadDetailPage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.code === 'PROFILE_INCOMPLETE') { router.push('/complete-profile'); return; }
         setReplyError(json.error || 'Failed to post reply.');
         return;
       }
@@ -194,11 +240,45 @@ export default function ThreadDetailPage() {
     }
   }
 
+  // ─── Moderation Actions ──────────────────────────────────────────────────────
+  async function handleModeration(action: 'pin' | 'lock' | 'delete') {
+    if (!confirm(`Are you sure you want to ${action} this thread?`)) return;
+    
+    try {
+      if (action === 'delete') {
+        const res = await fetch(`${API_URL}/api/forum/threads/${params.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) router.push('/forum');
+      } else if (action === 'pin') {
+        const res = await fetch(`${API_URL}/api/forum/threads/${params.id}/pin`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ is_pinned: !thread?.is_pinned })
+        });
+        if (res.ok) setThread(prev => prev ? { ...prev, is_pinned: !prev.is_pinned } : prev);
+      } else if (action === 'lock') {
+        const res = await fetch(`${API_URL}/api/forum/threads/${params.id}/lock`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ is_locked: !thread?.is_locked })
+        });
+        if (res.ok) setThread(prev => prev ? { ...prev, is_locked: !prev.is_locked } : prev);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Action failed.');
+    }
+  }
+
+  const isAdmin = user && (user as any).role_name === 'admin';
+
   // ─── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-3xl mx-auto px-4 py-10 animate-pulse space-y-4">
+        <div className="w-full max-w-full mx-auto px-4 sm:px-8 lg:px-12 py-10 animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-2/3" />
           <div className="h-4 bg-gray-200 rounded w-full" />
           <div className="h-4 bg-gray-200 rounded w-full" />
@@ -226,7 +306,7 @@ export default function ThreadDetailPage() {
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="w-full max-w-full mx-auto px-4 sm:px-8 lg:px-12 py-10">
 
         {/* Back button */}
         <button
@@ -277,9 +357,11 @@ export default function ThreadDetailPage() {
           </div>
 
           {/* Body */}
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-            {thread.body_preview}
-          </p>
+          <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line prose prose-blue max-w-none prose-img:rounded-lg prose-img:max-h-96">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {preprocessMarkdown(thread.body)}
+            </ReactMarkdown>
+          </div>
 
           {/* Tags */}
           {thread.tags && thread.tags.length > 0 && (
@@ -322,47 +404,44 @@ export default function ThreadDetailPage() {
               </svg>
               {thread.view_count} views
             </span>
+
+            {/* Admin Controls */}
+            {isAdmin && (
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => handleModeration('pin')} className="px-3 py-1 rounded border text-xs font-semibold hover:bg-gray-50">
+                  {thread.is_pinned ? 'Unpin' : 'Pin'}
+                </button>
+                <button onClick={() => handleModeration('lock')} className="px-3 py-1 rounded border text-xs font-semibold hover:bg-gray-50">
+                  {thread.is_locked ? 'Unlock' : 'Lock'}
+                </button>
+                <button onClick={() => handleModeration('delete')} className="px-3 py-1 rounded border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50">
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── Replies ── */}
-        {replies.length > 0 && (
-          <div className="space-y-4 mb-6">
-            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
-              {replies.length} {replies.length === 1 ? 'Reply' : 'Replies'}
-            </h2>
-            {replies.map((reply) => (
-              <ReplyCard key={reply.reply_id} reply={reply} />
-            ))}
-          </div>
-        )}
-
-        {/* ── Reply box ── */}
+        {/* ── Reply box — sits directly below the post, above replies (Reddit-style) ── */}
         {thread.is_locked ? (
-          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-center text-sm text-gray-500">
+          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-center text-sm text-gray-500 mb-6">
             🔒 This thread is locked. No new replies allowed.
           </div>
         ) : !user ? (
-          <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 text-center">
+          <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 text-center mb-6">
             <p className="text-sm text-blue-700 font-medium">
               <Link href="/login" className="underline">Log in</Link> to join the discussion
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Add a Reply</h3>
             <form onSubmit={handleReply} noValidate>
-              <textarea
-                ref={replyBoxRef}
+              <MarkdownEditor
                 value={replyBody}
-                onChange={(e) => setReplyBody(e.target.value)}
-                placeholder="Write your reply..."
-                rows={4}
-                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none ${
-                  replyError
-                    ? 'border-red-400 bg-red-50 focus:ring-2 focus:ring-red-200'
-                    : 'border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
-                }`}
+                onChange={setReplyBody}
+                placeholder="Write your reply... (Markdown supported)"
+                className={!!replyError ? 'border-red-400' : ''}
               />
               {replyError && <p className="mt-1 text-xs text-red-500">{replyError}</p>}
               <div className="flex justify-between items-center mt-3">
@@ -384,6 +463,18 @@ export default function ThreadDetailPage() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* ── Replies ── */}
+        {replies.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
+              {replies.length} {replies.length === 1 ? 'Reply' : 'Replies'}
+            </h2>
+            {replies.map((reply) => (
+              <ReplyCard key={reply.reply_id} reply={reply} />
+            ))}
           </div>
         )}
 

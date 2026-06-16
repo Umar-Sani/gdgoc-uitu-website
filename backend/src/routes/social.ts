@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { validate, createSocialPostSchema, updateSocialPostSchema } from '../lib/validate';
 
 const router = Router();
 
@@ -61,14 +62,10 @@ router.get('/posts/:id', requireAuth, requireRole('admin', 'super_admin'), async
 });
 
 // POST /api/social/posts
-router.post('/posts', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/posts', requireAuth, requireRole('admin', 'super_admin'), validate(createSocialPostSchema), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { platform, caption, media_urls, tags, hashtags, scheduled_at } = req.body;
-
-    if (!platform || !caption) {
-      return res.status(400).json({ data: null, error: 'platform and caption are required' });
-    }
 
     const result = await pool.query(
       `INSERT INTO social.posts (platform, caption, media_urls, tags, hashtags, scheduled_at, status, created_by)
@@ -84,7 +81,7 @@ router.post('/posts', requireAuth, requireRole('admin', 'super_admin'), async (r
 });
 
 // PATCH /api/social/posts/:id
-router.patch('/posts/:id', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.patch('/posts/:id', requireAuth, requireRole('admin', 'super_admin'), validate(updateSocialPostSchema), async (req: Request, res: Response) => {
   try {
     const { platform, caption, media_urls, tags, hashtags, scheduled_at, status } = req.body;
 

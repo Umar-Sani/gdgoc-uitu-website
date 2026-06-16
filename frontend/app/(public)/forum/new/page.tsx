@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 
 type Category = {
   category_id: number;
@@ -30,9 +31,10 @@ export default function NewThreadPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // Redirect if not logged in
+  // Redirect if not logged in or profile incomplete
   useEffect(() => {
-    if (!user) router.push('/login');
+    if (!user) { router.push('/login'); return; }
+    if (!user.username) { router.push('/complete-profile'); return; }
   }, [user, router]);
 
   // Fetch categories
@@ -85,6 +87,7 @@ export default function NewThreadPage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.code === 'PROFILE_INCOMPLETE') { router.push('/complete-profile'); return; }
         setGeneralError(json.error || 'Failed to create thread. Please try again.');
         return;
       }
@@ -171,12 +174,11 @@ export default function NewThreadPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Body <span className="text-red-500">*</span>
             </label>
-            <textarea
+            <MarkdownEditor
               value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Describe your question or topic in detail..."
-              rows={8}
-              className={inputClass(!!errors.body)}
+              onChange={setBody}
+              placeholder="Describe your question or topic in detail... (Markdown supported)"
+              className={!!errors.body ? "border-red-400" : ""}
             />
             <div className="flex justify-between mt-1">
               {errors.body

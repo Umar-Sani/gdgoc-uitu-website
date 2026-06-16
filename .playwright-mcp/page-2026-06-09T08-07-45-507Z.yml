@@ -1,0 +1,1013 @@
+- generic [ref=e2]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link [ref=e9] [cursor=pointer]:
+          - /url: /exhibits
+          - paragraph
+        - generic [ref=e11]:
+          - link [ref=e13] [cursor=pointer]:
+            - /url: /
+            - paragraph
+          - link [ref=e15] [cursor=pointer]:
+            - /url: /
+            - paragraph
+          - link [ref=e17] [cursor=pointer]:
+            - /url: /
+            - paragraph
+      - generic [ref=e18]:
+        - link [ref=e21] [cursor=pointer]:
+          - /url: /about
+          - paragraph
+        - link [ref=e24] [cursor=pointer]:
+          - /url: /search
+          - paragraph
+        - link [ref=e27] [cursor=pointer]:
+          - /url: /subscribe
+          - paragraph
+        - link [ref=e30] [cursor=pointer]:
+          - /url: /signin
+          - paragraph
+        - button [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+  - link "Bon Jovi Logo" [ref=e34] [cursor=pointer]:
+    - /url: /
+    - img "Bon Jovi Logo"
+  - generic [ref=e35]:
+    - generic [ref=e37]:
+      - img "Hero image"
+    - generic [ref=e38]:
+      - paragraph [ref=e40]: Take a journey through four decades and counting of Bon Jovi history. With millions of records sold and fans rocked, this collection offers a glimpse into the band's ever-expanding personal archives. Join us and experience just a few behind-the-scenes moments from an extraordinary 40-year legacy.
+      - generic [ref=e41]:
+        - generic:
+          - paragraph
+        - paragraph [ref=e43]
+      - heading "\"We'll Make It I Swear\"" [level=2] [ref=e45]
+  - generic [ref=e47]:
+    - generic [ref=e50]:
+      - paragraph [ref=e51]: 1983 - 1984
+      - heading "Bon Jovi" [level=2] [ref=e52]
+    - generic [ref=e54]:
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - link "Scattered artefact image" [ref=e59] [cursor=pointer]:
+            - /url: /artifact/0006503
+            - img "Scattered artefact image" [ref=e60]
+          - img [ref=e62]
+        - paragraph [ref=e65]: Album Cover Outtake
+      - generic [ref=e68]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/early-band-promotion?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/early-band-promotion
+                - img "Scattered artefact image"
+              - img [ref=e70]
+        - paragraph [ref=e73]: Early Band Promotion
+      - generic [ref=e76]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/runaway-tour-t-shirt?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/runaway-tour-t-shirt
+                - img "Scattered artefact image"
+              - img [ref=e78]
+        - paragraph [ref=e81]: Runaway tour t-shirt
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - link "Scattered artefact image" [ref=e86] [cursor=pointer]:
+            - /url: /artifact/jon-s-runaway-tour-book
+            - img "Scattered artefact image" [ref=e87]
+          - link "Buy Item" [ref=e89] [cursor=pointer]:
+            - /url: https://backstageshop.bonjovi.com/products/runaway-tour-book-journal
+            - button "Buy Item" [ref=e90]:
+              - img [ref=e91]
+              - paragraph [ref=e93]: Buy Item
+          - img [ref=e95]
+        - paragraph [ref=e98]: Jon's Runaway Tour Itinerary
+  - generic [ref=e100]:
+    - generic [ref=e103]:
+      - paragraph [ref=e104]: 1985 - 1986
+      - heading "7800° Fahrenheit" [level=2] [ref=e105]
+    - generic [ref=e107]:
+      - generic [ref=e110]:
+        - generic [ref=e111]:
+          - link "Scattered artefact image" [ref=e112] [cursor=pointer]:
+            - /url: /artifact/take-a-bow
+            - img "Scattered artefact image" [ref=e113]
+          - img [ref=e115]
+        - paragraph [ref=e118]: Take a bow
+      - generic [ref=e121]:
+        - generic [ref=e122]:
+          - link "Scattered artefact image" [ref=e123] [cursor=pointer]:
+            - /url: /artifact/7800-fahrenheit-liner-notes
+            - img "Scattered artefact image" [ref=e124]
+          - img [ref=e126]
+        - paragraph [ref=e129]: 7800° Fahrenheit Liner Notes
+      - generic [ref=e132]:
+        - generic [ref=e133]:
+          - link "Scattered artefact image" [ref=e134] [cursor=pointer]:
+            - /url: /artifact/early-magazine-cover
+            - img "Scattered artefact image" [ref=e135]
+          - img [ref=e137]
+        - paragraph [ref=e140]: Early Magazine Cover
+      - generic [ref=e143]:
+        - generic [ref=e144]:
+          - link "Scattered artefact image" [ref=e145] [cursor=pointer]:
+            - /url: /artifact/only-lonely-video-shoot
+            - img "Scattered artefact image" [ref=e146]
+          - img [ref=e148]
+        - paragraph [ref=e151]: “ONLY LONELY” VIDEO SHOOT
+      - generic [ref=e154]:
+        - generic [ref=e155]:
+          - link "Scattered artefact image" [ref=e156] [cursor=pointer]:
+            - /url: /artifact/richie-and-jon
+            - img "Scattered artefact image" [ref=e157]
+          - img [ref=e159]
+        - paragraph [ref=e162]: RICHIE AND JON
+  - generic [ref=e164]:
+    - generic [ref=e167]:
+      - paragraph [ref=e168]: 1986 - 1988
+      - heading "SLIPPERY WHEN WET" [level=2] [ref=e169]
+    - generic [ref=e171]:
+      - generic [ref=e174]:
+        - generic [ref=e175]:
+          - link "Scattered artefact image" [ref=e176] [cursor=pointer]:
+            - /url: /artifact/slippery-when-wet-photoshoot?image=3
+            - img "Scattered artefact image" [ref=e177]
+          - img [ref=e179]
+        - img [ref=e183]
+      - generic [ref=e187]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/slippery-when-wet-tour-program?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/slippery-when-wet-tour-program
+                - img "Scattered artefact image"
+              - img [ref=e189]
+        - paragraph [ref=e192]: Slippery When Wet Tour Program
+      - generic [ref=e195]:
+        - generic [ref=e196]:
+          - link "Scattered artefact image" [ref=e197] [cursor=pointer]:
+            - /url: /artifact/1988-press-photo
+            - img "Scattered artefact image" [ref=e198]
+          - img [ref=e200]
+        - paragraph [ref=e203]: 1988 Press Photo
+      - generic [ref=e206]:
+        - generic [ref=e207]:
+          - link "Scattered artefact image" [ref=e208] [cursor=pointer]:
+            - /url: /artifact/jon-s-birthday-show
+            - img "Scattered artefact image" [ref=e209]
+          - img [ref=e211]
+        - paragraph [ref=e214]: Special Guest Little Steven
+  - generic [ref=e216]:
+    - generic [ref=e219]:
+      - paragraph [ref=e220]: 1988 - 1992
+      - heading "NEW JERSEY" [level=2] [ref=e221]
+    - generic [ref=e223]:
+      - generic [ref=e226]:
+        - generic [ref=e227]:
+          - link "Scattered artefact image" [ref=e228] [cursor=pointer]:
+            - /url: /artifact/bad-medicine-music-video2
+            - img "Scattered artefact image" [ref=e229]
+          - img [ref=e231]
+        - paragraph [ref=e234]: "\"Bad Medicine\" Music Video"
+        - img [ref=e237]
+      - generic [ref=e241]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/new-jersey-photo-shoot?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/new-jersey-photo-shoot
+                - img "Scattered artefact image"
+              - img [ref=e243]
+        - paragraph [ref=e246]: New Jersey Photo Shoot
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - link "Scattered artefact image" [ref=e251] [cursor=pointer]:
+            - /url: /artifact/new-jersey-duster
+            - img "Scattered artefact image" [ref=e252]
+          - img [ref=e254]
+        - paragraph [ref=e257]: New Jersey Duster
+        - img [ref=e260]
+      - generic [ref=e264]:
+        - generic [ref=e265]:
+          - link "Scattered artefact image" [ref=e266] [cursor=pointer]:
+            - /url: /artifact/the-manor
+            - img "Scattered artefact image" [ref=e267]
+          - img [ref=e269]
+        - paragraph [ref=e272]: the manor
+        - img [ref=e275]
+      - generic [ref=e279]:
+        - generic [ref=e280]:
+          - link "Scattered artefact image" [ref=e281] [cursor=pointer]:
+            - /url: /artifact/jersey-syndicate-tour
+            - img "Scattered artefact image" [ref=e282]
+          - img [ref=e284]
+        - paragraph [ref=e287]: Jersey Syndicate Tour
+      - generic [ref=e290]:
+        - generic [ref=e291]:
+          - link "Scattered artefact image" [ref=e292] [cursor=pointer]:
+            - /url: /artifact/charlotte-coliseum
+            - img "Scattered artefact image" [ref=e293]
+          - img [ref=e295]
+        - paragraph [ref=e298]: Charlotte Coliseum
+      - generic [ref=e301]:
+        - generic [ref=e302]:
+          - link "Scattered artefact image" [ref=e303] [cursor=pointer]:
+            - /url: /artifact/0010289
+            - img "Scattered artefact image" [ref=e304]
+          - img [ref=e306]
+        - paragraph [ref=e309]: Moscow Music Peace Festival
+      - generic [ref=e312]:
+        - generic [ref=e313]:
+          - link "Scattered artefact image" [ref=e314] [cursor=pointer]:
+            - /url: /artifact/0017111
+            - img "Scattered artefact image" [ref=e315]
+          - img [ref=e317]
+        - paragraph [ref=e320]: Brendan Byrne Arena
+        - img [ref=e323]
+  - generic [ref=e326]:
+    - generic [ref=e329]:
+      - paragraph [ref=e330]: 1992 - 1994
+      - heading "Keep the faith" [level=2] [ref=e331]
+    - generic [ref=e333]:
+      - generic [ref=e336]:
+        - generic [ref=e337]:
+          - link "Scattered artefact image" [ref=e338] [cursor=pointer]:
+            - /url: /artifact/keep-the-faith-outtake
+            - img "Scattered artefact image" [ref=e339]
+          - img [ref=e341]
+        - paragraph [ref=e344]: Keep The Faith Outtake
+        - img [ref=e347]
+      - generic [ref=e351]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/keep-the-faith-tour-ad?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/keep-the-faith-tour-ad
+                - img "Scattered artefact image"
+              - img [ref=e353]
+        - paragraph [ref=e356]: Keep The Faith Tour Ad
+      - generic [ref=e359]:
+        - generic [ref=e360]:
+          - link "Scattered artefact image" [ref=e361] [cursor=pointer]:
+            - /url: /artifact/keep-the-faith-recording
+            - img "Scattered artefact image" [ref=e362]
+          - img [ref=e364]
+        - paragraph [ref=e367]: Keep The Faith Recording
+      - generic [ref=e370]:
+        - generic [ref=e371]:
+          - link "Scattered artefact image" [ref=e372] [cursor=pointer]:
+            - /url: /artifact/keep-the-faith-promo-photo
+            - img "Scattered artefact image" [ref=e373]
+          - img [ref=e375]
+        - paragraph [ref=e378]: Keep The Faith Promo Photo
+      - generic [ref=e381]:
+        - generic [ref=e382]:
+          - link "Scattered artefact image" [ref=e383] [cursor=pointer]:
+            - /url: /artifact/bon-jovi-air
+            - img "Scattered artefact image" [ref=e384]
+          - img [ref=e386]
+        - paragraph [ref=e389]: Bon Jovi Air
+      - generic [ref=e392]:
+        - generic [ref=e393]:
+          - link "Scattered artefact image" [ref=e394] [cursor=pointer]:
+            - /url: /artifact/the-bow
+            - img "Scattered artefact image" [ref=e395]
+          - img [ref=e397]
+        - paragraph [ref=e400]: The Bow
+  - generic [ref=e402]:
+    - generic [ref=e405]:
+      - paragraph [ref=e406]: 1994 - 2000
+      - heading "THESE DAYS" [level=2] [ref=e407]
+    - generic [ref=e409]:
+      - generic [ref=e412]:
+        - generic [ref=e413]:
+          - link "Scattered artefact image" [ref=e414] [cursor=pointer]:
+            - /url: /artifact/0002698
+            - img "Scattered artefact image" [ref=e415]
+          - img [ref=e417]
+        - paragraph [ref=e420]: These Days Cover Shoot
+        - img [ref=e423]
+      - generic [ref=e427]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/these-days-in-paris
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/these-days-in-paris?image=1
+                - img "Scattered artefact image"
+              - img [ref=e429]
+        - paragraph [ref=e432]: These Days In Paris
+      - generic [ref=e435]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/jon-s-leather-jacket
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/jon-s-leather-jacket?image=1
+                - img "Scattered artefact image"
+              - img [ref=e437]
+        - paragraph [ref=e440]: Jon's Leather Jacket
+      - generic [ref=e443]:
+        - generic [ref=e444]:
+          - link "Scattered artefact image" [ref=e445] [cursor=pointer]:
+            - /url: /artifact/these-days-photo-shoot
+            - img "Scattered artefact image" [ref=e446]
+          - img [ref=e448]
+        - paragraph [ref=e451]: These Days Photo Shoot
+      - generic [ref=e454]:
+        - generic [ref=e455]:
+          - link "Scattered artefact image" [ref=e456] [cursor=pointer]:
+            - /url: /artifact/these-days-usa-tour
+            - img "Scattered artefact image" [ref=e457]
+          - img [ref=e459]
+        - paragraph [ref=e462]: These Days USA Tour
+      - generic [ref=e465]:
+        - generic [ref=e466]:
+          - link "Scattered artefact image" [ref=e467] [cursor=pointer]:
+            - /url: /artifact/these-days-studio-production-chart
+            - img "Scattered artefact image" [ref=e468]
+          - link "Buy Item" [ref=e470] [cursor=pointer]:
+            - /url: https://backstageshop.bonjovi.com/products/these-days-art-print
+            - button "Buy Item" [ref=e471]:
+              - img [ref=e472]
+              - paragraph [ref=e474]: Buy Item
+          - img [ref=e476]
+        - paragraph [ref=e479]: These Days Studio Production Chart
+        - img [ref=e482]
+  - generic [ref=e485]:
+    - generic [ref=e488]:
+      - paragraph [ref=e489]: 1992 - 2002
+      - heading "Crush" [level=2] [ref=e490]
+    - generic [ref=e492]:
+      - generic [ref=e495]:
+        - generic [ref=e496]:
+          - link "Scattered artefact image" [ref=e497] [cursor=pointer]:
+            - /url: /artifact/it-s-my-life-music-video-shoot
+            - img "Scattered artefact image" [ref=e498]
+          - img [ref=e500]
+        - paragraph [ref=e503]: "\"It's My Life\" Music Video Shoot"
+        - img [ref=e506]
+      - generic [ref=e510]:
+        - generic [ref=e511]:
+          - link "Scattered artefact image" [ref=e512] [cursor=pointer]:
+            - /url: /artifact/olaf-heine-contact-sheet
+            - img "Scattered artefact image" [ref=e513]
+          - img [ref=e515]
+        - paragraph [ref=e518]: Olaf Heine Contact Sheet
+      - generic [ref=e521]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/crush-photo-shoot?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/crush-photo-shoot
+                - img "Scattered artefact image"
+              - img [ref=e523]
+        - paragraph [ref=e526]: Crush Photo Shoot
+      - generic [ref=e529]:
+        - generic [ref=e530]:
+          - link "Scattered artefact image" [ref=e531] [cursor=pointer]:
+            - /url: /artifact/house-of-blues-chicago
+            - img "Scattered artefact image" [ref=e532]
+          - img [ref=e534]
+        - paragraph [ref=e537]: House of Blues Chicago
+        - img [ref=e540]
+      - generic [ref=e544]:
+        - generic [ref=e545]:
+          - link "Scattered artefact image" [ref=e546] [cursor=pointer]:
+            - /url: /artifact/triumph-the-earth-2000
+            - img "Scattered artefact image" [ref=e547]
+          - img [ref=e549]
+        - paragraph [ref=e552]: Triumph The Earth 2000
+      - generic [ref=e555]:
+        - generic [ref=e556]:
+          - link "Scattered artefact image" [ref=e557] [cursor=pointer]:
+            - /url: /artifact/crush-tour-wembley-stadium
+            - img "Scattered artefact image" [ref=e558]
+          - img [ref=e560]
+        - paragraph [ref=e563]: Crush Tour, Wembley Stadium
+  - generic [ref=e565]:
+    - generic [ref=e568]:
+      - paragraph [ref=e569]: 2001 - 2003
+      - heading "Bounce" [level=2] [ref=e570]
+    - generic [ref=e572]:
+      - generic [ref=e575]:
+        - generic [ref=e576]:
+          - link "Scattered artefact image" [ref=e577] [cursor=pointer]:
+            - /url: /artifact/bounce-cover-outtake
+            - img "Scattered artefact image" [ref=e578]
+          - img [ref=e580]
+        - paragraph [ref=e583]: Bounce Cover Outtake
+      - generic [ref=e586]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/misunderstood-video?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/misunderstood-video
+                - img "Scattered artefact image"
+              - img [ref=e588]
+        - paragraph [ref=e591]: "\"Misunderstood\" Video"
+      - generic [ref=e594]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/jon-s-cafe-racer-jacket?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/jon-s-cafe-racer-jacket
+                - img "Scattered artefact image"
+              - img [ref=e596]
+        - paragraph [ref=e599]: Jon's Café Racer Jacket
+      - generic [ref=e602]:
+        - generic [ref=e603]:
+          - link "Scattered artefact image" [ref=e604] [cursor=pointer]:
+            - /url: /artifact/bounce-lyrics
+            - img "Scattered artefact image" [ref=e605]
+          - img [ref=e607]
+        - paragraph [ref=e610]: "'Bounce' Lyrics"
+      - generic [ref=e613]:
+        - generic [ref=e614]:
+          - link "Scattered artefact image" [ref=e615] [cursor=pointer]:
+            - /url: /artifact/bounce-band-portrait
+            - img "Scattered artefact image" [ref=e616]
+          - img [ref=e618]
+        - paragraph [ref=e621]: Bounce Band Portrait
+      - generic [ref=e624]:
+        - generic [ref=e625]:
+          - link "Scattered artefact image" [ref=e626] [cursor=pointer]:
+            - /url: /artifact/yokohama-2003
+            - img "Scattered artefact image" [ref=e627]
+          - img [ref=e629]
+        - paragraph [ref=e632]: Yokohama, 2003
+  - generic [ref=e634]:
+    - generic [ref=e637]:
+      - paragraph [ref=e638]: 2004 - 2006
+      - heading "Have a nice day" [level=2] [ref=e639]
+    - generic [ref=e641]:
+      - generic [ref=e644]:
+        - generic [ref=e645]:
+          - link "Scattered artefact image" [ref=e646] [cursor=pointer]:
+            - /url: /artifact/have-a-nice-day-band-portrait
+            - img "Scattered artefact image" [ref=e647]
+          - img [ref=e649]
+        - paragraph [ref=e652]: Have A Nice Day Band Portrait
+      - generic [ref=e655]:
+        - generic [ref=e656]:
+          - link "Scattered artefact image" [ref=e657] [cursor=pointer]:
+            - /url: /artifact/it-ain-t-over-til-it-s-over
+            - img "Scattered artefact image" [ref=e658]
+          - img [ref=e660]
+        - paragraph [ref=e663]: It Ain't Over 'Til It's Over
+      - generic [ref=e666]:
+        - generic [ref=e667]:
+          - link "Scattered artefact image" [ref=e668] [cursor=pointer]:
+            - /url: /artifact/platinum-award-japan
+            - img "Scattered artefact image" [ref=e669]
+          - img [ref=e671]
+        - paragraph [ref=e674]: Platinum Award, Japan
+      - generic [ref=e677]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/military-style-jacket?image=3
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/military-style-jacket?image=2
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/military-style-jacket?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/military-style-jacket
+                - img "Scattered artefact image"
+              - img [ref=e679]
+        - paragraph [ref=e682]: Military Style Jacket
+      - generic [ref=e685]:
+        - generic [ref=e686]:
+          - link "Scattered artefact image" [ref=e687] [cursor=pointer]:
+            - /url: /artifact/croke-park-dublin
+            - img "Scattered artefact image" [ref=e688]
+          - img [ref=e690]
+        - paragraph [ref=e693]: Croke Park, Dublin
+      - generic [ref=e696]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/cmt-crossroads?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/cmt-crossroads?image=2
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/cmt-crossroads
+                - img "Scattered artefact image"
+              - img [ref=e698]
+        - paragraph [ref=e701]: CMT Crossroads
+  - generic [ref=e703]:
+    - generic [ref=e706]:
+      - paragraph [ref=e707]: 2006 - 2008
+      - heading "Lost highway" [level=2] [ref=e708]
+    - generic [ref=e710]:
+      - generic [ref=e713]:
+        - generic [ref=e714]:
+          - link "Scattered artefact image" [ref=e715] [cursor=pointer]:
+            - /url: /artifact/lost-highway-press-photo
+            - img "Scattered artefact image" [ref=e716]
+          - img [ref=e718]
+        - paragraph [ref=e721]: Lost Highway Press Photo
+      - generic [ref=e724]:
+        - generic [ref=e725]:
+          - link "Scattered artefact image" [ref=e726] [cursor=pointer]:
+            - /url: /artifact/lost-highway-photo-shoot
+            - img "Scattered artefact image" [ref=e727]
+          - img [ref=e729]
+        - paragraph [ref=e732]: Lost Highway Photo Shoot
+      - generic [ref=e735]:
+        - generic [ref=e736]:
+          - link "Scattered artefact image" [ref=e737] [cursor=pointer]:
+            - /url: /artifact/o2-arena-opening
+            - img "Scattered artefact image" [ref=e738]
+          - img [ref=e740]
+        - paragraph [ref=e743]: O2 Arena Opening
+      - generic [ref=e746]:
+        - generic [ref=e747]:
+          - link "Scattered artefact image" [ref=e748] [cursor=pointer]:
+            - /url: /artifact/lost-highway-platinum-award
+            - img "Scattered artefact image" [ref=e749]
+          - img [ref=e751]
+        - paragraph [ref=e754]: Lost Highway Platinum Award
+      - generic [ref=e757]:
+        - generic [ref=e758]:
+          - link "Scattered artefact image" [ref=e759] [cursor=pointer]:
+            - /url: /artifact/mtv-unplugged
+            - img "Scattered artefact image" [ref=e760]
+          - img [ref=e762]
+        - paragraph [ref=e765]: MTV Unplugged
+      - generic [ref=e768]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/lost-highway-the-concert?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/lost-highway-the-concert
+                - img "Scattered artefact image"
+              - img [ref=e770]
+        - paragraph [ref=e773]: "Lost Highway: The Concert"
+  - generic [ref=e775]:
+    - generic [ref=e778]:
+      - paragraph [ref=e779]: 2008 - 2013
+      - heading "The circle" [level=2] [ref=e780]
+    - generic [ref=e782]:
+      - generic [ref=e785]:
+        - generic [ref=e786]:
+          - link "Scattered artefact image" [ref=e787] [cursor=pointer]:
+            - /url: /artifact/atlanta-2010
+            - img "Scattered artefact image" [ref=e788]
+          - link "Buy Item" [ref=e790] [cursor=pointer]:
+            - /url: https://backstageshop.bonjovi.com/products/circle-tour-photo
+            - button "Buy Item" [ref=e791]:
+              - img [ref=e792]
+              - paragraph [ref=e794]: Buy Item
+          - img [ref=e796]
+        - paragraph [ref=e799]: Atlanta, 2010
+      - generic [ref=e802]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/the-circle-press-photos
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/the-circle-press-photos?image=1
+                - img "Scattered artefact image"
+              - img [ref=e804]
+        - paragraph [ref=e807]: The Circle Press Photos
+      - generic [ref=e810]:
+        - generic [ref=e811]:
+          - link "Scattered artefact image" [ref=e812] [cursor=pointer]:
+            - /url: /artifact/the-circle-tour-all-access
+            - img "Scattered artefact image" [ref=e813]
+          - img [ref=e815]
+        - paragraph [ref=e818]: The Circle Tour All Access
+      - generic [ref=e821]:
+        - generic [ref=e822]:
+          - link "Scattered artefact image" [ref=e823] [cursor=pointer]:
+            - /url: /artifact/hometown-hero
+            - img "Scattered artefact image" [ref=e824]
+          - img [ref=e826]
+        - paragraph [ref=e829]: Hometown Hero
+  - generic [ref=e831]:
+    - generic [ref=e834]:
+      - paragraph [ref=e835]: 2012 - 2015
+      - heading "What about now" [level=2] [ref=e836]
+    - generic [ref=e838]:
+      - generic [ref=e841]:
+        - generic [ref=e842]:
+          - link "Scattered artefact image" [ref=e843] [cursor=pointer]:
+            - /url: /artifact/what-about-now
+            - img "Scattered artefact image" [ref=e844]
+          - img [ref=e846]
+        - paragraph [ref=e849]: "\"What About Now\""
+      - generic [ref=e852]:
+        - generic [ref=e853]:
+          - link "Scattered artefact image" [ref=e854] [cursor=pointer]:
+            - /url: /artifact/richie-s-last-show
+            - img "Scattered artefact image" [ref=e855]
+          - img [ref=e857]
+        - paragraph [ref=e860]: Lubbock, 2013
+      - generic [ref=e863]:
+        - generic [ref=e864]:
+          - link "Scattered artefact image" [ref=e865] [cursor=pointer]:
+            - /url: /artifact/welcoming-phil-x
+            - img "Scattered artefact image" [ref=e866]
+          - img [ref=e868]
+        - paragraph [ref=e871]: Welcoming Phil X
+        - img [ref=e874]
+      - generic [ref=e878]:
+        - generic [ref=e879]:
+          - link "Scattered artefact image" [ref=e880] [cursor=pointer]:
+            - /url: /artifact/what-about-now-in-australia
+            - img "Scattered artefact image" [ref=e881]
+          - img [ref=e883]
+        - paragraph [ref=e886]: Australia Sales Award
+  - generic [ref=e888]:
+    - generic [ref=e891]:
+      - paragraph [ref=e892]: 2014 - 2016
+      - heading "Burning bridges" [level=2] [ref=e893]
+    - generic [ref=e895]:
+      - generic [ref=e898]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/burning-bridges-notes?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/burning-bridges-notes
+                - img "Scattered artefact image"
+              - img [ref=e900]
+        - paragraph [ref=e903]: ALBUM NOTES
+      - generic [ref=e906]:
+        - generic [ref=e907]:
+          - link "Scattered artefact image" [ref=e908] [cursor=pointer]:
+            - /url: /artifact/burning-bridges
+            - img "Scattered artefact image" [ref=e909]
+          - img [ref=e911]
+        - paragraph [ref=e914]: "\"Burning Bridges\" Lyric Brainstorm"
+  - generic [ref=e916]:
+    - generic [ref=e919]:
+      - paragraph [ref=e920]: 2015 - 2019
+      - heading "This House is not for sale" [level=2] [ref=e921]
+    - generic [ref=e923]:
+      - generic [ref=e926]:
+        - generic [ref=e927]:
+          - link "Scattered artefact image" [ref=e928] [cursor=pointer]:
+            - /url: /artifact/band-and-crew
+            - img "Scattered artefact image" [ref=e929]
+          - img [ref=e931]
+        - paragraph [ref=e934]: Band & Crew
+      - generic [ref=e937]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/heart-and-dagger-jacket?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/heart-and-dagger-jacket
+                - img "Scattered artefact image"
+              - img [ref=e939]
+        - paragraph [ref=e942]: Heart & Dagger Jacket
+        - img [ref=e945]
+      - generic [ref=e949]:
+        - generic [ref=e950]:
+          - link "Scattered artefact image" [ref=e951] [cursor=pointer]:
+            - /url: /artifact/this-house-is-not-for-sale
+            - img "Scattered artefact image" [ref=e952]
+          - img [ref=e954]
+        - paragraph [ref=e957]: This House is Not For Sale
+      - generic [ref=e960]:
+        - generic [ref=e961]:
+          - link "Scattered artefact image" [ref=e962] [cursor=pointer]:
+            - /url: /artifact/this-house-is-not-for-sale-tour-book
+            - img "Scattered artefact image" [ref=e963]
+          - img [ref=e965]
+        - paragraph [ref=e968]: This House is Not For Sale TOUR Itinerary
+      - generic [ref=e971]:
+        - generic [ref=e972]:
+          - link "Scattered artefact image" [ref=e973] [cursor=pointer]:
+            - /url: /artifact/rock-and-roll-hall-of-fame-induction
+            - img "Scattered artefact image" [ref=e974]
+          - img [ref=e976]
+        - paragraph [ref=e979]: Rock & Roll Hall of Fame Induction
+        - img [ref=e982]
+  - generic [ref=e985]:
+    - generic [ref=e988]:
+      - paragraph [ref=e989]: 2019 - 2024
+      - heading "2020" [level=2] [ref=e990]
+    - generic [ref=e992]:
+      - generic [ref=e995]:
+        - generic [ref=e996]:
+          - link "Scattered artefact image" [ref=e997] [cursor=pointer]:
+            - /url: /artifact/2020-portrait
+            - img "Scattered artefact image" [ref=e998]
+          - img [ref=e1000]
+        - paragraph [ref=e1003]: 2020 Portrait
+      - generic [ref=e1006]:
+        - generic [ref=e1007]:
+          - link "Scattered artefact image" [ref=e1008] [cursor=pointer]:
+            - /url: /artifact/recording-2020
+            - img "Scattered artefact image" [ref=e1009]
+          - img [ref=e1011]
+        - paragraph [ref=e1014]: 2020 Recording Session
+        - img [ref=e1017]
+      - generic [ref=e1021]:
+        - generic:
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/do-what-you-can-lyrics?image=3
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/do-what-you-can-lyrics?image=2
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/do-what-you-can-lyrics?image=1
+                - img "Scattered artefact image"
+          - generic:
+            - generic:
+              - link "Scattered artefact image":
+                - /url: /artifact/do-what-you-can-lyrics
+                - img "Scattered artefact image"
+              - img [ref=e1023]
+        - paragraph [ref=e1026]: “Do What You Can" Lyrics
+      - generic [ref=e1029]:
+        - generic [ref=e1030]:
+          - link "Scattered artefact image" [ref=e1031] [cursor=pointer]:
+            - /url: /artifact/a-record-we-ll-always-remember
+            - img "Scattered artefact image" [ref=e1032]
+          - img [ref=e1034]
+        - paragraph [ref=e1037]: A Record We'll Always Remember
+  - generic [ref=e1038]:
+    - generic [ref=e1040]:
+      - heading "Next up —" [level=2] [ref=e1042]
+      - heading "Next up —" [level=2] [ref=e1044]
+      - heading "Next up —" [level=2] [ref=e1046]
+      - heading "Next up —" [level=2] [ref=e1048]
+      - heading "Next up —" [level=2] [ref=e1050]
+    - link "Listing image Get Ready 1975-1982" [ref=e1051] [cursor=pointer]:
+      - /url: /exhibits/get-ready
+      - generic [ref=e1054]:
+        - img "Listing image" [ref=e1056]
+        - heading "Get Ready" [level=2] [ref=e1059]
+        - paragraph [ref=e1060]: 1975-1982
+        - generic [ref=e1062]:
+          - img [ref=e1064]
+          - img [ref=e1067]
+    - link "Listing image The Origin Story 1982-1983" [ref=e1072] [cursor=pointer]:
+      - /url: /exhibits/the-origin-story
+      - generic [ref=e1075]:
+        - img "Listing image" [ref=e1077]
+        - heading "The Origin Story" [level=2] [ref=e1080]
+        - paragraph [ref=e1081]: 1982-1983
+        - generic [ref=e1083]:
+          - img [ref=e1085]
+          - img [ref=e1088]
+    - link "Listing image Bon Jovi 1983-1985" [ref=e1093] [cursor=pointer]:
+      - /url: /exhibits/bon-jovi
+      - generic [ref=e1096]:
+        - img "Listing image" [ref=e1098]
+        - heading "Bon Jovi" [level=2] [ref=e1101]
+        - paragraph [ref=e1102]: 1983-1985
+        - generic [ref=e1104]:
+          - img [ref=e1106]
+          - img [ref=e1109]
+    - link "Listing image 7800⁰ Fahrenheit 1985-1986" [ref=e1114] [cursor=pointer]:
+      - /url: /exhibits/7800-fahrenheit
+      - generic [ref=e1117]:
+        - img "Listing image" [ref=e1119]
+        - heading "7800⁰ Fahrenheit" [level=2] [ref=e1122]
+        - paragraph [ref=e1123]: 1985-1986
+        - generic [ref=e1125]:
+          - img [ref=e1127]
+          - img [ref=e1130]
+    - link "Listing image Slippery When Wet 1986-1988" [ref=e1135] [cursor=pointer]:
+      - /url: /exhibits/slippery-when-wet
+      - generic [ref=e1138]:
+        - img "Listing image" [ref=e1140]
+        - heading "Slippery When Wet" [level=2] [ref=e1143]
+        - paragraph [ref=e1144]: 1986-1988
+        - generic [ref=e1146]:
+          - img [ref=e1148]
+          - img [ref=e1151]
+    - link "Listing image New Jersey 1988-1991" [ref=e1156] [cursor=pointer]:
+      - /url: /exhibits/new-jersey
+      - generic [ref=e1159]:
+        - img "Listing image" [ref=e1161]
+        - heading "New Jersey" [level=2] [ref=e1164]
+        - paragraph [ref=e1165]: 1988-1991
+        - generic [ref=e1167]:
+          - img [ref=e1169]
+          - img [ref=e1172]
+    - link "Listing image Keep The Faith 1992-1994" [ref=e1177] [cursor=pointer]:
+      - /url: /exhibits/keep-the-faith
+      - generic [ref=e1180]:
+        - img "Listing image" [ref=e1182]
+        - heading "Keep The Faith" [level=2] [ref=e1185]
+        - paragraph [ref=e1186]: 1992-1994
+        - generic [ref=e1188]:
+          - img [ref=e1190]
+          - img [ref=e1193]
+    - link "Listing image Cross Road 1992-1995" [ref=e1198] [cursor=pointer]:
+      - /url: /exhibits/cross-road
+      - generic [ref=e1201]:
+        - img "Listing image" [ref=e1203]
+        - heading "Cross Road" [level=2] [ref=e1206]
+        - paragraph [ref=e1207]: 1992-1995
+        - generic [ref=e1209]:
+          - img [ref=e1211]
+          - img [ref=e1214]
+    - link "Listing image These Days 1995-2000" [ref=e1219] [cursor=pointer]:
+      - /url: /exhibits/these-days
+      - generic [ref=e1222]:
+        - img "Listing image" [ref=e1224]
+        - heading "These Days" [level=2] [ref=e1227]
+        - paragraph [ref=e1228]: 1995-2000
+        - generic [ref=e1230]:
+          - img [ref=e1232]
+          - img [ref=e1235]
+    - generic [ref=e1243]:
+      - img "Listing image" [ref=e1245]
+      - heading "Crush" [level=2] [ref=e1247]
+      - paragraph [ref=e1248]: "-"
+    - generic [ref=e1255]:
+      - img "Listing image" [ref=e1257]
+      - heading "Bounce" [level=2] [ref=e1259]
+      - paragraph [ref=e1260]: "-"
+    - generic [ref=e1267]:
+      - img "Listing image" [ref=e1269]
+      - heading "Have A Nice Day" [level=2] [ref=e1271]
+      - paragraph [ref=e1272]: "-"
+    - generic [ref=e1279]:
+      - img "Listing image" [ref=e1281]
+      - heading "Lost Highway" [level=2] [ref=e1283]
+      - paragraph [ref=e1284]: "-"
+    - generic [ref=e1291]:
+      - img "Listing image" [ref=e1293]
+      - heading "The Circle" [level=2] [ref=e1295]
+      - paragraph [ref=e1296]: "-"
+    - generic [ref=e1303]:
+      - img "Listing image" [ref=e1305]
+      - heading "What About Now" [level=2] [ref=e1307]
+      - paragraph [ref=e1308]: "-"
+    - generic [ref=e1315]:
+      - img "Listing image" [ref=e1317]
+      - heading "Burning Bridges" [level=2] [ref=e1319]
+      - paragraph [ref=e1320]: "-"
+    - generic [ref=e1327]:
+      - img "Listing image" [ref=e1329]
+      - heading "This House Is Not For Sale" [level=2] [ref=e1331]
+      - paragraph [ref=e1332]: "-"
+    - generic [ref=e1339]:
+      - img "Listing image" [ref=e1341]
+      - heading "2020" [level=2] [ref=e1343]
+      - paragraph [ref=e1344]: "-"
+    - generic [ref=e1351]:
+      - img "Listing image" [ref=e1353]
+      - heading "Forever" [level=2] [ref=e1355]
+      - paragraph
+  - generic [ref=e1359]:
+    - generic [ref=e1360]:
+      - generic [ref=e1361]:
+        - list [ref=e1362]:
+          - listitem [ref=e1363]:
+            - link [ref=e1365] [cursor=pointer]:
+              - /url: /exhibits
+              - paragraph
+          - listitem [ref=e1366]:
+            - link [ref=e1368] [cursor=pointer]:
+              - /url: /
+              - paragraph
+          - listitem [ref=e1369]:
+            - link [ref=e1371] [cursor=pointer]:
+              - /url: /
+              - paragraph
+          - listitem [ref=e1372]:
+            - link [ref=e1374] [cursor=pointer]:
+              - /url: /
+              - paragraph
+        - list [ref=e1375]:
+          - listitem [ref=e1376]:
+            - link [ref=e1378] [cursor=pointer]:
+              - /url: /about
+              - paragraph
+          - listitem [ref=e1379]:
+            - link [ref=e1381] [cursor=pointer]:
+              - /url: /search
+              - paragraph
+          - listitem [ref=e1382]:
+            - link [ref=e1384] [cursor=pointer]:
+              - /url: /signin
+              - paragraph
+        - list [ref=e1385]:
+          - listitem [ref=e1386]:
+            - link [ref=e1388] [cursor=pointer]:
+              - /url: https://www.bonjovi.com/
+              - paragraph
+          - listitem [ref=e1389]:
+            - link [ref=e1391] [cursor=pointer]:
+              - /url: /subscribe
+              - paragraph
+          - listitem [ref=e1392]:
+            - link [ref=e1394] [cursor=pointer]:
+              - /url: /privacy-policy
+              - paragraph
+          - listitem [ref=e1395]:
+            - link [ref=e1397] [cursor=pointer]:
+              - /url: /terms-and-conditions
+              - paragraph
+        - generic [ref=e1398]:
+          - paragraph [ref=e1399]: SITE BY
+          - link [ref=e1401] [cursor=pointer]:
+            - /url: https://neverbland.com/
+            - paragraph
+          - paragraph [ref=e1402]: POWERED BY
+          - link [ref=e1404] [cursor=pointer]:
+            - /url: https://definitiveauthentic.com/
+            - paragraph
+      - img "Bon Jovi logo" [ref=e1406]
+    - paragraph [ref=e1409]: © Bon Jovi 2026

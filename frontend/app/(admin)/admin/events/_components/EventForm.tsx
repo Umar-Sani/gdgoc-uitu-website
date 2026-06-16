@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Category = {
-  category_id: number;
+  category_id: string;
   name: string;
 };
 
@@ -29,12 +30,43 @@ type EventFormData = {
   banner_url: string;
 };
 
+type EventPerson = {
+  person_id: string;
+  event_id: string;
+  full_name: string;
+  role: string;
+  bio: string | null;
+  avatar_url: string | null;
+  linkedin_url: string | null;
+  organization: string | null;
+  display_order: number;
+};
+
+type PersonFormData = {
+  full_name: string;
+  role: string;
+  bio: string;
+  avatar_url: string;
+  linkedin_url: string;
+  organization: string;
+};
+
 type EventFormProps = {
   mode: 'create' | 'edit';
   eventId?: string;
 };
 
-const EVENT_TYPES = ['workshop', 'seminar', 'hackathon', 'session', 'social', 'bootcamp'];
+const EVENT_TYPES = ['workshop', 'seminar', 'hackathon', 'session', 'social'];
+
+const PERSON_ROLES = ['Host', 'Speaker', 'Guest', 'Panelist', 'Moderator'];
+
+const ROLE_COLORS: Record<string, string> = {
+  Host:      '#4285F4',
+  Speaker:   '#EA4335',
+  Guest:     '#FBBC05',
+  Panelist:  '#34A853',
+  Moderator: '#9C27B0',
+};
 
 const TAG_OPTIONS = [
   'Flutter', 'AI/ML', 'Web Development', 'Cloud', 'Android',
@@ -60,6 +92,15 @@ const EMPTY_FORM: EventFormData = {
   banner_url: '',
 };
 
+const EMPTY_PERSON: PersonFormData = {
+  full_name: '',
+  role: 'Host',
+  bio: '',
+  avatar_url: '',
+  linkedin_url: '',
+  organization: '',
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function combineDatetime(date: string, time: string): string {
@@ -75,10 +116,13 @@ function splitDatetime(isoStr: string): { date: string; time: string } {
 
 // ─── Section Wrapper ──────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-5">{title}</h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">{title}</h2>
+        {action}
+      </div>
       <div className="space-y-4">{children}</div>
     </div>
   );
@@ -118,18 +162,40 @@ function inputClass(hasError?: boolean): string {
   }`;
 }
 
+// ─── Role Badge ───────────────────────────────────────────────────────────────
+
+function RoleBadge({ role }: { role: string }) {
+  const color = ROLE_COLORS[role] ?? '#6b7280';
+  return (
+    <span
+      className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wide"
+      style={{ backgroundColor: color }}
+    >
+      {role}
+    </span>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function EventForm({ mode, eventId }: EventFormProps) {
   const router = useRouter();
   const { token } = useAuth();
 
-  const [form, setForm]           = useState<EventFormData>(EMPTY_FORM);
+  const [form, setForm]             = useState<EventFormData>(EMPTY_FORM);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [errors, setErrors]       = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors]         = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading]   = useState(false);
   const [isFetching, setIsFetching] = useState(mode === 'edit');
   const [generalError, setGeneralError] = useState('');
+
+  // People state
+  const [people, setPeople]               = useState<EventPerson[]>([]);
+  const [addingPerson, setAddingPerson]   = useState(false);
+  const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
+  const [personForm, setPersonForm]       = useState<PersonFormData>(EMPTY_PERSON);
+  const [personSaving, setPersonSaving]   = useState(false);
+  const [personError, setPersonError]     = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -137,9 +203,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   useEffect(() => {
     fetch(`${API_URL}/api/events/categories`)
       .then((r) => r.json())
-      .then((res) => {
-        if (res.data) setCategories(res.data);
-      })
+      .then((res) => { if (res.data) setCategories(res.data); })
       .catch(console.error);
   }, []);
 
@@ -176,6 +240,19 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       .catch(console.error)
       .finally(() => setIsFetching(false));
   }, [mode, eventId]);
+
+  // ─── Fetch people in edit mode ───────────────────────────────────────────────
+  useEffect(() => {
+    if (mode !== 'edit' || !eventId) return;
+    fetchPeople();
+  }, [mode, eventId]);
+
+  function fetchPeople() {
+    fetch(`${API_URL}/api/events/${eventId}/people`)
+      .then((r) => r.json())
+      .then((res) => setPeople(res.data ?? []))
+      .catch(() => {});
+  }
 
   // ─── Field change handler ───────────────────────────────────────────────────
   function handleChange(field: keyof EventFormData, value: string | boolean | string[]) {
@@ -247,7 +324,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         title:          form.title.trim(),
         description:    form.description.trim() || null,
         event_type:     form.event_type,
-        category_id:    Number(form.category_id),
+        category_id:    form.category_id,
         start_datetime: combineDatetime(form.start_date, form.start_time),
         end_datetime:   combineDatetime(form.end_date, form.end_time),
         venue:          form.venue.trim() || null,
@@ -281,7 +358,6 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         return;
       }
 
-      // Redirect to events list after success
       router.push('/admin/events');
 
     } catch {
@@ -291,7 +367,87 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     }
   }
 
-  // ─── Loading state for edit mode ─────────────────────────────────────────────
+  // ─── People CRUD ─────────────────────────────────────────────────────────────
+
+  function startAddPerson() {
+    setPersonForm(EMPTY_PERSON);
+    setPersonError('');
+    setEditingPersonId(null);
+    setAddingPerson(true);
+  }
+
+  function startEditPerson(p: EventPerson) {
+    setPersonForm({
+      full_name:    p.full_name,
+      role:         p.role,
+      bio:          p.bio ?? '',
+      avatar_url:   p.avatar_url ?? '',
+      linkedin_url: p.linkedin_url ?? '',
+      organization: p.organization ?? '',
+    });
+    setPersonError('');
+    setAddingPerson(false);
+    setEditingPersonId(p.person_id);
+  }
+
+  async function savePerson() {
+    if (!personForm.full_name.trim()) { setPersonError('Name is required.'); return; }
+    if (!personForm.role) { setPersonError('Role is required.'); return; }
+
+    setPersonSaving(true);
+    setPersonError('');
+
+    try {
+      const body = {
+        full_name:    personForm.full_name.trim(),
+        role:         personForm.role,
+        bio:          personForm.bio.trim() || null,
+        avatar_url:   personForm.avatar_url.trim() || null,
+        linkedin_url: personForm.linkedin_url.trim() || null,
+        organization: personForm.organization.trim() || null,
+      };
+
+      const url = editingPersonId
+        ? `${API_URL}/api/events/${eventId}/people/${editingPersonId}`
+        : `${API_URL}/api/events/${eventId}/people`;
+
+      const res = await fetch(url, {
+        method: editingPersonId ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const json = await res.json();
+      if (!res.ok) { setPersonError(json.error || 'Failed to save.'); return; }
+
+      setAddingPerson(false);
+      setEditingPersonId(null);
+      setPersonForm(EMPTY_PERSON);
+      fetchPeople();
+    } catch {
+      setPersonError('Something went wrong.');
+    } finally {
+      setPersonSaving(false);
+    }
+  }
+
+  async function deletePerson(personId: string) {
+    if (!confirm('Remove this person from the event?')) return;
+    try {
+      await fetch(`${API_URL}/api/events/${eventId}/people/${personId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchPeople();
+    } catch {
+      setPersonError('Failed to delete.');
+    }
+  }
+
+  // ─── Loading state ────────────────────────────────────────────────────────────
   if (isFetching) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-10 animate-pulse space-y-6">
@@ -325,7 +481,6 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
           </p>
         </div>
 
-        {/* General error */}
         {generalError && (
           <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
             {generalError}
@@ -460,11 +615,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               />
             </Field>
 
-            {/* Free / Paid toggle */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pricing
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pricing</label>
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -491,7 +643,6 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               </div>
             </div>
 
-            {/* Ticket price — only shown for paid events */}
             {!form.is_free && (
               <Field label="Ticket Price (PKR)" required error={errors.ticket_price}>
                 <input
@@ -509,30 +660,13 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
           {/* ── Banner ── */}
           <Section title="Banner Image">
-            <Field label="Banner URL">
-              <input
-                type="url"
-                value={form.banner_url}
-                onChange={(e) => handleChange('banner_url', e.target.value)}
-                placeholder="https://example.com/banner.jpg"
-                className={inputClass()}
-              />
-            </Field>
-            {form.banner_url && (
-              <div className="mt-3 rounded-xl overflow-hidden border border-gray-100 h-40">
-                <img
-                  src={form.banner_url}
-                  alt="Banner preview"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-            <p className="text-xs text-gray-400 mt-1">
-              Cloudinary upload will be added in a later phase. For now paste an image URL.
-            </p>
+            <ImageUpload
+              value={form.banner_url}
+              onChange={(url) => handleChange('banner_url', url)}
+              token={token}
+              folder="gdgoc-uitu/events"
+              previewClass="w-full h-40 rounded-xl"
+            />
           </Section>
 
           {/* ── Tags ── */}
@@ -558,7 +692,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             )}
           </Section>
 
-          {/* ── Publish Status ── */}
+          {/* ── Status ── */}
           <Section title="Status">
             <Field label="Event Status">
               <select
@@ -568,13 +702,15 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <option value="draft">Draft — not visible to public</option>
                 <option value="published">Published — visible to public</option>
+                <option value="ongoing">Ongoing — event in progress</option>
+                <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
             </Field>
           </Section>
 
           {/* ── Actions ── */}
-          <div className="flex gap-3 pb-10">
+          <div className="flex gap-3 pb-6">
             <button
               type="button"
               onClick={() => router.back()}
@@ -602,6 +738,186 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
           </div>
 
         </form>
+
+        {/* ── Hosts, Speakers & Guests (edit mode only) ──────────────────────── */}
+        {mode === 'edit' && eventId && (
+          <div className="mb-10">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                  Hosts, Speakers & Guests
+                </h2>
+                <button
+                  type="button"
+                  onClick={startAddPerson}
+                  className="px-3 py-1.5 rounded-xl bg-[#4285F4] text-white text-xs font-semibold hover:bg-blue-600 transition-all"
+                >
+                  + Add Person
+                </button>
+              </div>
+
+              {personError && (
+                <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-600">
+                  {personError}
+                </div>
+              )}
+
+              {/* Inline add / edit form */}
+              {(addingPerson || editingPersonId) && (
+                <div className="mb-5 p-4 rounded-2xl border border-blue-200 bg-blue-50/40 space-y-3">
+                  <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                    {editingPersonId ? 'Edit Person' : 'New Person'}
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                      <input
+                        type="text"
+                        value={personForm.full_name}
+                        onChange={(e) => setPersonForm(p => ({ ...p, full_name: e.target.value }))}
+                        placeholder="Full name"
+                        className={inputClass()}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
+                      <select
+                        value={personForm.role}
+                        onChange={(e) => setPersonForm(p => ({ ...p, role: e.target.value }))}
+                        className={inputClass()}
+                      >
+                        {PERSON_ROLES.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Organization</label>
+                      <input
+                        type="text"
+                        value={personForm.organization}
+                        onChange={(e) => setPersonForm(p => ({ ...p, organization: e.target.value }))}
+                        placeholder="e.g. Google, UIT"
+                        className={inputClass()}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">LinkedIn URL</label>
+                      <input
+                        type="url"
+                        value={personForm.linkedin_url}
+                        onChange={(e) => setPersonForm(p => ({ ...p, linkedin_url: e.target.value }))}
+                        placeholder="https://linkedin.com/in/..."
+                        className={inputClass()}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Bio</label>
+                      <textarea
+                        value={personForm.bio}
+                        onChange={(e) => setPersonForm(p => ({ ...p, bio: e.target.value }))}
+                        placeholder="Short bio..."
+                        rows={2}
+                        className={inputClass()}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <ImageUpload
+                        label="Avatar"
+                        value={personForm.avatar_url}
+                        onChange={(url) => setPersonForm(p => ({ ...p, avatar_url: url }))}
+                        token={token}
+                        folder="gdgoc-uitu/event-people"
+                        shape="circle"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={savePerson}
+                      disabled={personSaving}
+                      className="px-4 py-2 rounded-xl bg-[#4285F4] text-white text-xs font-semibold hover:bg-blue-600 transition-all disabled:opacity-60"
+                    >
+                      {personSaving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setAddingPerson(false); setEditingPersonId(null); setPersonError(''); }}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* People list */}
+              {people.length === 0 && !addingPerson ? (
+                <p className="text-xs text-gray-400 text-center py-6">
+                  No hosts, speakers, or guests added yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {people.map((p) => (
+                    <div
+                      key={p.person_id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                        editingPersonId === p.person_id
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-gray-100 hover:border-gray-200'
+                      }`}
+                    >
+                      <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 border border-gray-200">
+                        {p.avatar_url ? (
+                          <img src={p.avatar_url} alt={p.full_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-400">
+                            {p.full_name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-gray-800 truncate">{p.full_name}</span>
+                          <RoleBadge role={p.role} />
+                        </div>
+                        {p.organization && (
+                          <p className="text-xs text-gray-400 truncate">{p.organization}</p>
+                        )}
+                      </div>
+
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => startEditPerson(p)}
+                          className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-all"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deletePerson(p.person_id)}
+                          className="p-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-all"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

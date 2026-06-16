@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -15,6 +16,7 @@ export default function EditProfilePage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
 
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [fullName, setFullName]   = useState('');
   const [username, setUsername]   = useState('');
   const [bio, setBio]             = useState('');
@@ -36,6 +38,7 @@ export default function EditProfilePage() {
       .then(r => r.json())
       .then(res => {
         if (res.data) {
+          setAvatarUrl(res.data.avatar_url ?? '');
           setFullName(res.data.full_name ?? '');
           setUsername(res.data.username ?? '');
           setBio(res.data.bio ?? '');
@@ -67,6 +70,7 @@ export default function EditProfilePage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          avatar_url: avatarUrl || null,
           full_name: fullName.trim(),
           username: username.trim().toLowerCase(),
           bio: bio.trim() || null,
@@ -126,6 +130,21 @@ export default function EditProfilePage() {
               {error}
             </div>
           )}
+
+          {/* Profile Picture */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Profile Picture <span className="text-xs font-normal text-gray-400">(optional)</span>
+            </label>
+            <ImageUpload
+              value={avatarUrl}
+              onChange={setAvatarUrl}
+              token={token}
+              folder="gdgoc-uitu/avatars"
+              shape="circle"
+              previewClass="w-20 h-20 rounded-full"
+            />
+          </div>
 
           {/* Full Name */}
           <div>

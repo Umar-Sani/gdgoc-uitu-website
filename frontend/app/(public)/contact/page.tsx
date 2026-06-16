@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Antonio } from 'next/font/google';
+
+const antonio = Antonio({ subsets: ['latin'] });
 
 export default function ContactPage() {
-  const [form, setForm]         = useState({ full_name: '', email: '', subject: '', message: '' });
-  const [errors, setErrors]     = useState<Record<string, string>>({});
+  const [form, setForm] = useState({ full_name: '', email: '', subject: '', message: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [generalError, setGeneralError] = useState('');
@@ -54,32 +57,51 @@ export default function ContactPage() {
   }
 
   const inputClass = (hasError?: boolean) =>
-    `w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${
-      hasError
-        ? 'border-red-400 bg-red-50 focus:ring-2 focus:ring-red-200'
-        : 'border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
+    `w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${hasError
+      ? 'border-red-400 bg-red-50 focus:ring-2 focus:ring-red-200'
+      : 'border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
     }`;
 
   return (
     <div className="min-h-screen bg-white">
 
-      {/* Header */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 py-20">
-        <div className="h-1 w-full flex">
+      {/* ── Header ── */}
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative pt-28 md:pt-32 pb-12 md:pb-16 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1.5 flex">
           <div className="flex-1 bg-[#4285F4]" />
           <div className="flex-1 bg-[#EA4335]" />
           <div className="flex-1 bg-[#FBBC05]" />
           <div className="flex-1 bg-[#34A853]" />
         </div>
-        <div className="max-w-3xl mx-auto px-4 text-center pt-12">
-          <h1 className="text-4xl font-bold text-white tracking-tight">Contact Us</h1>
-          <p className="mt-4 text-blue-200 text-sm">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className={`text-5xl sm:text-7xl md:text-8xl font-black text-white uppercase tracking-tighter ${antonio.className}`}>
+            Contact Us
+          </h1>
+          <p className="mt-4 text-blue-200 font-medium text-sm sm:text-base leading-relaxed max-w-md">
             Have a question or want to get involved? We'd love to hear from you.
           </p>
+          <div className="mt-8">
+            <a
+              href="#contact-form"
+              className="inline-block px-6 py-3 bg-white/5 border-2 border-white/20 text-white text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_rgba(255,255,255,0.1)] hover:bg-white/10 hover:translate-y-1 hover:translate-x-1 hover:shadow-[0px_0px_0_rgba(255,255,255,0.1)] transition-all"
+            >
+              Get In Touch
+            </a>
+          </div>
+        </div>
+
+        {/* Decorative mascot — pinned to bottom-right, feet touch the section edge */}
+        <div className="hidden md:block absolute bottom-0 right-8 lg:right-16 w-52 lg:w-72 pointer-events-none">
+          <img
+            src="/images/Android_Mascot_Contact.png"
+            alt=""
+            className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
+            draggable={false}
+          />
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div id="contact-form" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
           {/* Contact Info */}

@@ -2,31 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { TeamMember } from '../../../components/ui/BrutalistMemberCard';
+import TeamCards, { Team, MemberCard, PeopleBlock, THEMES } from '../../../components/ui/TeamCards';
+import ParallaxBackdrop from '../../../components/ui/ParallaxBackdrop';
+import CactusRunner from '../../../components/ui/CactusRunner';
+import MissionScroll from '../../../components/ui/MissionScroll';
+import { Antonio } from 'next/font/google';
+
+const antonio = Antonio({ subsets: ['latin'] });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AboutSection = {
-  section_id: number;
-  section_key: string;
-  title: string;
-  body: string;
-  display_order: number;
-};
-
-type TeamMember = {
-  member_id: string;
-  full_name: string;
-  role_title: string;
-  bio: string | null;
-  avatar_url: string | null;
-  linkedin_url: string | null;
-  github_url: string | null;
-  display_order: number;
-  section: string;
-  team_name: string | null;
-  tenure_year: string | null;
-  is_active: boolean;
-};
+// Imported TeamMember from components
 
 type Sponsor = {
   sponsor_id: string;
@@ -40,70 +27,17 @@ type Sponsor = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getInitials(name: string): string {
-  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-}
-
 const TIER_CONFIG: Record<string, { label: string; color: string }> = {
-  platinum: { label: 'Platinum', color: 'bg-slate-100 border-slate-300 text-slate-700' },
-  gold:     { label: 'Gold',     color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
-  silver:   { label: 'Silver',   color: 'bg-gray-50 border-gray-200 text-gray-600' },
-  bronze:   { label: 'Bronze',   color: 'bg-orange-50 border-orange-200 text-orange-700' },
+  platinum:          { label: 'Platinum',          color: 'bg-slate-100 border-slate-300 text-slate-700' },
+  gold:              { label: 'Gold',              color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
+  silver:            { label: 'Silver',            color: 'bg-gray-50 border-gray-200 text-gray-600' },
+  bronze:            { label: 'Bronze',            color: 'bg-orange-50 border-orange-200 text-orange-700' },
+  community_partner: { label: 'Community Partner', color: 'bg-green-50 border-green-200 text-green-700' },
 };
-
-// ─── Member Card ──────────────────────────────────────────────────────────────
-
-function MemberCard({ member, size = 'md' }: { member: TeamMember; size?: 'lg' | 'md' | 'sm' }) {
-  const avatarSize = size === 'lg' ? 'w-24 h-24 text-2xl' : size === 'md' ? 'w-16 h-16 text-lg' : 'w-12 h-12 text-sm';
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all p-5 text-center flex flex-col items-center">
-      <div className={`${avatarSize} rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold overflow-hidden mb-3 flex-shrink-0`}>
-        {member.avatar_url
-          ? <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
-          : getInitials(member.full_name)
-        }
-      </div>
-      <p className="font-bold text-gray-900 text-sm">{member.full_name}</p>
-      <p className="text-xs font-semibold text-[#4285F4] mt-0.5">{member.role_title}</p>
-      {member.bio && (
-        <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2">{member.bio}</p>
-      )}
-      {(member.linkedin_url || member.github_url) && (
-        <div className="flex items-center justify-center gap-2 mt-3">
-          {member.linkedin_url && (
-            <a
-              href={member.linkedin_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-              </svg>
-            </a>
-          )}
-          {member.github_url && (
-            <a
-              href={member.github_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-              </svg>
-            </a>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Section Header ───────────────────────────────────────────────────────────
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+function SectionHeader({ title, subtitle, light = false }: { title: string; subtitle?: string; light?: boolean }) {
   return (
     <div className="mb-8">
       <div className="h-1 w-12 flex mb-3 rounded-full overflow-hidden">
@@ -112,8 +46,8 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
         <div className="flex-1 bg-[#FBBC05]" />
         <div className="flex-1 bg-[#34A853]" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{title}</h2>
-      {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+      <h2 className={`text-2xl font-bold tracking-tight ${light ? 'text-white' : 'text-gray-900'}`}>{title}</h2>
+      {subtitle && <p className={`text-sm mt-1 ${light ? 'text-blue-200' : 'text-gray-500'}`}>{subtitle}</p>}
     </div>
   );
 }
@@ -121,8 +55,8 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AboutPage() {
-  const [sections, setSections]   = useState<AboutSection[]>([]);
   const [members, setMembers]     = useState<TeamMember[]>([]);
+  const [teams, setTeams]         = useState<{ team_id: string; name: string; display_order: number }[]>([]);
   const [sponsors, setSponsors]   = useState<Sponsor[]>([]);
   const [loading, setLoading]     = useState(true);
 
@@ -130,13 +64,13 @@ export default function AboutPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/api/cms/about`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/team`).then((r) => r.json()),
+      fetch(`${API_URL}/api/cms/teams`).then((r) => r.json()),
       fetch(`${API_URL}/api/cms/sponsors`).then((r) => r.json()),
     ])
-      .then(([aboutRes, teamRes, sponsorsRes]) => {
-        if (aboutRes.data) setSections(aboutRes.data);
+      .then(([teamRes, teamsRes, sponsorsRes]) => {
         if (teamRes.data) setMembers(teamRes.data);
+        if (teamsRes.data) setTeams(teamsRes.data);
         if (sponsorsRes.data) setSponsors(sponsorsRes.data);
       })
       .catch(console.error)
@@ -150,19 +84,30 @@ export default function AboutPage() {
   const mentors     = members.filter((m) => m.section === 'mentor');
   const pastLeaders = members.filter((m) => m.section === 'past_leader');
 
-  // Get unique team names from co-leads
-  const teamNames = [...new Set(coLeads.map((m) => m.team_name).filter(Boolean))] as string[];
+  // Teams ordered by the teams-table display_order; only those with a co-lead are shown.
+  // Any team a co-lead uses that isn't in the teams table (legacy) is appended at the end.
+  const usedTeams = new Set(coLeads.map((m) => m.team_name).filter(Boolean) as string[]);
+  const orderedFromTable = teams.map((t) => t.name).filter((n) => usedTeams.has(n));
+  const leftovers = [...usedTeams].filter((n) => !teams.some((t) => t.name === n));
+  const teamNames = [...orderedFromTable, ...leftovers];
 
   // Group members by team
   const membersByTeam = teamNames.reduce((acc, team) => {
     acc[team] = teamMembers
       .filter((m) => m.team_name === team)
-      .sort((a, b) => a.display_order - b.display_order);
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
     return acc;
   }, {} as Record<string, TeamMember[]>);
 
+  // Shape each team for the showcase: lead first, then its members.
+  const teamData: Team[] = teamNames.map((teamName) => {
+    const lead = coLeads.find((m) => m.team_name === teamName) ?? null;
+    const rest = membersByTeam[teamName] ?? [];
+    return { name: teamName, lead, members: lead ? [lead, ...rest] : rest };
+  });
+
   // Group sponsors by tier
-  const tiers = ['platinum', 'gold', 'silver', 'bronze'];
+  const tiers = ['platinum', 'gold', 'silver', 'bronze', 'community_partner'];
   const sponsorsByTier = tiers.reduce((acc, tier) => {
     acc[tier] = sponsors.filter((s) => s.tier === tier).sort((a, b) => a.display_order - b.display_order);
     return acc;
@@ -173,168 +118,144 @@ export default function AboutPage() {
     <div className="min-h-screen bg-white">
 
       {/* ── Header ── */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
-        <div className="h-1 w-full flex">
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative pt-28 md:pt-32 pb-12 md:pb-16 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1.5 flex">
           <div className="flex-1 bg-[#4285F4]" />
           <div className="flex-1 bg-[#EA4335]" />
           <div className="flex-1 bg-[#FBBC05]" />
           <div className="flex-1 bg-[#34A853]" />
         </div>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h1 className="text-4xl font-bold text-white tracking-tight">About GDGOC-UITU</h1>
-          <p className="mt-4 text-blue-200 text-sm leading-relaxed max-w-xl mx-auto">
+        <CactusRunner />
+        <div className="relative z-[10] w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className={`text-5xl sm:text-7xl md:text-8xl font-black text-white uppercase tracking-tighter ${antonio.className}`}>
+            About GDGOC-UITU
+          </h1>
+          <p className="mt-4 text-blue-200 font-medium text-sm sm:text-base leading-relaxed max-w-md">
             Learn about our mission, the people behind the community, and the organizations that support us.
           </p>
-          {/* Quick nav */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+          {/* Quick nav buttons */}
+          <div className="flex flex-wrap items-center gap-4 mt-8">
             {['#mission', '#team', '#sponsors'].map((anchor) => (
               <a
                 key={anchor}
                 href={anchor}
-                className="px-4 py-2 rounded-xl bg-white bg-opacity-10 border border-white border-opacity-20 text-white text-xs font-semibold hover:bg-opacity-20 transition-all capitalize"
+                className="inline-block px-6 py-3 bg-white/5 border-2 border-white/20 text-white text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_rgba(255,255,255,0.1)] hover:bg-white/10 hover:translate-y-1 hover:translate-x-1 hover:shadow-[0px_0px_0_rgba(255,255,255,0.1)] transition-all"
               >
                 {anchor.replace('#', '')}
               </a>
             ))}
           </div>
         </div>
+
+        {/* Decorative mascot — pinned to bottom-right, feet touch the section edge */}
+        <div className="hidden md:block absolute bottom-0 right-8 lg:right-16 w-52 lg:w-72 z-[20] pointer-events-none">
+          <img
+            src="/images/Android_Mascot_About_Me.png"
+            alt=""
+            className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
+            draggable={false}
+          />
+        </div>
       </div>
 
       {/* ── Mission / About Sections ── */}
-      <section id="mission" className="py-20 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader title="Our Mission" subtitle="What we stand for and why we exist" />
-
-          {loading ? (
-            <div className="space-y-8 animate-pulse">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-3">
-                  <div className="h-5 bg-gray-200 rounded w-1/3" />
-                  <div className="h-4 bg-gray-200 rounded w-full" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </div>
-              ))}
-            </div>
-          ) : sections.length === 0 ? (
-            <p className="text-gray-400 text-sm">Content coming soon.</p>
-          ) : (
-            <div className="space-y-10">
-              {[...sections]
-                .sort((a, b) => a.display_order - b.display_order)
-                .map((section) => (
-                  <div key={section.section_id} className="flex gap-6">
-                    <div className="flex-shrink-0 w-1 rounded-full bg-gradient-to-b from-[#4285F4] via-[#FBBC05] to-[#34A853]" />
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{section.title}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{section.body}</p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </section>
+      {/* ── Our Mission / Vision / What We Do — pinned scroll section ── */}
+      <MissionScroll />
 
       {/* ── Team ── */}
-      <section id="team" className="py-20 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader title="Our Team" subtitle="The people who make GDGOC-UITU happen" />
+      <section id="team" className="py-24 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-x-clip">
+        {/* Decorative mascot backdrop — full width, drifts slowly down the section (parallax) */}
+        <ParallaxBackdrop
+          src="/images/Android_Mascots_Classroom.png"
+          className="opacity-[0.08] z-0"
+        />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
+          {/* Centered, oversized header to match the Mission / hero sections */}
+          <div className="text-center mb-16">
+            <div className="h-1.5 w-16 mx-auto flex mb-6 rounded-full overflow-hidden">
+              <div className="flex-1 bg-[#4285F4]" />
+              <div className="flex-1 bg-[#EA4335]" />
+              <div className="flex-1 bg-[#FBBC05]" />
+              <div className="flex-1 bg-[#34A853]" />
+            </div>
+            <h2 className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-white leading-[0.9] ${antonio.className}`}>
+              Our Team
+            </h2>
+            <p className="mt-5 text-base md:text-lg text-blue-200 max-w-xl mx-auto">
+              The builders and organizers running the show.
+            </p>
+          </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 animate-pulse">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 bg-gray-200 rounded-2xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 animate-pulse">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-64 bg-gray-200 rounded-2xl border-[3px] border-black" />
               ))}
             </div>
           ) : (
-            <div className="space-y-16">
+            <div className="space-y-20">
 
-              {/* GDG Lead */}
+              {/* GDG Lead — centered card flanked by "GDG / LEAD" and a phrase */}
               {gdgLead.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#4285F4] flex items-center justify-center text-white text-xs">👑</span>
-                    GDG Lead
-                  </h3>
-                  <div className="flex justify-center">
-                    <div className="w-full max-w-xs">
-                      <MemberCard member={gdgLead[0]} size="lg" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Co-Leads and their Teams */}
-              {teamNames.map((teamName) => {
-                const coLead = coLeads.find((m) => m.team_name === teamName);
-                const members = membersByTeam[teamName] ?? [];
-                return (
-                  <div key={teamName}>
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                      <span className="w-2 h-2 rounded-full bg-[#4285F4]" />
-                      {teamName}
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <div className="grid lg:grid-cols-[1fr_minmax(0,21rem)_1fr] gap-10 lg:gap-12 items-center">
+                    {/* Left — GDG / LEAD */}
+                    <h3 className={`uppercase text-white text-center lg:text-right ${antonio.className}`}>
+                      <span className="block font-black tracking-tight text-4xl sm:text-5xl xl:text-6xl">
+                        GDG
+                      </span>
+                      <span
+                        className="block font-black tracking-tighter leading-[0.8] text-8xl sm:text-9xl xl:text-[11rem]"
+                        style={{ WebkitTextStroke: '2px rgba(255,255,255,0.25)' }}
+                      >
+                        Lead
+                      </span>
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                      {/* Co-lead first */}
-                      {coLead && (
-                        <div className="relative">
-                          <div className="absolute -top-2 -right-2 z-10">
-                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#4285F4] text-white">
-                              Lead
-                            </span>
-                          </div>
-                          <MemberCard member={coLead} size="md" />
-                        </div>
-                      )}
-                      {/* Team members */}
-                      {members.map((member) => (
-                        <MemberCard key={member.member_id} member={member} size="md" />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
 
-              {/* Mentors */}
-              {mentors.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#34A853] flex items-center justify-center text-white text-xs">🎓</span>
-                    Mentors
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                    {[...mentors]
-                      .sort((a, b) => a.display_order - b.display_order)
-                      .map((member) => (
-                        <MemberCard key={member.member_id} member={member} size="md" />
-                      ))}
+                    {/* Middle — the card */}
+                    <MemberCard member={gdgLead[0]} theme={THEMES[0]} isLead />
+
+                    {/* Right — phrase about the leaders */}
+                    <p className="text-lg md:text-xl text-blue-100 leading-relaxed max-w-sm mx-auto lg:mx-0 text-center lg:text-left">
+                      Behind every GDGOC-UITU milestone is a leader who turns ideas into action —
+                      guiding the community, championing collaboration, and empowering the next
+                      generation of builders.
+                    </p>
                   </div>
                 </div>
               )}
 
-              {/* Past Leaders */}
+              {/* Teams — sticky-left identity + cards-right. Breaks out wider than the
+                  page column so the cards fill the screen instead of leaving dead space. */}
+              {teamData.length > 0 && (
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <TeamCards teams={teamData} />
+                </div>
+              )}
+
+              {/* Mentors — same sticky-left / cards-right structure as Teams */}
+              {mentors.length > 0 && (
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <PeopleBlock
+                    topLine="Our"
+                    bigLine="Mentors"
+                    subtitle="The experienced guides shaping the community."
+                    members={[...mentors].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))}
+                    theme={THEMES[3]}
+                  />
+                </div>
+              )}
+
+              {/* Past Leaders — same structure, with the tenure-year sticker */}
               {pastLeaders.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#FBBC05] flex items-center justify-center text-white text-xs">⭐</span>
-                    Past Leaders
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                    {[...pastLeaders]
-                      .sort((a, b) => a.display_order - b.display_order)
-                      .map((member) => (
-                        <div key={member.member_id} className="relative">
-                          {member.tenure_year && (
-                            <div className="absolute -top-2 -right-2 z-10">
-                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#FBBC05] text-gray-800">
-                                {member.tenure_year}
-                              </span>
-                            </div>
-                          )}
-                          <MemberCard member={member} size="md" />
-                        </div>
-                      ))}
-                  </div>
+                <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[1600px] px-4 sm:px-8 lg:px-12">
+                  <PeopleBlock
+                    topLine="Past"
+                    bigLine="Leaders"
+                    subtitle="The alumni who built the foundation."
+                    members={[...pastLeaders].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))}
+                    theme={THEMES[1]}
+                  />
                 </div>
               )}
 
@@ -345,8 +266,22 @@ export default function AboutPage() {
 
       {/* ── Sponsors ── */}
       <section id="sponsors" className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px x-4 sm:px-6 lg:px-8">
-          <SectionHeader title="Our Sponsors" subtitle="Organizations that make GDGOC-UITU possible" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Centered, oversized header to match the Mission / Team sections */}
+          <div className="text-center mb-16">
+            <div className="h-1.5 w-16 mx-auto flex mb-6 rounded-full overflow-hidden">
+              <div className="flex-1 bg-[#4285F4]" />
+              <div className="flex-1 bg-[#EA4335]" />
+              <div className="flex-1 bg-[#FBBC05]" />
+              <div className="flex-1 bg-[#34A853]" />
+            </div>
+            <h2 className={`text-5xl sm:text-6xl md:text-7xl font-black uppercase tracking-tighter text-slate-900 leading-[0.9] ${antonio.className}`}>
+              Our Partners
+            </h2>
+            <p className="mt-5 text-base md:text-lg text-gray-500 max-w-xl mx-auto">
+              Organizations that make GDGOC-UITU possible.
+            </p>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 animate-pulse">
@@ -370,29 +305,29 @@ export default function AboutPage() {
                       </span>
                       <div className="flex-1 h-px bg-gray-100" />
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                       {tierSponsors.map((sponsor) => (
                         <a
                           key={sponsor.sponsor_id}
                           href={sponsor.website_url ?? '#'}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group flex flex-col items-center p-6 rounded-2xl border border-gray-100 hover:border-blue-100 hover:shadow-md transition-all text-center"
+                          className="group flex flex-col items-center p-10 rounded-3xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg hover:-translate-y-1 transition-all text-center"
                         >
                           {sponsor.logo_url ? (
                             <img
                               src={sponsor.logo_url}
                               alt={sponsor.name}
-                              className="h-14 w-auto object-contain mb-3 grayscale group-hover:grayscale-0 transition-all"
+                              className="h-32 w-auto object-contain mb-5 grayscale group-hover:grayscale-0 transition-all"
                             />
                           ) : (
-                            <div className="h-14 w-full rounded-xl bg-gray-100 flex items-center justify-center mb-3">
-                              <span className="text-lg font-bold text-gray-400">{sponsor.name[0]}</span>
+                            <div className="h-32 w-full rounded-2xl bg-gray-100 flex items-center justify-center mb-5">
+                              <span className="text-4xl font-bold text-gray-400">{sponsor.name[0]}</span>
                             </div>
                           )}
-                          <p className="text-xs font-semibold text-gray-700">{sponsor.name}</p>
+                          <p className="text-lg font-bold text-gray-800">{sponsor.name}</p>
                           {sponsor.description && (
-                            <p className="text-xs text-gray-400 mt-1 line-clamp-2">{sponsor.description}</p>
+                            <p className="text-sm text-gray-400 mt-2 line-clamp-3">{sponsor.description}</p>
                           )}
                         </a>
                       ))}

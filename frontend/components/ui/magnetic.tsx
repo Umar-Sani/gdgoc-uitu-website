@@ -1,54 +1,63 @@
 'use client';
 
-import React, { useRef, useState, MouseEvent } from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
 interface MagneticProps {
   children: React.ReactNode;
-  springOptions?: { 
-    type?: "spring";
-    bounce?: number; 
-    duration?: number; 
-    stiffness?: number; 
-    damping?: number; 
-    mass?: number;
-  };
   intensity?: number;
+  duration?: number;
+  ease?: string;
 }
 
 export default function Magnetic({ 
   children, 
-  springOptions = { type: 'spring', stiffness: 150, damping: 15, mass: 0.1 }, 
-  intensity = 0.25 
+  intensity = 0.35,
+  duration = 0.6,
+  ease = "power3.out"
 }: MagneticProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const xTo = useRef<any>(null);
+  const yTo = useRef<any>(null);
 
-  const handleMouse = (e: MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
+  useGSAP(() => {
+    // Initialize quickTo for high-performance updates
+    xTo.current = gsap.quickTo(containerRef.current, "x", { duration, ease });
+    yTo.current = gsap.quickTo(containerRef.current, "y", { duration, ease });
+  }, { scope: containerRef });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    
     const { clientX, clientY } = e;
-    const { height, width, left, top } = ref.current.getBoundingClientRect();
+    const { height, width, left, top } = containerRef.current.getBoundingClientRect();
+    
     const middleX = clientX - (left + width / 2);
     const middleY = clientY - (top + height / 2);
-    setPosition({ x: middleX * intensity, y: middleY * intensity });
+    
+    xTo.current(middleX * intensity);
+    yTo.current(middleY * intensity);
   };
 
-  const reset = () => {
-    setPosition({ x: 0, y: 0 });
+  const handleMouseLeave = () => {
+    xTo.current(0);
+    yTo.current(0);
   };
-
-  const { x, y } = position;
 
   return (
-    <motion.div
-      ref={ref}
-      onMouseMove={handleMouse}
-      onMouseLeave={reset}
-      animate={{ x, y }}
-      transition={{ type: 'spring', ...springOptions }}
-      className="inline-block"
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="inline-block relative group/magnetic"
     >
-      {children}
-    </motion.div>
+      {/* Expanded invisible hit area so the magnetic pull starts *before* touching the button */}
+      <div className="absolute -inset-8 md:-inset-12 z-0 rounded-full" />
+      
+      <div className="relative z-10 pointer-events-auto">
+        {children}
+      </div>
+    </div>
   );
 }

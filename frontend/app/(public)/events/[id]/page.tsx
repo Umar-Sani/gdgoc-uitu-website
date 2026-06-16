@@ -6,6 +6,19 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { Event } from '@shared/types';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type EventPerson = {
+  person_id: string;
+  full_name: string;
+  role: string;
+  bio: string | null;
+  avatar_url: string | null;
+  linkedin_url: string | null;
+  organization: string | null;
+  display_order: number;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string): string {
@@ -67,8 +80,9 @@ export default function EventDetailPage() {
   const router = useRouter();
   const { user, token } = useAuth();
 
-  const [event, setEvent]       = useState<Event | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [people, setPeople] = useState<EventPerson[]>([]);
+  const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [registerError, setRegisterError] = useState('');
@@ -79,53 +93,65 @@ export default function EventDetailPage() {
 
   // ─── Fetch event ─────────────────────────────────────────────────────────────
   useEffect(() => {
-  if (!user || !token || !params.id) return;
+    if (!user || !token || !params.id) return;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
-  fetch(`${API_URL}/api/events/${params.id}/registration-status`, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: controller.signal,
-  })
-    .then(r => r.json())
-    .then(res => {
-      if (res.data?.registered) setAlreadyRegistered(true);
+    fetch(`${API_URL}/api/events/${params.id}/registration-status`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     })
-    .catch(() => {})
-    .finally(() => clearTimeout(timeout));
-}, [user, token, params.id]);
+      .then(r => r.json())
+      .then(res => {
+        if (res.data?.registered) setAlreadyRegistered(true);
+      })
+      .catch(() => { })
+      .finally(() => clearTimeout(timeout));
+  }, [user, token, params.id]);
 
   useEffect(() => {
-  if (!params.id) return;
+    if (!params.id) return;
 
-  //console.log('Fetching event:', params.id);
-  //console.log('API URL:', API_URL);
+    //console.log('Fetching event:', params.id);
+    //console.log('API URL:', API_URL);
 
-  fetch(`${API_URL}/api/events/${params.id}`)
-    .then((r) => {
-      //console.log('Response status:', r.status);
-      return r.json();
-    })
-    .then((res) => {
-      //console.log('Response data:', res);
-      if (res.error || !res.data) {
+    fetch(`${API_URL}/api/events/${params.id}`)
+      .then((r) => {
+        //console.log('Response status:', r.status);
+        return r.json();
+      })
+      .then((res) => {
+        //console.log('Response data:', res);
+        if (res.error || !res.data) {
+          setNotFound(true);
+        } else {
+          setEvent(res.data);
+        }
+      })
+      .catch((err) => {
+        //console.log('Fetch error:', err);
         setNotFound(true);
-      } else {
-        setEvent(res.data);
-      }
-    })
-    .catch((err) => {
-      //console.log('Fetch error:', err);
-      setNotFound(true);
-    })
-    .finally(() => setLoading(false));
-}, [params.id]);
+      })
+      .finally(() => setLoading(false));
+
+    // Fetch event people
+    fetch(`${API_URL}/api/events/${params.id}/people`)
+      .then((r) => r.json())
+      .then((res) => { if (res.data) setPeople(res.data); })
+      .catch(console.error);
+
+  }, [params.id]);
 
   // ─── Register for event ───────────────────────────────────────────────────────
   async function handleRegister() {
     if (!user) {
       router.push('/login');
+      return;
+    }
+
+    if (!user.username) {
+      router.push('/complete-profile');
       return;
     }
 
@@ -151,6 +177,10 @@ export default function EventDetailPage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.code === 'PROFILE_INCOMPLETE') {
+          router.push('/complete-profile');
+          return;
+        }
         setRegisterError(json.error || 'Registration failed. Please try again.');
         return;
       }
@@ -309,6 +339,69 @@ export default function EventDetailPage() {
               </div>
             )}
 
+            {/* People — Hosts, Speakers etc */}
+            {people.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">
+                  {people.some((p) => p.role.toLowerCase().includes('speaker'))
+                    ? 'Speakers & Hosts'
+                    : 'Event Team'}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {people.map((person) => (
+                    <div
+                      key={person.person_id}
+                      className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100"
+                    >
+                      {/* Avatar */}
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
+                        {person.avatar_url ? (
+                          <img
+                            src={person.avatar_url}
+                            alt={person.full_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          person.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-bold text-gray-900">{person.full_name}</p>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 capitalize">
+                            {person.role}
+                          </span>
+                        </div>
+                        {person.organization && (
+                          <p className="text-xs text-gray-500 mt-0.5">{person.organization}</p>
+                        )}
+                        {person.bio && (
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2">
+                            {person.bio}
+                          </p>
+                        )}
+                        {person.linkedin_url && (
+
+                          <a href={person.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-1.5 text-xs text-blue-500 hover:underline"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                            </svg>
+                            LinkedIn
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* ── Right — Details and registration ── */}
@@ -367,10 +460,9 @@ export default function EventDetailPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-semibold text-gray-700">Seats</span>
-                <span className={`text-xs font-bold ${
-                  isFullyBooked ? 'text-red-500' :
+                <span className={`text-xs font-bold ${isFullyBooked ? 'text-red-500' :
                   fillPct >= 70 ? 'text-yellow-500' : 'text-green-500'
-                }`}>
+                  }`}>
                   {isFullyBooked ? 'Fully Booked' : `${event.seats_available} left`}
                 </span>
               </div>

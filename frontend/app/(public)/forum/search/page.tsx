@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -28,7 +28,7 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export default function ForumSearchPage() {
+function ForumSearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
@@ -181,5 +181,13 @@ export default function ForumSearchPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ForumSearchPage() {
+  return (
+    <Suspense>
+      <ForumSearchContent />
+    </Suspense>
   );
 }
