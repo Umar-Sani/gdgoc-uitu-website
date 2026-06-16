@@ -53,6 +53,10 @@ yarn-error.log*
 .turbo
 coverage/
 
+# additional files
+forum-structural-rebuild.md
+skills-lock.json
+
 # Lockfiles
 package-lock.json
 frontend/package-lock.json
