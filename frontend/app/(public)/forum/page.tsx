@@ -543,7 +543,7 @@ export default function ForumPage() {
         {/* Decorative image — absolutely pinned to bottom-right, feet touch the section edge */}
         <div className="hidden md:block absolute bottom-0 right-8 lg:right-16 w-60 lg:w-80 pointer-events-none">
           <img
-            src="/images/forum%20woah%202.3%20%281%29.png"
+            src="/images/forum-mascot.png"
             alt=""
             className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
             draggable={false}

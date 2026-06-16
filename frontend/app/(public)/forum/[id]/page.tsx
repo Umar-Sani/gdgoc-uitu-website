@@ -422,31 +422,19 @@ export default function ThreadDetailPage() {
           </div>
         </div>
 
-        {/* ── Replies ── */}
-        {replies.length > 0 && (
-          <div className="space-y-4 mb-6">
-            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
-              {replies.length} {replies.length === 1 ? 'Reply' : 'Replies'}
-            </h2>
-            {replies.map((reply) => (
-              <ReplyCard key={reply.reply_id} reply={reply} />
-            ))}
-          </div>
-        )}
-
-        {/* ── Reply box ── */}
+        {/* ── Reply box — sits directly below the post, above replies (Reddit-style) ── */}
         {thread.is_locked ? (
-          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-center text-sm text-gray-500">
+          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-center text-sm text-gray-500 mb-6">
             🔒 This thread is locked. No new replies allowed.
           </div>
         ) : !user ? (
-          <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 text-center">
+          <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 text-center mb-6">
             <p className="text-sm text-blue-700 font-medium">
               <Link href="/login" className="underline">Log in</Link> to join the discussion
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Add a Reply</h3>
             <form onSubmit={handleReply} noValidate>
               <MarkdownEditor
@@ -475,6 +463,18 @@ export default function ThreadDetailPage() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* ── Replies ── */}
+        {replies.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
+              {replies.length} {replies.length === 1 ? 'Reply' : 'Replies'}
+            </h2>
+            {replies.map((reply) => (
+              <ReplyCard key={reply.reply_id} reply={reply} />
+            ))}
           </div>
         )}
 
