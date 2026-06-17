@@ -27,7 +27,7 @@
         "./*"
       ],
       "@shared/*": [
-        "../shared/*"
+        "./shared/*"
       ]
     },
     "allowArbitraryExtensions": true
