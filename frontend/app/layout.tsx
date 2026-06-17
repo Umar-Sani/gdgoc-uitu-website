@@ -19,6 +19,9 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: 'GDGOC-UITU Community Platform',
   description: 'Google Developer Groups on Campus — UIT University Karachi',
+  icons: {
+    icon: '/images/google-developers-seeklogo.svg',
+  },
 }
 
 export default function RootLayout({

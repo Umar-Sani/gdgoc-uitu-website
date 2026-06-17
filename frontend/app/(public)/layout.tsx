@@ -128,7 +128,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
                     {profileOpen && (
                       <div className="absolute right-0 top-[calc(100%+16px)] w-48 bg-white border-[3px] border-foreground rounded-xl shadow-[6px_6px_0_#000] flex flex-col p-2 z-50">
-                        <Link href="/profile" className="px-4 py-2 font-bold uppercase tracking-wide text-sm hover:bg-[#4285F4] hover:text-white transition-colors">
+                        <Link href={`/u/${user?.username}`} className="px-4 py-2 font-bold uppercase tracking-wide text-sm hover:bg-[#4285F4] hover:text-white transition-colors">
                           My Profile
                         </Link>
                         <Link href="/dashboard" className="px-4 py-2 font-bold uppercase tracking-wide text-sm hover:bg-[#4285F4] hover:text-white transition-colors">
@@ -211,7 +211,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                       <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block py-3 font-black uppercase tracking-widest text-foreground hover:text-[#4285F4]">
                         Dashboard
                       </Link>
-                      <Link href="/profile" onClick={() => setMenuOpen(false)} className="block py-3 font-black uppercase tracking-widest text-foreground hover:text-[#4285F4]">
+                      <Link href={`/u/${user?.username}`} onClick={() => setMenuOpen(false)} className="block py-3 font-black uppercase tracking-widest text-foreground hover:text-[#4285F4]">
                         My Profile
                       </Link>
                       <div className="flex items-center gap-2 py-2">
