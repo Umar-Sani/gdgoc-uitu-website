@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Antonio } from 'next/font/google';
 
 const antonio = Antonio({ subsets: ['latin'] });
@@ -31,22 +32,22 @@ type Slot = { src: string; side: 'left' | 'right'; w: string };
 const PANEL_IMAGES: Slot[][] = [
   // ── Our Mission ──
   [
-    { src: IMG + 'GDGOC%20TEAM.jpeg',           side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]' },
-    { src: IMG + 'CTF%20EVENT.jpeg',            side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]' },
-    { src: IMG + 'BIRTHDAY%20CELEBRATION.jpeg', side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
+    { src: IMG + 'GDGOC%20TEAM.webp',           side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]' },
+    { src: IMG + 'CTF%20EVENT.webp',            side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]' },
+    { src: IMG + 'BIRTHDAY%20CELEBRATION.webp', side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
   ],
   // ── Our Vision ──
   [
-    { src: IMG + 'KHINEXT%20EVENT%20TEAM.jpeg',  side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]' },
-    { src: IMG + 'OLYMTECH%20VOLUNTEERING.jpeg', side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]' },
-    { src: IMG + 'OLYMTECH%20SELFIE.jpeg',       side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
+    { src: IMG + 'KHINEXT%20EVENT%20TEAM.webp',  side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]' },
+    { src: IMG + 'OLYMTECH%20VOLUNTEERING.webp', side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]' },
+    { src: IMG + 'OLYMTECH%20SELFIE.webp',       side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
   ],
   // ── What We Do ──
   [
-    { src: IMG + 'MOU%20WITH%20FAST.jpeg',                side: 'left',  w: 'w-56 lg:w-72 xl:w-[26rem]' },
-    { src: IMG + 'NASTAP%20GDG%20KOLACHI%20DEVFEST.jpeg', side: 'right', w: 'w-60 lg:w-80 xl:w-[30rem]' },
-    { src: IMG + 'KHINEXT%20SNAP.jpeg',                   side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
-    { src: IMG + 'CTF%20Event%20Snap.jpg',                side: 'right', w: 'w-52 lg:w-64 xl:w-96'      },
+    { src: IMG + 'MOU%20WITH%20FAST.webp',                side: 'left',  w: 'w-56 lg:w-72 xl:w-[26rem]' },
+    { src: IMG + 'NASTAP%20GDG%20KOLACHI%20DEVFEST.webp', side: 'right', w: 'w-60 lg:w-80 xl:w-[30rem]' },
+    { src: IMG + 'KHINEXT%20SNAP.webp',                   side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
+    { src: IMG + 'CTF%20Event%20Snap.webp',               side: 'right', w: 'w-52 lg:w-64 xl:w-96'      },
   ],
 ];
 
@@ -88,10 +89,12 @@ export default function MissionScroll() {
 
             {/* ── Static side images — one passes through the frame at a time ── */}
             {slots.map((s, j) => (
-              <img
+              <Image
                 key={j}
                 src={s.src}
                 alt=""
+                width={480}
+                height={320}
                 sizes="(min-width: 1280px) 320px, (min-width: 1024px) 256px, 208px"
                 style={{ top: `${(j + 1) * STEP}vh` }}
                 className={`hidden md:block absolute z-10 ${

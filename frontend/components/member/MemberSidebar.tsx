@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -45,7 +46,7 @@ export default function MemberSidebar({ isOpen, onClose }: { isOpen: boolean; on
       {/* Logo */}
       <div className="px-5 py-5 border-b border-gray-100">
         <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
-          <img src="/images/logodark.png" alt="GDGOC-UITU" className="h-11 w-auto object-contain" />
+          <Image src="/images/logodark.webp" alt="GDGOC-UITU" width={160} height={44} priority className="h-11 w-auto object-contain" />
         </Link>
       </div>
 

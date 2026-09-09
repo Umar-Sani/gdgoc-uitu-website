@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -714,8 +715,8 @@ function InkMaskOverlay() {
   return (
     <div ref={containerRef} className="absolute inset-0 z-[5] pointer-events-none overflow-hidden" style={{ WebkitMaskImage: 'url(#ink-mask)', maskImage: 'url(#ink-mask)' }}>
       {/* ── Hidden Mask Stickers ── */}
-      <img src="/images/Android Guy Standing Still.png" alt="Android Standing Shadow" className="absolute left-4 sm:left-12 lg:left-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 -rotate-6" />
-      <img src="/images/Android WOMAN Standing Still.png" alt="Android Society Shadow" className="absolute right-4 sm:right-12 lg:right-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 rotate-6" />
+      <img src="/images/Android Guy Standing Still.webp" alt="Android Standing Shadow" className="absolute left-4 sm:left-12 lg:left-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 -rotate-6" />
+      <img src="/images/Android WOMAN Standing still.webp" alt="Android Society Shadow" className="absolute right-4 sm:right-12 lg:right-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 rotate-6" />
 
       {/* ── Main Center Logo ── */}
       <img src="/images/google-developers-seeklogo.svg" alt="Mask Reveal Image" className="w-full h-full object-contain p-10 md:p-32 opacity-100 drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] relative z-10" />
@@ -1671,7 +1672,7 @@ export default function HomePage() {
 
       {/* ── Testimonials + Meet the Team share one continuous dark background ── */}
       <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
-        <ParallaxBackdrop src="/images/Android_Mascots_Classroom.png" className="opacity-[0.08] z-0" />
+        <ParallaxBackdrop src="/images/Android_Mascots_Classroom.webp" className="opacity-[0.08] z-0" />
 
       {/* ── Testimonials ── */}
       <section className="py-24 relative z-[1]">
@@ -2160,9 +2161,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 mb-10">
             <div className="sm:col-span-2">
               <Link href="/" className="flex items-center mb-3 hover:opacity-80 transition-opacity">
-                <img
-                  src="/images/logolight.png"
+                <Image
+                  src="/images/logolight.webp"
                   alt="GDGOC-UITU Logo"
+                  width={160}
+                  height={40}
                   className="h-10 w-auto object-contain"
                 />
               </Link>

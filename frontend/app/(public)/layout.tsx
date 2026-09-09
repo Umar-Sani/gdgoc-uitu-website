@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -94,9 +95,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
               {/* Center — Logo */}
               <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center hover:-translate-y-0.5 transition-transform group">
-                <img
-                  src={lightGhost ? '/images/logolight.png' : '/images/logodark.png'}
+                <Image
+                  src={lightGhost ? '/images/logolight.webp' : '/images/logodark.webp'}
                   alt="GDGOC-UITU Logo"
+                  width={160}
+                  height={40}
+                  priority
                   className="h-8 md:h-10 w-auto object-contain"
                 />
               </Link>

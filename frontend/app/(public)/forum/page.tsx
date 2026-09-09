@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -542,9 +543,11 @@ export default function ForumPage() {
 
         {/* Decorative image — absolutely pinned to bottom-right, feet touch the section edge */}
         <div className="hidden md:block absolute bottom-0 right-8 lg:right-16 w-60 lg:w-80 pointer-events-none">
-          <img
-            src="/images/forum-mascot.png"
+          <Image
+            src="/images/forum-mascot.webp"
             alt=""
+            width={400}
+            height={400}
             className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
             draggable={false}
           />

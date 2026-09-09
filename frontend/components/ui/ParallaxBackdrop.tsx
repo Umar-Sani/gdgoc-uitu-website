@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -52,12 +53,14 @@ export default function ParallaxBackdrop({
   }, []);
 
   return (
-    <img
+    <Image
       ref={ref}
       src={src}
       alt=""
       aria-hidden="true"
       draggable={false}
+      width={1600}
+      height={900}
       className={`pointer-events-none select-none absolute top-0 left-0 w-full h-auto will-change-transform ${className}`}
     />
   );
