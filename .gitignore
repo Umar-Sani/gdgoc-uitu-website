@@ -57,6 +57,11 @@ coverage/
 forum-structural-rebuild.md
 skills-lock.json
 
+# Obsidian per-viewer UI session state (docs/ vault)
+docs/.obsidian/workspace.json
+docs/.obsidian/workspace-mobile.json
+docs/.obsidian/graph.json
+
 # Lockfiles
 package-lock.json
 frontend/package-lock.json

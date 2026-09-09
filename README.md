@@ -66,6 +66,23 @@ gdgoc-uitu-website/
 
 ---
 
+## 📚 Documentation
+
+Project documentation lives in [`docs/`](./docs) as an Obsidian vault.
+
+- **[`docs/START_HERE.md`](./docs/START_HERE.md)** — start here if you're a person
+- **[`docs/AI_CONTEXT.md`](./docs/AI_CONTEXT.md)** — entry point and task routing for AI agents
+- **[`handoff.md`](./handoff.md)** — append-only session log: what happened, and when
+
+To browse it with backlinks and graph view: install [Obsidian](https://obsidian.md), choose
+**Open folder as vault**, and select `<repo>/docs` — **not** the repo root. Trust the vault when
+prompted; only built-in core plugins are enabled, so there is nothing to install.
+
+The files render fine as plain markdown on GitHub too — Obsidian just makes the `[[wikilinks]]`
+navigable.
+
+---
+
 ## 📄 License
 
 Licensed under the [Apache License 2.0](./LICENSE.md).
