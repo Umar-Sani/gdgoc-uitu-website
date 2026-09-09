@@ -762,9 +762,11 @@ export default function ForumPage() {
           </div>{/* ── end main column ── */}
 
           {/* ── Right sidebar: pinned posts + rule book ── */}
-          <aside className="lg:w-80 shrink-0 order-first lg:order-last space-y-6">
-            <PinnedSidebar pinned={pinnedThreads} />
-            <CommunityRules />
+          <aside className="lg:w-80 shrink-0 order-first lg:order-last">
+            <div className="lg:sticky lg:top-28 space-y-6">
+              <PinnedSidebar pinned={pinnedThreads} />
+              <CommunityRules />
+            </div>
           </aside>
 
         </div>{/* ── end two-column ── */}
