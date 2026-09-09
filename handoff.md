@@ -362,3 +362,57 @@ origin per PR) need to be handled — either wildcarded in Supabase's redirect a
 accepted as a known limitation that OAuth only works on the production domain and `localhost`,
 not on preview deploys. Also still open: `TODO-047` (Railway) and now `TODO-048` (Vercel) — a
 `vercel.json` would close half of the latter.
+
+---
+
+## 11. Post-launch punch list scoped; image optimization shipped (2026-09-10)
+
+Umar handed over seven post-launch tasks to work through one at a time, each its own branch and
+commit, per the existing branch-per-task rule in §0: image optimization, DB/frontend dead-weight
+cleanup, host/speakers-at-event-creation, Redis, client-side caching, mobile UI fixes, and a
+security audit pass. Surveyed the codebase first (`Explore`/general-purpose agent pass across
+all seven areas) before scoping, then wrote `TODO-049` through `TODO-054` in
+[`docs/01-planning/TODO.md`](docs/01-planning/TODO.md) so each task has a ledger row; the
+security-audit task deliberately got no new TODO rows since `TODO-013`–`TODO-029` and the
+`BUG-NNN` ledger already cover that ground in full.
+
+**This session shipped the first task**, `perf/image-optimization` (branched off freshly-pulled
+`dev`), after the user supplied `ProjectDocs/Image-Optimization.pdf` (a 44-page frontend-system-
+design reference) partway through and asked for the standing rules to be written down for future
+sessions too. Full detail — what changed, and the rules going forward — is in the new
+[`docs/00-core/Performance.md`](docs/00-core/Performance.md); summary:
+
+- Converted all 35 raster assets in `frontend/public/images/` to WebP via a new
+  one-off-turned-permanent script (`frontend/scripts/convert-to-webp.mjs`, `npm run images:webp`)
+  — static image weight dropped from ~19.8MB to ~7.9MB (~60%), before Next's own AVIF/responsive
+  negotiation is applied on top.
+- Moved the safely-convertible `<img>` call sites to `next/image` (all site logos, the four
+  page-mascot decorations, `ParallaxBackdrop`, `MissionScroll`'s photo carousel). Left `<img>` in
+  place — extension-fixed to `.webp` only — for GSAP/DOM-ref-driven animations
+  (`AndroidRunner`/`CactusRunner` sprite frames, `WhoWeAre`'s hover-flip logo, the landing page's
+  ink-mask-reveal hero) where `next/image`'s sizing model doesn't fit cleanly.
+- Added `quality: 'auto', fetch_format: 'auto'` to the single Cloudinary upload route
+  (`backend/src/routes/upload.ts`) so every future upload is auto-optimized at delivery.
+- **Found and fixed two live case-sensitivity bugs** while repointing references: `Android WOMAN
+  Standing Still.png` (code) vs. `...still.png` (disk), and `Android%20Running/` (code) vs.
+  `Android running/` (disk). Both worked locally on Windows's case-insensitive filesystem and
+  would have 404'd on Vercel's Linux build — this was a real risk with no test coverage that
+  would have caught it, only manual verification against the actual filenames on disk.
+- Confirmed four static assets are dead code (unreferenced anywhere in `frontend/`) —
+  `Android Doind Society Stuff.png`/`...11.png`, `human doing society stuff.png`, both
+  `GDGoC Logo with...Mascot.png` files — filed as part of `TODO-050` rather than deleted, to keep
+  this branch scoped to optimization and not cleanup.
+- Verified via `npm run build` in both apps (clean) and a running dev server: every touched
+  image path returns 200, including through the `/_next/image` optimizer endpoint. No headless
+  browser was available this session (Playwright MCP failed to connect), so this was an HTTP-level
+  check, not a pixel-level visual regression pass — flagged to the user as a gap, not silently
+  skipped.
+
+**Doc updates in the same session** (dual write): new `docs/00-core/Performance.md`; linked from
+`AI_CONTEXT.md`'s routing table; `TODO-049` marked `done`; `TODO-050` reworded from a guess into
+a confirmed finding.
+
+**Suggested next session.** Pick up `TODO-051` (host/speakers at event creation) or `TODO-052`
+(Redis) next — both have concrete file:line starting points already recorded in the TODO ledger
+from this session's survey. `TODO-050`'s dead-asset deletion is a small, low-risk warm-up if a
+short session is wanted first.
