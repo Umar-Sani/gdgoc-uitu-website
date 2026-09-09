@@ -26,7 +26,17 @@ const PANELS: Panel[] = [
 
 const IMG = '/images/OUR%20MISSION%20IMAGES/';
 
-type Slot = { src: string; side: 'left' | 'right'; w: string; width: number; height: number };
+type Slot = { src: string; side: 'left' | 'right'; w: string; sizes: string; width: number; height: number };
+
+// Each slot's `sizes` is intentionally ~1.5x its real rendered width (covers DPR up to
+// ~1.5x plus a safety margin), not an exact match to its `w` Tailwind class. These are
+// photographic content where a bit of extra bandwidth is a much smaller cost than
+// visible softness — a slightly-too-large `sizes` just means next/image requests one
+// srcset tier up; a slightly-too-small one (the previous bug) reads as low quality no
+// matter the source resolution or format.
+const SIZES_30REM = '(min-width: 1280px) 720px, (min-width: 1024px) 480px, 384px'; // w-60 lg:w-80 xl:w-[30rem] (real: 480/320/240)
+const SIZES_26REM = '(min-width: 1280px) 640px, (min-width: 1024px) 432px, 336px'; // w-56 lg:w-72 xl:w-[26rem] (real: 416/288/224)
+const SIZES_24REM = '(min-width: 1280px) 576px, (min-width: 1024px) 384px, 312px'; // w-52 lg:w-64 xl:w-96      (real: 384/256/208)
 
 // All 10 GDGOC event photos, alternating sides per panel (left, right, left, …).
 // Heights are auto so each photo keeps its original aspect ratio (no cropping).
@@ -37,22 +47,22 @@ type Slot = { src: string; side: 'left' | 'right'; w: string; width: number; hei
 const PANEL_IMAGES: Slot[][] = [
   // ── Our Mission ──
   [
-    { src: IMG + 'GDGOC%20TEAM.webp',           side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]', width: 900,  height: 1200 },
-    { src: IMG + 'CTF%20EVENT.webp',            side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]', width: 1200, height: 900  },
-    { src: IMG + 'BIRTHDAY%20CELEBRATION.webp', side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      width: 1200, height: 900  },
+    { src: IMG + 'GDGOC%20TEAM.webp',           side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]', sizes: SIZES_30REM, width: 900,  height: 1200 },
+    { src: IMG + 'CTF%20EVENT.webp',            side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]', sizes: SIZES_26REM, width: 1200, height: 900  },
+    { src: IMG + 'BIRTHDAY%20CELEBRATION.webp', side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      sizes: SIZES_24REM, width: 1200, height: 900  },
   ],
   // ── Our Vision ──
   [
-    { src: IMG + 'KHINEXT%20EVENT%20TEAM.webp',  side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]', width: 1200, height: 900 },
-    { src: IMG + 'OLYMTECH%20VOLUNTEERING.webp', side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]', width: 1200, height: 798 },
-    { src: IMG + 'OLYMTECH%20SELFIE.webp',       side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      width: 1200, height: 675 },
+    { src: IMG + 'KHINEXT%20EVENT%20TEAM.webp',  side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]', sizes: SIZES_30REM, width: 1200, height: 900 },
+    { src: IMG + 'OLYMTECH%20VOLUNTEERING.webp', side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]', sizes: SIZES_26REM, width: 1200, height: 798 },
+    { src: IMG + 'OLYMTECH%20SELFIE.webp',       side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      sizes: SIZES_24REM, width: 1200, height: 675 },
   ],
   // ── What We Do ──
   [
-    { src: IMG + 'MOU%20WITH%20FAST.webp',                side: 'left',  w: 'w-56 lg:w-72 xl:w-[26rem]', width: 1200, height: 900  },
-    { src: IMG + 'NASTAP%20GDG%20KOLACHI%20DEVFEST.webp', side: 'right', w: 'w-60 lg:w-80 xl:w-[30rem]', width: 1200, height: 675  },
-    { src: IMG + 'KHINEXT%20SNAP.webp',                   side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      width: 900,  height: 1200 },
-    { src: IMG + 'CTF%20Event%20Snap.webp',               side: 'right', w: 'w-52 lg:w-64 xl:w-96',      width: 900,  height: 1200 },
+    { src: IMG + 'MOU%20WITH%20FAST.webp',                side: 'left',  w: 'w-56 lg:w-72 xl:w-[26rem]', sizes: SIZES_26REM, width: 1200, height: 900  },
+    { src: IMG + 'NASTAP%20GDG%20KOLACHI%20DEVFEST.webp', side: 'right', w: 'w-60 lg:w-80 xl:w-[30rem]', sizes: SIZES_30REM, width: 1200, height: 675  },
+    { src: IMG + 'KHINEXT%20SNAP.webp',                   side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      sizes: SIZES_24REM, width: 900,  height: 1200 },
+    { src: IMG + 'CTF%20Event%20Snap.webp',               side: 'right', w: 'w-52 lg:w-64 xl:w-96',      sizes: SIZES_24REM, width: 900,  height: 1200 },
   ],
 ];
 
@@ -100,7 +110,7 @@ export default function MissionScroll() {
                 alt=""
                 width={s.width}
                 height={s.height}
-                sizes="(min-width: 1280px) 320px, (min-width: 1024px) 256px, 208px"
+                sizes={s.sizes}
                 placeholder={blurDataURL(s.src) ? 'blur' : 'empty'}
                 blurDataURL={blurDataURL(s.src)}
                 style={{ top: `${(j + 1) * STEP}vh` }}

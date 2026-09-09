@@ -70,7 +70,15 @@ buffer that then gets stretched by CSS, which reads as low quality regardless of
 gallery), give each one its own real `width`/`height` — never share one guessed pair across all
 of them. Check real dimensions with `sharp(file).metadata()`, not by eyeballing the file.
 
-## What was done (2026-09-10)
+**8. `sizes` must match the image's real rendered width, and should err generous, not exact.**
+`next/image` trusts `sizes` completely — it has no way to inspect actual layout, so a `sizes`
+value smaller than the real CSS width causes a genuinely undersized `srcset` request that gets
+upscaled by the browser and reads as low quality, independent of source resolution or format.
+Bias `sizes` to roughly 1.5x the real rendered width rather than matching it exactly: on
+photographic content, quality here matters more than shaving the last bit of bandwidth, and a
+generous `sizes` fails safe (costs bytes) where an exact or tight one fails visibly (costs
+quality). Recompute `sizes` any time a component's width classes change — it does not update
+itself.
 
 - Converted all 35 raster assets in `frontend/public/images/` to WebP
   (`frontend/scripts/convert-to-webp.mjs`, quality 80). Total static image weight dropped from
@@ -97,16 +105,27 @@ of them. Check real dimensions with `sharp(file).metadata()`, not by eyeballing 
   page-mascot decorations. Generated via a new script, `scripts/generate-blur-placeholders.mjs`,
   which writes `lib/blur-placeholders.json`; looked up through `lib/blur-placeholder.ts`.
 
-> [!bug] `MissionScroll`'s photo carousel was serving visibly degraded images (fixed)
-> Every one of the ten `next/image` slots in `MissionScroll.tsx` had been given the same
+> [!bug] `MissionScroll`'s photo carousel was serving visibly degraded images (fixed — twice)
+> Two separate bugs stacked here, and the first fix didn't fully solve it — worth recording both
+> since the wrong diagnosis was tried first.
+>
+> **Bug 1 (aspect ratio).** Every one of the ten `next/image` slots had been given the same
 > hardcoded `width={480} height={320}` (a 3:2 landscape guess), but the real source photos range
-> from `4032x3024` landscape to `3000x4000` portrait. This wrong aspect ratio drove `next/image`
-> to request an undersized/wrongly-shaped `srcset` entry that CSS then stretched to fill the
-> actual (correctly-proportioned, `h-auto`) box — visible as blurry/artifacted output, most
-> noticeably on AVIF because its encoder is more aggressive at low bitrates on already-upscaled
-> photographic content than WebP is at the same nominal quality. AVIF was the symptom, not the
-> cause. Fixed by measuring each photo's real dimensions with `sharp(file).metadata()` and giving
-> every slot its own scaled-but-correctly-proportioned `width`/`height` (rule 7).
+> from `4032x3024` landscape to `3000x4000` portrait. Fixed by measuring each photo's real
+> dimensions with `sharp(file).metadata()` and giving every slot its own correctly-proportioned
+> `width`/`height` (rule 7).
+>
+> **Bug 2 (the actual main cause).** After fixing bug 1, images were still visibly soft. AVIF was
+> suspected and removed from `next.config.mjs` — **this was the wrong diagnosis and was
+> reverted.** The real cause: the `sizes` prop was a single hardcoded string
+> (`"(min-width: 1280px) 320px, ..."`) that didn't match the slots' actual Tailwind width classes
+> (`xl:w-[30rem]` = 480px, not 320px). `next/image` trusts `sizes` completely — it has no way to
+> know the real rendered width, so an under-declared `sizes` makes it deliberately request a
+> smaller `srcset` entry than the image actually displays at, which a browser then upscales via
+> CSS. That upscaling is what read as low quality, on every format, AVIF included — AVIF was
+> never the problem. Fixed by giving each slot a `sizes` value intentionally ~1.5x its real
+> rendered width (not an exact match — a generous bias means a future small miscalculation costs
+> bandwidth, not visible quality).
 
 **Left for a later session** (filed as `TODO-050`): four static assets confirmed unreferenced
 anywhere in the frontend — `Android Doind Society Stuff.png`, `Android Doind Society
