@@ -16,20 +16,9 @@ Image Optimization — Performance"). The rules below are the subset of that doc
 adopted here, adapted to what this stack already gives for free.
 
 > [!note] `next/image` already implements most of the PDF's advice
-> Next.js's built-in image optimizer generates responsive `srcset`s, negotiates format via the
-> `Accept` header, lazy-loads by default, and prevents layout shift when `width`/`height` are
-> set. The rule below is "use it", not "reimplement it".
-
-> [!warning] AVIF is deliberately disabled for `next/image` — WebP only
-> `next.config.mjs`'s `images.formats` is `['image/webp']`, not `['image/avif', 'image/webp']`.
-> AVIF was tried first and visibly degraded photographic content (the Mission carousel) even
-> after the aspect-ratio bug below was fixed — at Next's default quality, its encoder is more
-> aggressive than WebP's at the same setting, and there's no per-format quality knob exposed
-> through `next/image`. WebP still delivers most of the size reduction with no visible quality
-> loss, so it's the safer default here. Re-evaluate AVIF only with a real before/after visual
-> comparison, not just "AVIF is usually smaller" — that was true and still produced a visibly
-> worse image. This does **not** apply to Cloudinary's `fetch_format: 'auto'` (rule 4) — that's
-> a separate encoder/pipeline and hasn't shown the same problem.
+> Next.js's built-in image optimizer generates responsive `srcset`s, negotiates AVIF/WebP via
+> the `Accept` header, lazy-loads by default, and prevents layout shift when `width`/`height`
+> are set. The rule below is "use it", not "reimplement it".
 
 **1. New images go through `next/image`, not a bare `<img>`.**
 Exception: elements a component manipulates directly via DOM refs/GSAP where `next/image`'s
@@ -85,9 +74,7 @@ of them. Check real dimensions with `sharp(file).metadata()`, not by eyeballing 
 
 - Converted all 35 raster assets in `frontend/public/images/` to WebP
   (`frontend/scripts/convert-to-webp.mjs`, quality 80). Total static image weight dropped from
-  ~19.8MB to ~7.9MB (~60%) before Next's own responsive `srcset` negotiation is applied on top.
-- Tried enabling AVIF in `next.config.mjs`, then disabled it (see the warning above) after it
-  visibly degraded photographic content — WebP is the only format `next/image` serves here.
+  ~19.8MB to ~7.9MB (~60%) before Next's own AVIF/responsive negotiation is even applied on top.
 - Swapped `<img>` → `next/image` for all safely-convertible call sites: all site logos (navbar,
   admin/member sidebars, footer), the four page-mascot decorations (`about`, `contact`,
   `events`, `forum`), `ParallaxBackdrop`, and `MissionScroll`'s event-photo carousel.
