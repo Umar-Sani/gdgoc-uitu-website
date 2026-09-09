@@ -49,6 +49,29 @@ provisioned**:
 >   (TLS encryption still applies; only CA-chain validation is skipped) — see `TODO-046` for the
 >   stricter alternative (pinning Supabase's CA certificate).
 
+> [!note] Frontend deploy on Vercel — confirmed working (2026-09-09), production URL `https://gdgoc-uitu.vercel.app`
+> Deployed from the same GitHub repo, **Root Directory set to `frontend`** in the Vercel
+> project settings — this is not committed anywhere (no `vercel.json`), so a fresh Vercel
+> project must have this set by hand or the build 404s on every route. That was the first
+> failure hit this session.
+>
+> Two configuration points outside this repository, neither of them code:
+> - **`NEXT_PUBLIC_API_URL`** must be the Railway public URL, not `localhost:4000`. Vercel env
+>   vars do not inherit from `.env.local` — pasting that file in verbatim carries the localhost
+>   value across unless it's edited first.
+> - **Supabase → Authentication → URL Configuration → Redirect URLs** must include the
+>   production callback paths, or `signInWithOAuth`/`resetPasswordForEmail` redirects are
+>   rejected even though the frontend code (`window.location.origin`-based, no hardcoded host)
+>   is correct. The three paths the code actually redirects to are `/auth/callback`,
+>   `/reset-password`, and `/verify` (the last is Supabase's own confirmation-email link, not a
+>   `redirectTo` call in the frontend). Google Cloud Console's OAuth client **Authorized
+>   redirect URI** stays pointed at Supabase's own callback
+>   (`https://<project-ref>.supabase.co/auth/v1/callback`) and does not change with the
+>   frontend domain — only **Authorized JavaScript origins** needs the Vercel domain added.
+>
+> No `vercel.json` and no deploy manifest is committed, matching Railway's gap — see
+> `TODO-048`.
+
 ## Production configuration
 
 **Frontend** — 4 public variables, all `NEXT_PUBLIC_*`:
@@ -63,6 +86,15 @@ provisioned**:
 `next.config.mjs` sets `compress: true`, AVIF/WebP image formats, and allows remote images from
 `res.cloudinary.com` and `lh3.googleusercontent.com`. No `output` mode, no rewrites, no
 redirects.
+
+> [!warning] Production auth also depends on two dashboards this repo doesn't control
+> Google OAuth and password-reset links break in production unless, **separately from any
+> Vercel env var**, the Supabase project's Authentication → URL Configuration → Redirect URLs
+> allow-list includes the deployed domain's `/auth/callback`, `/reset-password`, and `/verify`
+> paths. The frontend code builds these from `window.location.origin` and has no hardcoded
+> host, so this is never a code fix — it's a dashboard entry that must be added by hand for
+> every new deployment domain (including Vercel preview-deploy URLs, which get their own
+> unlisted origin and will fail OAuth unless explicitly added or wildcarded).
 
 **Backend** — 18 variables: `PORT`, `NODE_ENV`, `FRONTEND_URL`, `DATABASE_URL`, `SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY`, `ALLOW_MOCK_AUTH`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
@@ -146,6 +178,7 @@ missing secret surfaces as a runtime failure on first use rather than a boot fai
 | Gap | Reference |
 |---|---|
 | Railway config lives only in its dashboard — no `railway.json`/deploy manifest in-repo | `TODO-047` |
+| Vercel Root Directory, and the Supabase/Google OAuth redirect URLs, live only in their dashboards | `TODO-048` |
 | DB pool skips TLS certificate-chain validation (`rejectUnauthorized: false`) rather than pinning Supabase's CA | `TODO-046`, `BUG-012` |
 | No CI pipeline of any kind | `TODO-034` |
 | No staging environment; local likely shares the production database | `TODO-035` |

@@ -61,6 +61,7 @@ work. Defects in shipped code live in [[bugs]], not here.
 | TODO-045 | open | **code** — `ProjectDocs/` is excluded via `.git/info/exclude`, a local-only ignore file, so a teammate cloning the repo receives none of the course documents | [[../START_HERE]] |
 | TODO-046 | open | **code** — `db/client.ts` disables TLS certificate-chain validation entirely (`rejectUnauthorized: false`) to work around Supabase pooler's cert chain. Pin Supabase's CA certificate instead of a blanket disable | [[../00-core/Deployment]] `BUG-012` |
 | TODO-047 | open | **doc** — Railway's build/start commands, root directory, and env vars exist only in its dashboard; no `railway.json` or deploy manifest is committed, so a fresh environment must be reconstructed by hand from this vault | [[../00-core/Deployment]] |
+| TODO-048 | open | **code** — Vercel's Root Directory setting and the Supabase/Google OAuth redirect-URL allow-lists exist only in their dashboards, with nothing committed in-repo (no `vercel.json`, no documented redirect-URL list outside this vault). A fresh deploy or preview-URL domain silently breaks OAuth until someone remembers to add it by hand | [[../00-core/Deployment]] |
 
 ## Maintenance rule
 
