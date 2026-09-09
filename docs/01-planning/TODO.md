@@ -49,7 +49,7 @@ work. Defects in shipped code live in [[bugs]], not here.
 | TODO-033 | open | **code** — no automated tests of any kind. Start with the five highest-value cases listed in the strategy | [[../00-core/Testing_Strategy]] |
 | TODO-034 | open | **code** — no CI. Cheapest first gate: GitHub Actions running `tsc --noEmit` on both apps per PR | [[../00-core/Testing_Strategy]] |
 | TODO-035 | open | **code** — no staging environment; local development appears to share the production database | [[../00-core/Deployment]] |
-| TODO-036 | open | **doc** — backend hosting target cannot be determined from the repository | [[../00-core/Deployment]] |
+| TODO-036 | done | **doc** — backend hosting target cannot be determined from the repository. Resolved 2026-09-09: deployed to Railway (Root Directory `backend`), verified live via `GET /health` | [[../00-core/Deployment]] |
 | TODO-037 | open | **doc** — no rehearsed rollback procedure for backend or database | [[../08-ops/_Ops_Index\|08-ops]] |
 | TODO-038 | open | **code** — no release tagging, version number, or changelog | [[../00-core/Deployment]] |
 | TODO-039 | open | **doc** — backfill ADR-004 and ADR-005; both are live in production but written as template-only stubs | [[../04-decisions/_Decisions_Index\|Decisions]] |
@@ -59,6 +59,8 @@ work. Defects in shipped code live in [[bugs]], not here.
 | TODO-043 | open | **code** — `moderate_forum_content` is never called; forum routes issue direct `UPDATE`s instead | [[bugs]] `BUG-002` |
 | TODO-044 | open | **doc** — copy the six frozen course specs into `07-build-docs/` as markdown, or decide to leave them as `.docx` in `ProjectDocs/` | [[../07-build-docs/_Build_Docs_Index\|Build Docs]] |
 | TODO-045 | open | **code** — `ProjectDocs/` is excluded via `.git/info/exclude`, a local-only ignore file, so a teammate cloning the repo receives none of the course documents | [[../START_HERE]] |
+| TODO-046 | open | **code** — `db/client.ts` disables TLS certificate-chain validation entirely (`rejectUnauthorized: false`) to work around Supabase pooler's cert chain. Pin Supabase's CA certificate instead of a blanket disable | [[../00-core/Deployment]] `BUG-012` |
+| TODO-047 | open | **doc** — Railway's build/start commands, root directory, and env vars exist only in its dashboard; no `railway.json` or deploy manifest is committed, so a fresh environment must be reconstructed by hand from this vault | [[../00-core/Deployment]] |
 
 ## Maintenance rule
 
