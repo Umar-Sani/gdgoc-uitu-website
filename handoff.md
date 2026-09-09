@@ -14,26 +14,99 @@ is history, not reference.
 
 ## 0. Session operating rules
 
-1. **Read this file first**, then only the vault documents your task actually needs. Do not read
-   the whole vault.
-2. **One task per session.** This is a small codebase with no tests and no CI — a session that
-   touches three unrelated things cannot be verified or reverted cleanly.
-3. **Branch per change.** The convention in this repository's history is
-   `feature/<name>`, `feat/<name>`, `refactor/<name>`, or `fix/<name>` → PR → `dev` → PR →
-   `main`. Do not commit directly to `main`.
-4. **Verify before claiming done.** There is no test suite. `npm run build` in both apps is the
-   only automated check; anything user-facing needs a manual pass in the browser.
-5. **A real decision needs an ADR before the code**, not after —
-   [`docs/04-decisions/`](docs/04-decisions/_Decisions_Index.md).
-6. **End every session with the dual write:**
-   - append an entry to this file, **and**
-   - update `docs/00-core/` in place if system state changed, adding a `TODO-NNN` row in
-     `docs/01-planning/TODO.md` for traceability.
+Every task follows this sequence, in order. Steps are not optional and not reorderable —
+skipping step 8 (the dual write) is the specific failure mode this file exists to prevent, and
+it is the one people skip because the code already works and the task *feels* done at step 7.
 
-   Doing only the first is the failure mode these rules exist to prevent: it leaves the vault
-   silently wrong while looking maintained.
-7. **Never invent a value.** If you cannot verify a number, path, or key format in the code,
-   write `TODO` and file a `TODO-NNN`.
+1. **Start from the latest `dev`.**
+   ```
+   git checkout dev
+   git pull origin dev
+   ```
+   Never branch from a stale local `dev`, and never branch from `main`.
+
+2. **Read this file first**, then only the vault documents the task actually needs. Do not read
+   the whole vault.
+
+3. **Create a new branch for the task**, off the `dev` you just pulled:
+   ```
+   git checkout -b <type>/<short-name>
+   ```
+   `type` is `feature`, `feat`, `fix`, `refactor`, or `chore` — whichever the git history
+   already uses for that kind of change. One task per branch, one task per session. This is a
+   small codebase with no tests and no CI — a branch that touches three unrelated things
+   cannot be reviewed, tested, or reverted cleanly.
+
+4. **A real technical decision needs an ADR before the code**, not after —
+   [`docs/04-decisions/`](docs/04-decisions/_Decisions_Index.md). If you are not sure whether a
+   choice rises to that level, it probably doesn't; when in doubt, a one-line note in the PR
+   description is enough and an ADR is not required for every judgment call.
+
+5. **Do the work** on that branch.
+
+6. **Test before claiming done.** There is no test suite. `npm run build` in both apps (`tsc
+   --strict`) is the only automated check — run it in whichever app you touched. Anything
+   user-facing additionally needs a manual pass in the browser: load the page, exercise the
+   change, and check the surrounding flow didn't regress. "It compiles" is not "it works."
+
+7. **Update the documents** — this is the dual write, and it happens *before* you commit, not
+   after, so the commit and the doc update land together:
+   - **Always:** append an entry to this file (`handoff.md`) — what changed and why, dated.
+     Append only; never edit a previous entry.
+   - **If system behaviour changed:** update the relevant file(s) in
+     [`docs/00-core/`](docs/00-core) in place, and add a `TODO-NNN` row in
+     [`docs/01-planning/TODO.md`](docs/01-planning/TODO.md) for anything you left unfinished or
+     unverified.
+   - **If you found a defect you didn't fix:** add a `BUG-NNN` row in
+     [`docs/01-planning/bugs.md`](docs/01-planning/bugs.md) rather than leaving it undocumented.
+   - **Never invent a value.** If you can't verify a number, path, or key format against the
+     code, write `TODO` and file a `TODO-NNN` — don't write a plausible guess.
+
+8. **Commit and push**, with the doc updates in the same commit (or the same small set of
+   commits) as the code change they describe — not a separate "docs" commit added later by
+   someone else:
+   ```
+   git add <files>
+   git commit -m "..."
+   git push -u origin <type>/<short-name>
+   ```
+
+9. **Open a PR into `dev`.** Never merge directly to `dev` without a PR, even solo. The PR
+   description should say what changed and point at the `handoff.md` entry rather than
+   repeating it.
+
+10. **On a milestone, or when the project owner (Umar) decides**, open a second PR from `dev`
+    into `main`. This is a deliberate, separate step — `dev` accumulates work continuously;
+    `main` advances in batches, not on every merge.
+
+11. **Immediately after the `dev` → `main` PR merges, merge `main` back into `dev`** so the two
+    branches realign (this matters if the `main` PR was squash-merged or otherwise produced a
+    commit that doesn't exist verbatim on `dev`):
+    ```
+    git checkout dev
+    git pull origin dev
+    git merge main
+    git push origin dev
+    ```
+    Do this before anyone starts a new branch off `dev` — starting from a `dev` that has
+    silently diverged from `main` is how the two branches drift apart.
+
+**Summary of the branch flow:**
+
+```
+dev (pull latest)
+ └─▶ feature/<task> ──▶ PR ──▶ dev
+                                 │
+                    (repeat per task, accumulating on dev)
+                                 │
+                    on milestone / owner's call
+                                 ▼
+                              PR ──▶ main
+                                 │
+                    merge main back into dev
+                                 ▼
+                          dev realigned, ready for the next branch
+```
 
 ---
 
@@ -245,3 +318,47 @@ of view immediately.
 **Suggested next session.** File a `railway.json` (or equivalent) to close `TODO-047` — right
 now a fresh Railway environment can only be reconstructed by reading this vault and re-clicking
 through the dashboard by hand.
+
+---
+
+## 10. Vercel frontend deploy finished; Google OAuth broke, fixed via dashboard config (2026-09-09)
+
+Continuation of section 9's session, after `dev` was merged to `main` and Umair's Railway/forum
+work landed there.
+
+**Vercel deploy issue.** The frontend was already partly configured on Vercel; the remaining
+problem was environment variables likely copied straight from `frontend/.env.local`, which
+would carry `NEXT_PUBLIC_API_URL=http://localhost:4000` into production — the frontend would
+then try to call the developer's own machine instead of the Railway backend. Resolved by
+setting `NEXT_PUBLIC_API_URL` to the Railway public URL in the Vercel project's env vars.
+Confirmed working.
+
+**Google OAuth then failed on the deployed site.** The frontend code was already correct — both
+`signInWithOAuth` call sites (`login/page.tsx`, `register/page.tsx`) and the `/auth/callback`
+handler build the redirect from `window.location.origin`, with no hardcoded `localhost`
+anywhere in the repo. The cause was outside the codebase entirely: Supabase's Authentication →
+Redirect URLs allow-list rejects any redirect target it doesn't recognise, independent of what
+the frontend sends. The production `/auth/callback` entry was already present; **`/reset-password`
+and `/verify` were missing** for the production domain (`https://gdgoc-uitu.vercel.app`) and
+have been added, alongside the existing `localhost:3000` entries for local dev. Google Cloud
+Console's OAuth client redirect URI (which points at Supabase's own callback, not the frontend)
+did not need to change.
+
+**Doc updates this session** (dual write, done before this entry): `docs/00-core/Deployment.md`
+gained a Vercel deploy callout (mirroring the existing Railway one) recording the Root
+Directory requirement and both dashboard-config gotchas, plus a warning box in "Production
+configuration" about the Supabase/Google OAuth redirect-URL requirement; `TODO-048` filed for
+the fact that Vercel's Root Directory and both OAuth redirect allow-lists live only in
+dashboards with nothing committed in-repo — the same class of gap as Railway's `TODO-047`.
+
+**Also this session:** rewrote `handoff.md` §0 from a loose rule list into an explicit,
+numbered, start-from-`dev` → branch → work → test → dual-write → commit → push → PR-to-`dev` →
+PR-to-`main`-on-milestone → merge-`main`-back-into-`dev` sequence, at the user's request, so the
+workflow this file already implied is now a procedure rather than something to infer.
+
+**Suggested next session.** Consider whether Vercel's preview-deployment URLs (a new unlisted
+origin per PR) need to be handled — either wildcarded in Supabase's redirect allow-list
+(`https://*.vercel.app/auth/callback` if Supabase's wildcard support covers this shape) or
+accepted as a known limitation that OAuth only works on the production domain and `localhost`,
+not on preview deploys. Also still open: `TODO-047` (Railway) and now `TODO-048` (Vercel) — a
+`vercel.json` would close half of the latter.
