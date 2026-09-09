@@ -5,8 +5,10 @@ dotenv.config()
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // In production: validate Supabase's certificate. In dev: allow self-signed / no SSL.
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
+  // Supabase's pooler (Supavisor) presents a cert chain Node can't fully verify —
+  // encryption still applies, this only skips CA validation. See Supabase's own
+  // Node/pg connection docs, which recommend the same for hosted connections.
+  ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

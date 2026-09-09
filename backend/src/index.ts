@@ -19,6 +19,11 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 4000
 
+// Railway (and most PaaS hosts) sit behind a reverse proxy that sets X-Forwarded-For.
+// Trusting exactly one hop lets express-rate-limit key on the real client IP without
+// blindly trusting a header a direct client could spoof.
+app.set('trust proxy', 1)
+
 // ── Security headers ──────────────────────────────────────────────────────────
 // contentSecurityPolicy disabled — this is an API server; CSP is handled by Next.js
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
