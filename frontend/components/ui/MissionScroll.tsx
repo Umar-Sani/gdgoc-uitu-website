@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { Antonio } from 'next/font/google';
+import { blurDataURL } from '@/lib/blur-placeholder';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -96,6 +97,8 @@ export default function MissionScroll() {
                 width={480}
                 height={320}
                 sizes="(min-width: 1280px) 320px, (min-width: 1024px) 256px, 208px"
+                placeholder={blurDataURL(s.src) ? 'blur' : 'empty'}
+                blurDataURL={blurDataURL(s.src)}
                 style={{ top: `${(j + 1) * STEP}vh` }}
                 className={`hidden md:block absolute z-10 ${
                   s.side === 'left' ? 'left-[3%] lg:left-[5%]' : 'right-[3%] lg:right-[5%]'

@@ -53,6 +53,14 @@ Still.png` referenced vs. `...still.png` on disk; `Android%20Running/` reference
 `Android running/` on disk) — both worked locally and would have 404'd in production. When
 adding a new asset, copy the filename from a directory listing, not from memory or a mockup.
 
+**6. `next/image` calls for anything below-the-fold or heavier than a logo get a blur
+placeholder.** Look it up via `blurDataURL()` from `lib/blur-placeholder.ts` (backed by
+`lib/blur-placeholders.json`, a 16x16 WebP thumbnail per asset). Regenerate the JSON with
+`npm run images:blur` after adding or re-converting images — it's not run automatically, so a
+new image without a regenerated JSON just renders with no blur (`empty` placeholder), never a
+crash. Skip this for small `priority` images (logos) — they load essentially instantly, so a
+blur flash is more visual noise than benefit.
+
 ## What was done (2026-09-10)
 
 - Converted all 35 raster assets in `frontend/public/images/` to WebP
@@ -70,6 +78,15 @@ adding a new asset, copy the filename from a directory listing, not from memory 
   (`backend/src/routes/upload.ts`).
 - Added `minimumCacheTTL: 31536000` to `next.config.mjs`'s `images` block (optimized variants
   are immutable per source URL, so a long CDN cache is safe).
+- Added `loading="lazy"` to the two `WhoWeAre.tsx` marquee frames that sit off-screen at load
+  (the horizontal-scroll track's building silhouette and final UITU-logo flip). Left the other
+  `<img>` holdouts on their default `eager` behavior since they're genuinely above-the-fold
+  (hero ink-mask images, `CactusRunner`'s obstacle sprites in the `about` page header, and
+  `WhoWeAre`'s opening "WE ARE" logo frame).
+- Added blur placeholders (rule 6) to every `next/image` call site added in this work except
+  the small `priority` logos: `ParallaxBackdrop`, `MissionScroll`'s photo carousel, and the four
+  page-mascot decorations. Generated via a new script, `scripts/generate-blur-placeholders.mjs`,
+  which writes `lib/blur-placeholders.json`; looked up through `lib/blur-placeholder.ts`.
 
 **Left for a later session** (filed as `TODO-050`): four static assets confirmed unreferenced
 anywhere in the frontend — `Android Doind Society Stuff.png`, `Android Doind Society

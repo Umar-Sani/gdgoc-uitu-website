@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { blurDataURL } from '@/lib/blur-placeholder';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from '@/context/AuthContext';
@@ -548,6 +549,8 @@ export default function ForumPage() {
             alt=""
             width={400}
             height={400}
+            placeholder={blurDataURL('/images/forum-mascot.webp') ? 'blur' : 'empty'}
+            blurDataURL={blurDataURL('/images/forum-mascot.webp')}
             className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
             draggable={false}
           />

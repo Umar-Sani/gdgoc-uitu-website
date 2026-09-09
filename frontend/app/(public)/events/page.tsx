@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { blurDataURL } from '@/lib/blur-placeholder';
 import type { Event } from '@shared/types';
 import { Antonio } from 'next/font/google';
 
@@ -310,6 +311,8 @@ export default function EventsPage() {
             alt=""
             width={400}
             height={400}
+            placeholder={blurDataURL('/images/Android_Mascot_Mic.webp') ? 'blur' : 'empty'}
+            blurDataURL={blurDataURL('/images/Android_Mascot_Mic.webp')}
             className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
             draggable={false}
           />

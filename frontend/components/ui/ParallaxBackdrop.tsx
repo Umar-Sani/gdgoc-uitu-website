@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef } from 'react';
+import { blurDataURL } from '@/lib/blur-placeholder';
 
 /**
  * A decorative, full-width image pinned to the top of its parent section that
@@ -61,6 +62,8 @@ export default function ParallaxBackdrop({
       draggable={false}
       width={1600}
       height={900}
+      placeholder={blurDataURL(src) ? 'blur' : 'empty'}
+      blurDataURL={blurDataURL(src)}
       className={`pointer-events-none select-none absolute top-0 left-0 w-full h-auto will-change-transform ${className}`}
     />
   );
