@@ -61,6 +61,15 @@ new image without a regenerated JSON just renders with no blur (`empty` placehol
 crash. Skip this for small `priority` images (logos) — they load essentially instantly, so a
 blur flash is more visual noise than benefit.
 
+**7. `width`/`height` passed to `next/image` must be the source image's real aspect ratio,
+never a guessed placeholder value.** Next uses these two numbers to pick which `srcset` entry
+to request — a wrong aspect ratio (e.g. one hardcoded landscape size applied to a mix of
+portrait and landscape photos) causes the optimizer to serve an undersized or wrongly-cropped
+buffer that then gets stretched by CSS, which reads as low quality regardless of format
+(AVIF/WebP/JPEG). When a component renders a *set* of differently-shaped images (a carousel, a
+gallery), give each one its own real `width`/`height` — never share one guessed pair across all
+of them. Check real dimensions with `sharp(file).metadata()`, not by eyeballing the file.
+
 ## What was done (2026-09-10)
 
 - Converted all 35 raster assets in `frontend/public/images/` to WebP
@@ -87,6 +96,17 @@ blur flash is more visual noise than benefit.
   the small `priority` logos: `ParallaxBackdrop`, `MissionScroll`'s photo carousel, and the four
   page-mascot decorations. Generated via a new script, `scripts/generate-blur-placeholders.mjs`,
   which writes `lib/blur-placeholders.json`; looked up through `lib/blur-placeholder.ts`.
+
+> [!bug] `MissionScroll`'s photo carousel was serving visibly degraded images (fixed)
+> Every one of the ten `next/image` slots in `MissionScroll.tsx` had been given the same
+> hardcoded `width={480} height={320}` (a 3:2 landscape guess), but the real source photos range
+> from `4032x3024` landscape to `3000x4000` portrait. This wrong aspect ratio drove `next/image`
+> to request an undersized/wrongly-shaped `srcset` entry that CSS then stretched to fill the
+> actual (correctly-proportioned, `h-auto`) box — visible as blurry/artifacted output, most
+> noticeably on AVIF because its encoder is more aggressive at low bitrates on already-upscaled
+> photographic content than WebP is at the same nominal quality. AVIF was the symptom, not the
+> cause. Fixed by measuring each photo's real dimensions with `sharp(file).metadata()` and giving
+> every slot its own scaled-but-correctly-proportioned `width`/`height` (rule 7).
 
 **Left for a later session** (filed as `TODO-050`): four static assets confirmed unreferenced
 anywhere in the frontend — `Android Doind Society Stuff.png`, `Android Doind Society

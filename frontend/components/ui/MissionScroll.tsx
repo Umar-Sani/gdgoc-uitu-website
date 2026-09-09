@@ -26,29 +26,33 @@ const PANELS: Panel[] = [
 
 const IMG = '/images/OUR%20MISSION%20IMAGES/';
 
-type Slot = { src: string; side: 'left' | 'right'; w: string };
+type Slot = { src: string; side: 'left' | 'right'; w: string; width: number; height: number };
 
 // All 10 GDGOC event photos, alternating sides per panel (left, right, left, …).
 // Heights are auto so each photo keeps its original aspect ratio (no cropping).
+// width/height are each photo's real aspect ratio (scaled to a 1200px long edge) —
+// next/image uses these to pick the right srcset entry, so a wrong guess here (a
+// single hardcoded landscape size for photos that are actually portrait) causes
+// visible upscaling/quality loss regardless of format.
 const PANEL_IMAGES: Slot[][] = [
   // ── Our Mission ──
   [
-    { src: IMG + 'GDGOC%20TEAM.webp',           side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]' },
-    { src: IMG + 'CTF%20EVENT.webp',            side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]' },
-    { src: IMG + 'BIRTHDAY%20CELEBRATION.webp', side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
+    { src: IMG + 'GDGOC%20TEAM.webp',           side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]', width: 900,  height: 1200 },
+    { src: IMG + 'CTF%20EVENT.webp',            side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]', width: 1200, height: 900  },
+    { src: IMG + 'BIRTHDAY%20CELEBRATION.webp', side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      width: 1200, height: 900  },
   ],
   // ── Our Vision ──
   [
-    { src: IMG + 'KHINEXT%20EVENT%20TEAM.webp',  side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]' },
-    { src: IMG + 'OLYMTECH%20VOLUNTEERING.webp', side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]' },
-    { src: IMG + 'OLYMTECH%20SELFIE.webp',       side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
+    { src: IMG + 'KHINEXT%20EVENT%20TEAM.webp',  side: 'left',  w: 'w-60 lg:w-80 xl:w-[30rem]', width: 1200, height: 900 },
+    { src: IMG + 'OLYMTECH%20VOLUNTEERING.webp', side: 'right', w: 'w-56 lg:w-72 xl:w-[26rem]', width: 1200, height: 798 },
+    { src: IMG + 'OLYMTECH%20SELFIE.webp',       side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      width: 1200, height: 675 },
   ],
   // ── What We Do ──
   [
-    { src: IMG + 'MOU%20WITH%20FAST.webp',                side: 'left',  w: 'w-56 lg:w-72 xl:w-[26rem]' },
-    { src: IMG + 'NASTAP%20GDG%20KOLACHI%20DEVFEST.webp', side: 'right', w: 'w-60 lg:w-80 xl:w-[30rem]' },
-    { src: IMG + 'KHINEXT%20SNAP.webp',                   side: 'left',  w: 'w-52 lg:w-64 xl:w-96'      },
-    { src: IMG + 'CTF%20Event%20Snap.webp',               side: 'right', w: 'w-52 lg:w-64 xl:w-96'      },
+    { src: IMG + 'MOU%20WITH%20FAST.webp',                side: 'left',  w: 'w-56 lg:w-72 xl:w-[26rem]', width: 1200, height: 900  },
+    { src: IMG + 'NASTAP%20GDG%20KOLACHI%20DEVFEST.webp', side: 'right', w: 'w-60 lg:w-80 xl:w-[30rem]', width: 1200, height: 675  },
+    { src: IMG + 'KHINEXT%20SNAP.webp',                   side: 'left',  w: 'w-52 lg:w-64 xl:w-96',      width: 900,  height: 1200 },
+    { src: IMG + 'CTF%20Event%20Snap.webp',               side: 'right', w: 'w-52 lg:w-64 xl:w-96',      width: 900,  height: 1200 },
   ],
 ];
 
@@ -94,8 +98,8 @@ export default function MissionScroll() {
                 key={j}
                 src={s.src}
                 alt=""
-                width={480}
-                height={320}
+                width={s.width}
+                height={s.height}
                 sizes="(min-width: 1280px) 320px, (min-width: 1024px) 256px, 208px"
                 placeholder={blurDataURL(s.src) ? 'blur' : 'empty'}
                 blurDataURL={blurDataURL(s.src)}
