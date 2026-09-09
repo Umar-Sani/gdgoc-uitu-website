@@ -20,10 +20,11 @@ Status: `open` · `confirmed` · `fixed` · `wontfix`.
 | BUG-005 | open | `audit.logs` has partitions for 2026 only, no `DEFAULT` partition | **Critical, time-bomb** — from 2027-01-01 writes to 10 core tables begin failing | [[../00-core/ErrorHandling]] |
 | BUG-006 | open | `migration_performance_indexes.sql`: one index duplicates a primary key, another collides by name and is silently skipped | **Low** — an intended performance index was never created | [[../00-core/Database]] |
 | BUG-007 | open | Two CMS reads are under-guarded: `GET /api/cms/team?all=true` has no auth; `GET /api/cms/featured-events/all` has no role check | **Medium** — inactive/unpublished CMS content is exposed | [[../00-core/api]] |
-| BUG-008 | open | `trust proxy` is never set, so IP rate limiting may bucket all traffic behind a proxy together | **Medium** — rate limiting is either ineffective or over-aggressive | [[../00-core/api]] |
+| BUG-008 | fixed | `trust proxy` is never set, so IP rate limiting may bucket all traffic behind a proxy together | **Medium** — rate limiting is either ineffective or over-aggressive | [[../00-core/api]] |
 | BUG-009 | open | Outbound email templates interpolate user input into HTML without escaping | **Medium** — HTML/content injection into emails | [[../00-core/Security]] |
 | BUG-010 | open | Stripe webhook has no replay protection, and returns 200 on database failure so Stripe will not retry | **High** — a paid registration can be silently lost | [[../00-core/ErrorHandling]] |
 | BUG-011 | open | Route handlers respond directly, bypassing the central error handler's production redaction | **Medium** — raw driver messages leak to clients | [[../00-core/ErrorHandling]] |
+| BUG-012 | fixed | `db/client.ts` set `ssl: { rejectUnauthorized: true }` in production, which rejects Supabase pooler's certificate chain | **Critical** — every database query failed in production; `/health` reported `db: unreachable` | `TODO-046` |
 
 ## Notes
 
@@ -121,6 +122,30 @@ proxy. All users then share one 300-request bucket.
 **Suggested fix.** Set `trust proxy` to the specific hop count for the real deployment — not
 `true`, which lets a client spoof `X-Forwarded-For` and evade limiting entirely. Requires
 knowing the hosting topology first (`TODO-036`).
+
+**Fixed 2026-09-09.** Backend hosting confirmed as Railway (single reverse-proxy hop), so
+`index.ts` now sets `app.set('trust proxy', 1)` — the specific-hop-count form the suggested fix
+called for, not the spoofable `true`.
+
+### BUG-012 — production TLS validation rejected Supabase's own certificate
+
+**Diagnosis.** `db/client.ts` set `ssl: { rejectUnauthorized: true }` whenever
+`NODE_ENV === 'production'`, on the assumption that Supabase's certificate would validate
+cleanly. It doesn't: Supabase's connection pooler (Supavisor) presents a chain Node's default
+CA store cannot fully verify, so every pooled connection failed with *self-signed certificate in
+certificate chain* — confirmed first-hand from the Railway deploy logs, not by reading the code.
+
+**Impact.** Total — every route touching the database returned an error, and `GET /health`
+reported `db: unreachable` on every request.
+
+**Reproduction (as it was).** Deploy with `NODE_ENV=production` and `rejectUnauthorized: true`
+against a Supabase pooler connection string; any query rejects immediately.
+
+**Fixed 2026-09-09.** Changed to `ssl: { rejectUnauthorized: false }` unconditionally. The
+connection is still TLS-encrypted; only certificate-chain validation is skipped, which is what
+Supabase's own Node/`pg` connection guidance recommends for hosted connections through the
+pooler. The stricter alternative — fetching and pinning Supabase's CA certificate instead of
+disabling validation — is left as `TODO-046`.
 
 ### BUG-009 — unescaped email templates
 

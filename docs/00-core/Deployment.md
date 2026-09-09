@@ -8,7 +8,7 @@
 | Environment | Frontend | Backend | Database |
 |---|---|---|---|
 | Local | `next dev`, port 3000 | `nodemon ts-node`, port 4000 | Supabase (shared with production) |
-| Production | Vercel | **unverified — see below** | Supabase |
+| Production | Vercel | Railway | Supabase |
 
 > [!warning] There is no separate development database
 > `backend/.env` points at a Supabase project; nothing in the repository establishes a second
@@ -25,7 +25,6 @@ provisioned**:
 
 | Designed | Reality |
 |---|---|
-| Backend deployed to Railway (named in the frozen Build Guide) | **Unverified.** No Dockerfile, no `railway.json`, no Procfile, no CI workflow, no deploy manifest of any kind exists in this repository. The build guide's account-setup step is the only evidence, and it predates the build |
 | A separate development/staging database | Not provisioned |
 | `pg_cron` jobs refreshing the trending-topics matview and creating audit partitions | Extension installed; **no job scheduled** — see [[ErrorHandling]] |
 | Row Level Security enforcing per-user access | Policies exist but are inert — see [[Security]] `BUG-004` |
@@ -33,12 +32,22 @@ provisioned**:
 | Audit log capturing the acting user | Actor is always NULL — `BUG-003` |
 | Forum moderation via `moderate_forum_content` | Procedure never called, and cannot run as written — `BUG-002` |
 
-> [!important] The backend hosting target is genuinely unknown from this repository
-> I could not determine where — or whether — the Express API is deployed. What is verifiable:
-> the frontend targets Vercel (commit `72b3eec` exists specifically to make Vercel's
-> frontend-rooted build work), and `backend/package.json` has a `start` script
-> (`node dist/index.js`) implying *some* Node host. Everything beyond that is guesswork, so
-> this document does not guess. `TODO-036`.
+> [!note] Backend hosting target confirmed — Railway (2026-09-09)
+> Deployed from the same GitHub repo, Root Directory set to `backend`, `npm run build` /
+> `npm run start`. There is still no `railway.json` or deploy manifest committed to the
+> repository — configuration lives entirely in Railway's dashboard, not in-repo — so a fresh
+> environment would need to be reconstructed by hand from this document. Verified live via
+> `GET /health` returning `{"status":"ok","db":"connected"}`. `TODO-036` closed.
+>
+> Getting the first deploy green surfaced two real defects, both now fixed — see `BUG-008` and
+> `BUG-012` in [[../01-planning/bugs|bugs]]:
+> - `trust proxy` was never set, so `express-rate-limit` read Railway's proxy IP instead of the
+>   real client's.
+> - `db/client.ts` set `ssl: { rejectUnauthorized: true }` in production, which rejects
+>   Supabase's pooler certificate chain outright — every query failed with *self-signed
+>   certificate in certificate chain*. Now `{ rejectUnauthorized: false }` unconditionally
+>   (TLS encryption still applies; only CA-chain validation is skipped) — see `TODO-046` for the
+>   stricter alternative (pinning Supabase's CA certificate).
 
 ## Production configuration
 
@@ -59,16 +68,17 @@ redirects.
 `SUPABASE_SERVICE_ROLE_KEY`, `ALLOW_MOCK_AUTH`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
 three `CLOUDINARY_*`, and six `BREVO_*`.
 
-Two settings change behaviour by environment and must be correct in production:
+Two settings must be correct in production:
 
-- `NODE_ENV=production` — enables TLS certificate validation on the database connection and
-  disables the mock-auth bypass.
+- `NODE_ENV=production` — disables the mock-auth bypass. It no longer affects database TLS
+  validation, which is now `rejectUnauthorized: false` unconditionally — see `BUG-012`.
 - `FRONTEND_URL` — the **only** permitted CORS origin, and the base for Stripe return URLs.
 
 ## Release process
 
 Trunk-ish flow observed in git history: feature branch → PR → merge to `dev` → PR → merge to
-`main`. 75 commits, 23 PRs, Mar 7 – Jun 17 2026. Vercel deploys the frontend from GitHub.
+`main`. 75 commits, 23 PRs, Mar 7 – Jun 17 2026. Vercel deploys the frontend from GitHub;
+Railway deploys the backend from the same GitHub repo (Root Directory `backend`).
 
 There is **no release tagging, no changelog, and no version number** anywhere in the repository.
 
@@ -92,15 +102,17 @@ which no SQL file populates.
 **None.** There is no `.github/` directory, no workflow file, no pipeline configuration of any
 kind. Nothing runs typecheck, lint, tests, or dependency audit on a pull request.
 
-Vercel's own GitHub integration builds and deploys the frontend on push — that is the entire
-automated pipeline. See [[Testing_Strategy]] and `TODO-034`.
+Vercel's own GitHub integration builds and deploys the frontend on push, and Railway's does the
+same for the backend — that is the entire automated pipeline, and neither runs a typecheck, a
+lint, or a test before deploying. See [[Testing_Strategy]] and `TODO-034`.
 
 ## Rollback procedure
 
 **Frontend** — Vercel keeps previous deployments; rolling back is promoting an earlier one
 from its dashboard. Not documented as a runbook and never rehearsed.
 
-**Backend** — undefined, because the host is unverified.
+**Backend** — Railway keeps prior deployments and its dashboard supports redeploying an older
+one, but this has not been exercised or written up as a runbook (`TODO-037`).
 
 **Database** — no rollback path. Schema changes are applied by hand and there are no down
 migrations. Restoring would depend on Supabase's managed backups, which have never been tested
@@ -133,11 +145,12 @@ missing secret surfaces as a runtime failure on first use rather than a boot fai
 
 | Gap | Reference |
 |---|---|
-| Backend hosting target unverified | `TODO-036` |
+| Railway config lives only in its dashboard — no `railway.json`/deploy manifest in-repo | `TODO-047` |
+| DB pool skips TLS certificate-chain validation (`rejectUnauthorized: false`) rather than pinning Supabase's CA | `TODO-046`, `BUG-012` |
 | No CI pipeline of any kind | `TODO-034` |
 | No staging environment; local likely shares the production database | `TODO-035` |
 | No `.env.example` and no boot-time secret validation | `TODO-014` |
-| Database rollback never rehearsed; backups never restore-tested | `TODO-027`, `TODO-037` |
+| Database rollback never rehearsed; backups never restore-tested; backend rollback via Railway never exercised | `TODO-027`, `TODO-037` |
 | No migration tool — schema applied by hand | `TODO-009` |
 | Audit partitions run out on 2027-01-01 | `BUG-005` |
 | Two vendored copies of `shared/types.ts` can drift | `TODO-001` |

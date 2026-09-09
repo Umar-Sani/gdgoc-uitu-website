@@ -206,3 +206,42 @@ documented in depth, two ADRs are stubs, and several `00-core` sections are expl
 **Suggested next session.** Add the `DEFAULT` audit partition — it is one SQL statement and
 removes a scheduled outage. Then decide the currency question blocking `BUG-001`, reading the
 unmerged `feat/payfast_integration` branch first.
+
+---
+
+## 9. First production deploy — backend to Railway, frontend to Vercel (2026-09-09)
+
+Closed `TODO-036`: the backend host, unverified as of section 8, is now Railway. Deployed from
+the same GitHub repo with Root Directory set to `backend`; frontend deploy to Vercel (Root
+Directory `frontend`) was already partly done and got finished the same session.
+
+**Two production defects found and fixed** — not from reading the code, but from watching the
+first deploy fail:
+
+- **`BUG-012` (new, fixed)** — `db/client.ts` used `ssl: { rejectUnauthorized: true }` in
+  production. Supabase's pooler certificate chain doesn't validate cleanly against Node's
+  default CA store, so this rejected *every* database connection —
+  `GET /health` returned `db: unreachable` on every request. Changed to
+  `rejectUnauthorized: false` (still TLS-encrypted, only CA-chain validation skipped, matching
+  Supabase's own connection guidance). `TODO-046` filed for the stricter fix — pin Supabase's CA
+  cert instead of a blanket disable.
+- **`BUG-008` (fixed)** — `trust proxy` was never set, exactly as predicted when the bug was
+  written down in section 8. Railway sits one reverse-proxy hop in front of the app, so
+  `index.ts` now sets `app.set('trust proxy', 1)`.
+
+Also fixed: a Vercel 404 on first deploy, caused by Root Directory not being set to `frontend`
+(same monorepo issue as Railway, different dashboard).
+
+**Doc updates in the same session** (the dual-write this file's own rules call for):
+`docs/00-core/Deployment.md` rewritten to state the backend host as fact instead of "unverified"
+and to record both fixes; `TODO-036` marked `done`; `TODO-046` and `TODO-047` (no in-repo
+Railway deploy manifest) filed; `BUG-008` and `BUG-012` marked `fixed` in
+[`docs/01-planning/bugs.md`](docs/01-planning/bugs.md) with resolution notes.
+
+**Unrelated small change, same session.** Forum page ([forum/page.tsx](frontend/app/(public)/forum/page.tsx)) —
+the Pinned Posts / Forum Rules sidebar is now `sticky` on large screens instead of scrolling out
+of view immediately.
+
+**Suggested next session.** File a `railway.json` (or equivalent) to close `TODO-047` — right
+now a fresh Railway environment can only be reconstructed by reading this vault and re-clicking
+through the dashboard by hand.
