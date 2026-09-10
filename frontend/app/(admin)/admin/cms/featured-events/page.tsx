@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { cldUrl, CLD_EVENT_CARD, CLD_THUMB } from '@/lib/cloudinary-url';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -352,7 +353,7 @@ export default function FeaturedEventsCMSPage() {
                 />
                 {form.image_url && (
                   <img
-                    src={form.image_url}
+                    src={cldUrl(form.image_url, CLD_EVENT_CARD) ?? form.image_url}
                     alt="Preview"
                     className="mt-2 h-32 w-full object-cover rounded-xl border border-gray-100"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -434,7 +435,7 @@ export default function FeaturedEventsCMSPage() {
                 {/* Image or placeholder */}
                 <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {item.image_url ? (
-                    <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                    <img src={cldUrl(item.image_url, CLD_THUMB) ?? item.image_url} alt={item.title} className="w-full h-full object-cover" />
                   ) : (
                     <svg className="w-6 h-6 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

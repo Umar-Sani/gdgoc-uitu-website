@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -17,6 +18,7 @@ import { Antonio } from 'next/font/google';
 import MascotBanner from '../../components/ui/MascotBanner';
 import ParallaxBackdrop from '../../components/ui/ParallaxBackdrop';
 import { useAuth } from '@/context/AuthContext';
+import { cldUrl, CLD_AVATAR_LARGE, CLD_EVENT_CARD, CLD_AVATAR, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -346,7 +348,7 @@ function ForumThreadCard({ thread }: { thread: Thread }) {
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center overflow-hidden shrink-0 border-2 border-black">
           {thread.author_avatar ? (
-            <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
+            <img src={cldUrl(thread.author_avatar, CLD_AVATAR) ?? thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
           ) : (
             <span className="text-[10px] font-bold text-white">{getInitials(thread.author_name)}</span>
           )}
@@ -428,7 +430,7 @@ function ForumThreadCard({ thread }: { thread: Thread }) {
         <div className="flex items-center -space-x-1.5 ml-auto">
           <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden" title={thread.author_name}>
             {thread.author_avatar ? (
-              <img src={thread.author_avatar} alt="" className="w-full h-full object-cover" />
+              <img src={cldUrl(thread.author_avatar, CLD_AVATAR) ?? thread.author_avatar} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
             )}
@@ -558,7 +560,7 @@ function MiniMemberCard({
       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
         {member.avatar_url ? (
           <img
-            src={member.avatar_url}
+            src={cldUrl(member.avatar_url, CLD_AVATAR_LARGE) ?? member.avatar_url}
             alt={member.full_name}
             className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
             draggable={false}
@@ -714,8 +716,8 @@ function InkMaskOverlay() {
   return (
     <div ref={containerRef} className="absolute inset-0 z-[5] pointer-events-none overflow-hidden" style={{ WebkitMaskImage: 'url(#ink-mask)', maskImage: 'url(#ink-mask)' }}>
       {/* ── Hidden Mask Stickers ── */}
-      <img src="/images/Android Guy Standing Still.png" alt="Android Standing Shadow" className="absolute left-4 sm:left-12 lg:left-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 -rotate-6" />
-      <img src="/images/Android WOMAN Standing Still.png" alt="Android Society Shadow" className="absolute right-4 sm:right-12 lg:right-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 rotate-6" />
+      <img src="/images/Android Guy Standing Still.webp" alt="Android Standing Shadow" className="absolute left-4 sm:left-12 lg:left-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 -rotate-6" />
+      <img src="/images/Android WOMAN Standing still.webp" alt="Android Society Shadow" className="absolute right-4 sm:right-12 lg:right-32 top-1/2 -translate-y-1/2 h-48 md:h-80 w-auto object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] opacity-95 rotate-6" />
 
       {/* ── Main Center Logo ── */}
       <img src="/images/google-developers-seeklogo.svg" alt="Mask Reveal Image" className="w-full h-full object-contain p-10 md:p-32 opacity-100 drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] relative z-10" />
@@ -992,7 +994,7 @@ function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: E
                     {/* Image Background */}
                     <div className="absolute inset-0">
                       <img
-                        src={event.banner_url || "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
+                        src={cldUrl(event.banner_url, CLD_EVENT_CARD) ?? event.banner_url ?? "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
                         alt={event.title}
                         className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700"
                       />
@@ -1671,7 +1673,7 @@ export default function HomePage() {
 
       {/* ── Testimonials + Meet the Team share one continuous dark background ── */}
       <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
-        <ParallaxBackdrop src="/images/Android_Mascots_Classroom.png" className="opacity-[0.08] z-0" />
+        <ParallaxBackdrop src="/images/Android_Mascots_Classroom.webp" className="opacity-[0.08] z-0" />
 
       {/* ── Testimonials ── */}
       <section className="py-24 relative z-[1]">
@@ -1732,7 +1734,7 @@ export default function HomePage() {
                         isActive ? 'ring-2 ring-[#4285F4] ring-offset-2 ring-offset-slate-900' : ''
                       }`}>
                         {(t as any).avatar_url ? (
-                          <img src={(t as any).avatar_url} alt={t.author_name} className="w-full h-full object-cover" />
+                          <img src={cldUrl((t as any).avatar_url, CLD_AVATAR) ?? (t as any).avatar_url} alt={t.author_name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-blue-400 to-indigo-500">
                             {getInitials(t.author_name)}
@@ -2015,7 +2017,7 @@ export default function HomePage() {
                   >
                     {sponsor.logo_url ? (
                       <img
-                        src={sponsor.logo_url}
+                        src={cldUrl(sponsor.logo_url, CLD_LOGO) ?? sponsor.logo_url}
                         alt={sponsor.name}
                         className="max-h-16 max-w-full object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-[filter,opacity] duration-300"
                       />
@@ -2160,9 +2162,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 mb-10">
             <div className="sm:col-span-2">
               <Link href="/" className="flex items-center mb-3 hover:opacity-80 transition-opacity">
-                <img
-                  src="/images/logolight.png"
+                <Image
+                  src="/images/logolight.webp"
                   alt="GDGOC-UITU Logo"
+                  width={160}
+                  height={40}
                   className="h-10 w-auto object-contain"
                 />
               </Link>

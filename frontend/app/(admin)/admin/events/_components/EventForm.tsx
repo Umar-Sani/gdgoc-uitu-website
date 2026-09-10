@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -872,7 +873,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     >
                       <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 border border-gray-200">
                         {p.avatar_url ? (
-                          <img src={p.avatar_url} alt={p.full_name} className="w-full h-full object-cover" />
+                          <img src={cldUrl(p.avatar_url, CLD_AVATAR) ?? p.avatar_url} alt={p.full_name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-400">
                             {p.full_name.charAt(0).toUpperCase()}

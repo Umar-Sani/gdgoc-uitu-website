@@ -7,6 +7,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import { useGSAP } from '@gsap/react';
 import { Antonio } from 'next/font/google';
+import { cldUrl, CLD_EVENT_CARD, CLD_EVENT_HERO } from '@/lib/cloudinary-url';
 import {
   ArrowLeft,
   ArrowRight,
@@ -348,7 +349,7 @@ export default function UpcomingEvents({
                   >
                     {event.banner_url ? (
                       <img
-                        src={event.banner_url}
+                        src={cldUrl(event.banner_url, CLD_EVENT_CARD) ?? event.banner_url}
                         alt={event.title}
                         className={`opacity-90 group-hover:opacity-50 transition-all duration-700 group-hover:scale-110 ${
                           isFeatured
@@ -486,7 +487,7 @@ export default function UpcomingEvents({
           <div className="expanded-bg absolute inset-0">
             {expandedEvent.banner_url ? (
               <img
-                src={expandedEvent.banner_url}
+                src={cldUrl(expandedEvent.banner_url, CLD_EVENT_HERO) ?? expandedEvent.banner_url}
                 alt={expandedEvent.title}
                 className="w-full h-full object-cover"
               />

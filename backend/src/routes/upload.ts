@@ -54,6 +54,8 @@ router.post('/', requireAuth, uploadSingle, async (req: Request, res: Response) 
     const result = await cloudinary.uploader.upload(dataURI, {
       folder,
       resource_type: 'image',
+      quality: 'auto',
+      fetch_format: 'auto',
     });
 
     res.json({ url: result.secure_url, public_id: result.public_id });

@@ -40,6 +40,7 @@ engineered beyond coursework scope (RBAC, Stripe payments, a forum, a CMS, audit
 | Error envelopes, retries, idempotency, failure modes | [[00-core/ErrorHandling]] |
 | Tests, coverage, quality gates | [[00-core/Testing_Strategy]] |
 | What is deployed, where, and how releases happen | [[00-core/Deployment]] |
+| Image optimization rules, or other standing performance rules | [[00-core/Performance]] |
 | Domain vocabulary and abbreviations | [[00-core/Glossary]] |
 | A defect in shipped code | [[01-planning/bugs]] |
 | Outstanding work and gap traceability | [[01-planning/TODO]] |

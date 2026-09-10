@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { Antonio } from 'next/font/google';
 import { TeamMember } from './BrutalistMemberCard';
+import { cldUrl, CLD_AVATAR_LARGE } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -46,7 +47,7 @@ export function MemberCard({
       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
         {member.avatar_url ? (
           <img
-            src={member.avatar_url}
+            src={cldUrl(member.avatar_url, CLD_AVATAR_LARGE) ?? member.avatar_url}
             alt={member.full_name}
             className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
             draggable={false}

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import SmoothScroll from '@/components/ui/smooth-scroll';
 import NotificationBell from '@/components/ui/NotificationBell';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 const NAV_LINKS = [
   { label: 'Events', href: '/events' },
@@ -94,9 +96,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
               {/* Center — Logo */}
               <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center hover:-translate-y-0.5 transition-transform group">
-                <img
-                  src={lightGhost ? '/images/logolight.png' : '/images/logodark.png'}
+                <Image
+                  src={lightGhost ? '/images/logolight.webp' : '/images/logodark.webp'}
                   alt="GDGOC-UITU Logo"
+                  width={160}
+                  height={40}
+                  priority
                   className="h-8 md:h-10 w-auto object-contain"
                 />
               </Link>
@@ -120,7 +125,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                       className="w-7 h-7 rounded-full bg-[#4285F4] flex items-center justify-center hover:-translate-y-0.5 transition-all overflow-hidden"
                     >
                       {user?.avatar_url ? (
-                        <img src={user.avatar_url} alt={initials} className="w-full h-full object-cover" />
+                        <img src={cldUrl(user.avatar_url, CLD_AVATAR) ?? user.avatar_url} alt={initials} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-white font-black text-xs">{initials}</span>
                       )}
