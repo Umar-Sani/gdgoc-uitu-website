@@ -9,7 +9,6 @@ import ParallaxBackdrop from '../../../components/ui/ParallaxBackdrop';
 import CactusRunner from '../../../components/ui/CactusRunner';
 import MissionScroll from '../../../components/ui/MissionScroll';
 import { Antonio } from 'next/font/google';
-import { blurDataURL } from '@/lib/blur-placeholder';
 import { cldUrl, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
@@ -157,8 +156,7 @@ export default function AboutPage() {
             alt=""
             width={400}
             height={400}
-            placeholder={blurDataURL('/images/Android_Mascot_About_Me.webp') ? 'blur' : 'empty'}
-            blurDataURL={blurDataURL('/images/Android_Mascot_About_Me.webp')}
+            priority
             className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
             draggable={false}
           />

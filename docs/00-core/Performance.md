@@ -27,10 +27,31 @@ When skipping `next/image` for this reason, the image file itself must still be 
 pre-compressed — the exception is about the React wrapper, not about shipping an unoptimized
 asset.
 
-**2. Mark the true above-the-fold / LCP image with `priority`.** Never mark more than one
-image `priority` per page — it demotes everything else's fetch priority, which defeats the
-point. Logos in a persistent nav/sidebar count as `priority`; decorative below-the-fold mascots
-do not.
+**2. Mark every image inside the page's top/hero section `priority` — never leave it to
+default.** `next/image` lazy-loads by default *regardless of scroll position on load*; only an
+explicit `priority` prop makes it fetch immediately (via a `<link rel="preload">`) instead of
+waiting for an Intersection Observer to fire. It is fine for more than one image on a page to be
+`priority` if more than one genuinely sits in the hero/header — the "one LCP image" framing from
+the source PDF assumes a single hero image, which does not hold for pages that have both a logo
+and a decorative header graphic. Judge by page position ("does this render inside the first
+screenful on load"), not by role ("is this decorative") — a decorative mascot inside the page
+header still needs `priority`; only mascots/graphics that are actually further down the page
+(passed a scroll trigger, inside a below-the-fold section) should stay lazy.
+
+> [!bug] Four page-header mascots were lazy-loading despite being above-the-fold (fixed
+> 2026-09-10)
+> `about`, `contact`, `events`, and `forum` each have a mascot `<Image>` positioned inside the
+> page's own top/hero block (`about/page.tsx:154`, `contact/page.tsx:96`,
+> `events/page.tsx:309`, `forum/page.tsx:547`) — visible on initial page load, not something the
+> user scrolls to. All four were classified as "decorative below-the-fold" and given a blur
+> placeholder with no `priority`, which is wrong: they're decorative, but not below-the-fold.
+> `next/image`'s default (no `priority`) is lazy regardless of layout position, so all four were
+> genuinely delaying their own load on every visit to those four pages. Fixed by adding
+> `priority` and removing the now-pointless blur placeholder (a `priority` image loads near
+> instantly, so blur is noise) from all four. Caught by the user noticing real load delay on the
+> live preview, not by any check this project runs automatically — there is no LCP/lazy-loading
+> audit in CI, so this class of mistake will recur silently unless checked for by eye on every
+> new page.
 
 **3. Static assets in `frontend/public/images/` are WebP.** Run
 `npm run images:webp` (in `frontend/`, wraps `scripts/convert-to-webp.mjs`) after adding any new
