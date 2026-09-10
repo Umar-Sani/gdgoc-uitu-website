@@ -489,3 +489,44 @@ had to be killed by PID before a clean restart).
 **Suggested next session.** Open the PR from `perf/image-optimization` into `dev` if Umar is
 satisfied with the current preview state — nothing further is planned on this branch. Otherwise
 pick up `TODO-051` (host/speakers at event creation) or `TODO-052` (Redis) next, per §11.
+
+---
+
+## 13. `perf/image-optimization` — one more fix, then PR opened (2026-09-10)
+
+Final continuation of §11/§12, same day, same branch.
+
+**Problem 3 — Umar noticed the mascots at the top of the about/contact/events/forum pages were
+slow to appear, and asked directly whether they'd been set to lazy-load.** They effectively had:
+none of the four had a `priority` prop, and `next/image` lazy-loads by default regardless of
+where the image sits in the page layout — all four are inside their page's own header/hero
+block (visible on initial load, not scrolled to), but had been classified as "decorative
+below-the-fold" back in §11 and given a blur placeholder instead of `priority`. That
+classification was the mistake: decorative and below-the-fold are independent properties, and
+these four are decorative but *not* below-the-fold. Fixed in commit `d850f90` — added
+`priority` to all four, removed the now-pointless blur placeholder from each (a `priority` image
+loads near-instantly, so blur is noise). Before applying the fix, checked every navbar/sidebar
+logo across public, member, and admin layouts (6 render sites) and confirmed all already had
+`priority` correctly set — the bug was isolated to the four mascots, not a systemic miss.
+Verified via the still-running local dev server that each mascot now emits a `<link
+rel="preload" as="image">` in the document head and no longer carries a `loading` attribute.
+
+**Doc updates in the same continuation** (dual write): `docs/00-core/Performance.md` rule 2
+rewritten from "mark the true above-the-fold/LCP image `priority`" (correct in principle, but
+its "one LCP image" framing invited exactly the below-the-fold misjudgment that caused this bug)
+to an explicit "judge by page position, not by decorative-vs-functional role" rule, plus a dated
+bug note recording the mistake and fix; a missing `## What was done` heading (dropped by an
+earlier edit, found while updating this section) restored above its bullet list; three
+"what was done" bullets added for the Cloudinary quality tuning and this priority fix, which had
+landed in commits but not yet been reflected in that section's summary.
+
+**PR opened this continuation**: `perf/image-optimization` → `dev`. See the PR description for
+the consolidated commit summary; this file remains the narrative record.
+
+**State at end of session.** All planned work on this branch is done pending review/merge. The
+two local dev servers from §12 are still running as of this entry — clean them up (or confirm
+they're still wanted for further review) before starting new work on this repo.
+
+**Suggested next session.** After the PR merges to `dev`, pick up `TODO-051` (host/speakers at
+event creation) or `TODO-052` (Redis) next, per §11 — both already have concrete file:line
+starting points recorded in the TODO ledger.

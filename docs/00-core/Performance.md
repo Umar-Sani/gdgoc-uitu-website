@@ -115,6 +115,8 @@ generous `sizes` fails safe (costs bytes) where an exact or tight one fails visi
 quality). Recompute `sizes` any time a component's width classes change — it does not update
 itself.
 
+## What was done (2026-09-10)
+
 - Converted all 35 raster assets in `frontend/public/images/` to WebP
   (`frontend/scripts/convert-to-webp.mjs`, quality 80). Total static image weight dropped from
   ~19.8MB to ~7.9MB (~60%) before Next's own AVIF/responsive negotiation is even applied on top.
@@ -145,6 +147,14 @@ itself.
   in one place, `components/ui/ImageUpload.tsx`, which every admin form reuses). This closes a
   gap the original static-asset work didn't touch at all — before this, every Cloudinary image
   in the app was served at full upload resolution to every device, regardless of display size.
+- Tuned every `cldUrl()` preset from `q_auto` to `q_auto:best` and widened `CLD_EVENT_HERO` from
+  1200px to 1920px, after live testing showed visible pixelation, worst on the event hero
+  banner (see the "quality bump" note under rule 4a's presets — that image renders at full
+  unclamped viewport width with no max-width cap, so 1200px was smaller than its actual display
+  size on any desktop screen).
+- Added `priority` to the four page-header mascots (rule 2's bug note) after the user noticed
+  real load delay on the live preview; verified every navbar/sidebar logo across public, member,
+  and admin layouts already had `priority` correctly set, so the bug was isolated to those four.
 
 > [!bug] `MissionScroll`'s photo carousel was serving visibly degraded images (fixed — twice)
 > Two separate bugs stacked here, and the first fix didn't fully solve it — worth recording both
