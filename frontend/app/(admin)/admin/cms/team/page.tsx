@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -836,7 +837,7 @@ function MemberRow({
       {/* Avatar */}
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
         {member.avatar_url
-          ? <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
+          ? <img src={cldUrl(member.avatar_url, CLD_AVATAR) ?? member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
           : <span className="text-sm font-bold text-white">{member.full_name?.charAt(0)}</span>
         }
       </div>

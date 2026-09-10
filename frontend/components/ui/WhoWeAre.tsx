@@ -206,7 +206,7 @@ export default function WhoWeAre() {
             {/* Google Developers logo → swaps to GDGoC-UITU on hover */}
             <span className="group relative inline-block w-64 md:w-80 lg:w-[26rem] aspect-[256/125] cursor-pointer">
               <img
-                src="/images/logolight2.png"
+                src="/images/logolight2.webp"
                 alt="Google Developers Group on Campus - UIT University"
                 className="absolute relative top-2 inset-0 w-full h-full object-contain drop-shadow-[0_0_25px_rgba(66,133,244,0.3)] transition-opacity duration-300 group-hover:opacity-0"
                 draggable={false}
@@ -224,8 +224,9 @@ export default function WhoWeAre() {
               track but takes no flow space, and sits behind the text (negative z). */}
           <div className="we-are-prelude pointer-events-none absolute top-1/2 left-[85vw] -translate-x-1/2 -translate-y-1/2 -z-10">
             <img
-              src="/images/UITU%20Building%20Silhouette.png"
+              src="/images/UITU%20Building%20Silhouette.webp"
               alt=""
+              loading="lazy"
               className="h-[640px] w-auto max-w-none object-contain opacity-[0.12]"
               draggable={false}
             />
@@ -302,8 +303,9 @@ export default function WhoWeAre() {
                   style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
                   <img
-                    src="/images/UITU%20LOGO%20WHITE.png"
+                    src="/images/UITU%20LOGO%20WHITE.webp"
                     alt="UITU"
+                    loading="lazy"
                     className="h-[clamp(7rem,14vw,16rem)] aspect-square object-contain"
                     draggable={false}
                   />

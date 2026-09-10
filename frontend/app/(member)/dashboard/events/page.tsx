@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { Event } from '@shared/types';
 import { useMemberData } from '@/context/MemberDataContext';
+import { cldUrl, CLD_EVENT_CARD } from '@/lib/cloudinary-url';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ function EventCard({ event }: { event: Event }) {
         <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
           {event.banner_url ? (
             <img
-              src={event.banner_url}
+              src={cldUrl(event.banner_url, CLD_EVENT_CARD) ?? event.banner_url}
               alt={event.title}
               className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
             />

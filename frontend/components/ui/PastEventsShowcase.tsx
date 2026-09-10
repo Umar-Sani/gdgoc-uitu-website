@@ -7,6 +7,7 @@ import { gsap } from 'gsap';
 import { Draggable } from 'gsap/Draggable';
 import { useGSAP } from '@gsap/react';
 import { Antonio } from 'next/font/google';
+import { cldUrl, CLD_EVENT_CARD } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'], weight: ['400', '700'] });
 
@@ -297,7 +298,7 @@ export default function PastEventsShowcase({ events }: PastEventsShowcaseProps) 
                 >
                   {event.image_url ? (
                     <img
-                      src={event.image_url}
+                      src={cldUrl(event.image_url, CLD_EVENT_CARD) ?? event.image_url}
                       alt={event.title}
                       className={`w-full h-full object-cover transition-all duration-500 ${isActiveCard ? '' : 'grayscale'}`}
                       draggable={false}

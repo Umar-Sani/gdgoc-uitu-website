@@ -49,7 +49,7 @@ work. Defects in shipped code live in [[bugs]], not here.
 | TODO-033 | open | **code** — no automated tests of any kind. Start with the five highest-value cases listed in the strategy | [[../00-core/Testing_Strategy]] |
 | TODO-034 | open | **code** — no CI. Cheapest first gate: GitHub Actions running `tsc --noEmit` on both apps per PR | [[../00-core/Testing_Strategy]] |
 | TODO-035 | open | **code** — no staging environment; local development appears to share the production database | [[../00-core/Deployment]] |
-| TODO-036 | open | **doc** — backend hosting target cannot be determined from the repository | [[../00-core/Deployment]] |
+| TODO-036 | done | **doc** — backend hosting target cannot be determined from the repository. Resolved 2026-09-09: deployed to Railway (Root Directory `backend`), verified live via `GET /health` | [[../00-core/Deployment]] |
 | TODO-037 | open | **doc** — no rehearsed rollback procedure for backend or database | [[../08-ops/_Ops_Index\|08-ops]] |
 | TODO-038 | open | **code** — no release tagging, version number, or changelog | [[../00-core/Deployment]] |
 | TODO-039 | open | **doc** — backfill ADR-004 and ADR-005; both are live in production but written as template-only stubs | [[../04-decisions/_Decisions_Index\|Decisions]] |
@@ -59,6 +59,15 @@ work. Defects in shipped code live in [[bugs]], not here.
 | TODO-043 | open | **code** — `moderate_forum_content` is never called; forum routes issue direct `UPDATE`s instead | [[bugs]] `BUG-002` |
 | TODO-044 | open | **doc** — copy the six frozen course specs into `07-build-docs/` as markdown, or decide to leave them as `.docx` in `ProjectDocs/` | [[../07-build-docs/_Build_Docs_Index\|Build Docs]] |
 | TODO-045 | open | **code** — `ProjectDocs/` is excluded via `.git/info/exclude`, a local-only ignore file, so a teammate cloning the repo receives none of the course documents | [[../START_HERE]] |
+| TODO-046 | open | **code** — `db/client.ts` disables TLS certificate-chain validation entirely (`rejectUnauthorized: false`) to work around Supabase pooler's cert chain. Pin Supabase's CA certificate instead of a blanket disable | [[../00-core/Deployment]] `BUG-012` |
+| TODO-047 | open | **doc** — Railway's build/start commands, root directory, and env vars exist only in its dashboard; no `railway.json` or deploy manifest is committed, so a fresh environment must be reconstructed by hand from this vault | [[../00-core/Deployment]] |
+| TODO-048 | open | **code** — Vercel's Root Directory setting and the Supabase/Google OAuth redirect-URL allow-lists exist only in their dashboards, with nothing committed in-repo (no `vercel.json`, no documented redirect-URL list outside this vault). A fresh deploy or preview-URL domain silently breaks OAuth until someone remembers to add it by hand | [[../00-core/Deployment]] |
+| TODO-049 | done | **code** — image weight. Fixed 2026-09-10 on `perf/image-optimization`: all static assets converted to WebP (~60% size drop), safely-convertible `<img>` call sites moved to `next/image`, Cloudinary upload route now applies `quality:'auto'`/`fetch_format:'auto'`. Full detail in [[../00-core/Performance]] | [[../00-core/Performance]] |
+| TODO-050 | open | **code** — dead static assets confirmed unreferenced anywhere in `frontend/`: `Android Doind Society Stuff.png`, `Android Doind Society Stuff11.png`, `human doing society stuff.png`, both `GDGoC Logo with...Mascot.png` files. Also still open: audit `social.posts` and `ai_metadata.event_recommendations` for actual frontend usage; if unused, drop the table/feature rather than carrying dead schema | [[../00-core/Database]] [[../00-core/Performance]] |
+| TODO-051 | open | **code** — `events.event_people` has a `NOT NULL` FK to `events.events(event_id)`, so host/speakers cannot be attached until the event row exists (`backend/src/routes/events.ts:431,453`). Frontend event-creation form (`frontend/app/(admin)/admin/events/new/page.tsx`) only supports adding people after creation. Needs either a draft-event-first flow or a single transactional create-with-people endpoint | [[../05-features/_Features_Index]] |
+| TODO-052 | open | **code** — no Redis or any caching layer in the repo. Best candidates by read volume: `GET /events` (`backend/src/routes/events.ts:62`), `GET /forum/threads` (`backend/src/routes/forum.ts:22`), and the public CMS GETs in `cms.ts` (homepage/about/team/gallery/sponsors) | [[../00-core/Architecture]] |
+| TODO-053 | open | **code** — no client-side data-fetching/cache layer; all reads are raw `fetch` + `useEffect`/context (e.g. `frontend/context/MemberDataContext.tsx`). Candidate: SWR or React Query for the same high-traffic reads as TODO-052 | [[../00-core/Architecture]] |
+| TODO-054 | open | **doc** — mobile UI pass needed; no exhaustive audit done yet, only a spot check (no obvious fixed-px anti-patterns found, but coverage was shallow) | [[../00-core/requirements]] |
 
 ## Maintenance rule
 

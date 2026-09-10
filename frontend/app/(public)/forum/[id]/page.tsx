@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,7 +65,7 @@ function Avatar({ name, avatar, size = 'md' }: { name: string; avatar: string | 
   return (
     <div className={`${sizeClass} rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold flex-shrink-0`}>
       {avatar
-        ? <img src={avatar} alt={name} className="w-full h-full rounded-full object-cover" />
+        ? <img src={cldUrl(avatar, CLD_AVATAR) ?? avatar} alt={name} className="w-full h-full rounded-full object-cover" />
         : getInitials(name || 'U')
       }
     </div>

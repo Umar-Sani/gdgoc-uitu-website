@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -74,7 +75,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
               </svg>
             </button>
             <Link href="/" className="hover:opacity-80 transition-opacity">
-              <img src="/images/logodark.png" alt="GDGOC-UITU" className="h-9 w-auto object-contain" />
+              <Image src="/images/logodark.webp" alt="GDGOC-UITU" width={130} height={36} priority className="h-9 w-auto object-contain" />
             </Link>
             <div className="w-9" />
           </div>

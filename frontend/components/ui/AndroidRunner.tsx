@@ -5,20 +5,20 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
 const RUN_FRAMES = [
-  '/images/Android%20Running/1.png',
-  '/images/Android%20Running/2.png',
-  '/images/Android%20Running/3.png',
+  '/images/Android%20running/1.webp',
+  '/images/Android%20running/2.webp',
+  '/images/Android%20running/3.webp',
 ];
 
 const SPEED = 5.2;
 
 // Front (z:20) = tall, in front of text; Back (z:3) = short, behind mascot (z:5) and text
 const OBSTACLES = [
-  { src: '/images/Android%20Running/c1.png', delay: 0.0, z: 20, h: 160 },
-  { src: '/images/Android%20Running/c3.png', delay: 1.8, z: 3,  h: 88  },
-  { src: '/images/Android%20Running/c2.png', delay: 3.5, z: 20, h: 160 },
-  { src: '/images/Android%20Running/c1.png', delay: 0.9, z: 3,  h: 88  },
-  { src: '/images/Android%20Running/c3.png', delay: 2.7, z: 20, h: 160 },
+  { src: '/images/Android%20running/c1.webp', delay: 0.0, z: 20, h: 160 },
+  { src: '/images/Android%20running/c3.webp', delay: 1.8, z: 3,  h: 88  },
+  { src: '/images/Android%20running/c2.webp', delay: 3.5, z: 20, h: 160 },
+  { src: '/images/Android%20running/c1.webp', delay: 0.9, z: 3,  h: 88  },
+  { src: '/images/Android%20running/c3.webp', delay: 2.7, z: 20, h: 160 },
 ];
 
 export default function AndroidRunner() {

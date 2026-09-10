@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { cldUrl, CLD_EVENT_CARD } from '@/lib/cloudinary-url';
 import type { Event } from '@shared/types';
 
 export default function CheckoutPage() {
@@ -141,7 +142,7 @@ export default function CheckoutPage() {
             <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
               {event.banner_url && (
                 <img
-                  src={event.banner_url}
+                  src={cldUrl(event.banner_url, CLD_EVENT_CARD) ?? event.banner_url}
                   alt={event.title}
                   className="w-full h-32 object-cover rounded-lg mb-3"
                 />

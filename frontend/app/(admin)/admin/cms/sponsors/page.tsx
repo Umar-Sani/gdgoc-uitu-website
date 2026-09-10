@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { cldUrl, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -249,7 +250,7 @@ export default function SponsorsCMSPage() {
             <div key={sponsor.sponsor_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
                 {sponsor.logo_url ? (
-                  <img src={sponsor.logo_url} alt={sponsor.name} className="w-10 h-10 object-contain" />
+                  <img src={cldUrl(sponsor.logo_url, CLD_LOGO) ?? sponsor.logo_url} alt={sponsor.name} className="w-10 h-10 object-contain" />
                 ) : (
                   <span className="text-lg font-bold text-gray-300">{sponsor.name?.charAt(0)}</span>
                 )}

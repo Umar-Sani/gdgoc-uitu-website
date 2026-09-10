@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare, ThumbsUp, Calendar, MapPin, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { formatDate, timeAgo } from '@/lib/formatters';
+import { cldUrl, CLD_AVATAR_LARGE } from '@/lib/cloudinary-url';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -125,7 +126,7 @@ export default function PublicProfilePage() {
           <div className="relative">
             <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center overflow-hidden ring-4 ring-white/10 shadow-[0_20px_40px_rgba(66,133,244,0.35)]">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.full_name} className="w-32 h-32 object-cover" />
+                <img src={cldUrl(profile.avatar_url, CLD_AVATAR_LARGE) ?? profile.avatar_url} alt={profile.full_name} className="w-32 h-32 object-cover" />
               ) : (
                 <span className="text-5xl font-black text-white">{getInitials(profile.full_name)}</span>
               )}

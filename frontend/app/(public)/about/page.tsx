@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { TeamMember } from '../../../components/ui/BrutalistMemberCard';
 import TeamCards, { Team, MemberCard, PeopleBlock, THEMES } from '../../../components/ui/TeamCards';
@@ -8,6 +9,7 @@ import ParallaxBackdrop from '../../../components/ui/ParallaxBackdrop';
 import CactusRunner from '../../../components/ui/CactusRunner';
 import MissionScroll from '../../../components/ui/MissionScroll';
 import { Antonio } from 'next/font/google';
+import { cldUrl, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -149,9 +151,12 @@ export default function AboutPage() {
 
         {/* Decorative mascot — pinned to bottom-right, feet touch the section edge */}
         <div className="hidden md:block absolute bottom-0 right-8 lg:right-16 w-52 lg:w-72 z-[20] pointer-events-none">
-          <img
-            src="/images/Android_Mascot_About_Me.png"
+          <Image
+            src="/images/Android_Mascot_About_Me.webp"
             alt=""
+            width={400}
+            height={400}
+            priority
             className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(66,133,244,0.25)]"
             draggable={false}
           />
@@ -166,7 +171,7 @@ export default function AboutPage() {
       <section id="team" className="py-24 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-x-clip">
         {/* Decorative mascot backdrop — full width, drifts slowly down the section (parallax) */}
         <ParallaxBackdrop
-          src="/images/Android_Mascots_Classroom.png"
+          src="/images/Android_Mascots_Classroom.webp"
           className="opacity-[0.08] z-0"
         />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 font-sans">
@@ -316,7 +321,7 @@ export default function AboutPage() {
                         >
                           {sponsor.logo_url ? (
                             <img
-                              src={sponsor.logo_url}
+                              src={cldUrl(sponsor.logo_url, CLD_LOGO) ?? sponsor.logo_url}
                               alt={sponsor.name}
                               className="h-32 w-auto object-contain mb-5 grayscale group-hover:grayscale-0 transition-all"
                             />
