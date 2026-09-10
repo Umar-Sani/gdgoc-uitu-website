@@ -416,3 +416,76 @@ a confirmed finding.
 (Redis) next — both have concrete file:line starting points already recorded in the TODO ledger
 from this session's survey. `TODO-050`'s dead-asset deletion is a small, low-risk warm-up if a
 short session is wanted first.
+
+---
+
+## 12. `perf/image-optimization` continued — wrong diagnosis caught and fixed, Cloudinary
+    responsive delivery added (2026-09-10)
+
+Direct continuation of §11, same branch, same day. Umar tested the Vercel preview live after
+each push and caught two real problems the earlier verification (build + HTTP status checks
+only) could not have caught — this section exists because "it builds and returns 200" turned out
+not to mean "it looks right."
+
+**Problem 1 — Mission carousel photos looked low quality, especially in AVIF.** First
+diagnosis was wrong: AVIF was suspected and removed from `next.config.mjs`'s `images.formats`
+(commit `b0c089b`), then **reverted** (`5a58a69`) once the real cause was found. The actual bug:
+every one of `MissionScroll.tsx`'s ten `next/image` slots shared one hardcoded `sizes` string
+that didn't match their real Tailwind width classes (`xl:w-[30rem]` renders at 480px; `sizes`
+said 320px). `next/image` trusts `sizes` completely and has no way to inspect real layout, so it
+deliberately requested an undersized `srcset` entry that the browser then upscaled via CSS —
+that upscaling read as low quality on every format, AVIF included. Fixed (`35c98d8`) by giving
+each carousel slot its own `sizes` value biased to ~1.5x its real rendered width rather than an
+exact match, per Umar's explicit preference for quality over squeezing out marginal bandwidth
+savings — a generous `sizes` fails safe (costs bytes), a tight one fails visibly (costs
+quality). This is now rule 7/8 in [`docs/00-core/Performance.md`](docs/00-core/Performance.md),
+with the wrong-diagnosis-then-right-fix sequence recorded there in full so a future session
+doesn't repeat the AVIF theory.
+
+**Gap surfaced by discussion, not by testing — Cloudinary images had none of this optimization
+at all.** Umar asked whether event/team/sponsor images (all Cloudinary-hosted, not static
+assets) benefited from any of the session's work. They did not: an `Explore`-style audit across
+the whole frontend found every single Cloudinary-backed image (event banners/cards, team and
+forum avatars, sponsor logos, featured events, every admin CMS upload preview) rendered via
+plain `<img src={field}>` with no resizing — Cloudinary's own on-the-fly transformation
+capability (append `w_400,c_fill,q_auto,f_auto` etc. into the URL's `/image/upload/` segment)
+was configured for none of them; only the upload-time `quality/fetch_format: auto` from §11
+existed. Closed in commit `6e3b5a1`: new `lib/cloudinary-url.ts` (`cldUrl()` helper + six named
+presets by context — avatar/avatar-large/event-card/event-hero/logo/thumb) applied across
+~30 render sites in 25 files. Deliberately **not** routed through `next/image` — Cloudinary's
+edge-cached on-the-fly resizing is a separate, complete mechanism, and stacking `next/image` on
+top would double-process for no benefit. `cldUrl()` is a verified no-op on non-Cloudinary URLs
+(Google OAuth avatars, local `blob:` upload previews), so it's safe to call unconditionally.
+
+**Problem 2 — after that shipped, Cloudinary images looked slightly pixelated, hero banners
+worst of all.** Found via the same live-preview testing pattern, same day. Two compounding
+causes: (a) every preset used plain `q_auto`, which is Cloudinary's more-aggressive default
+tier rather than its higher-quality `q_auto:best` tier; (b) `CLD_EVENT_HERO` requested only
+1200px wide, but that image renders at full unclamped viewport width (`w-full h-full`, no
+max-width) in both the event-detail hero and the homepage's expanded-event pop-up — the same
+"requested size smaller than real display size" bug class as problem 1, just via a hardcoded
+Cloudinary width instead of a `next/image` `sizes` string. Fixed in the same commit (`6e3b5a1`):
+every preset switched to `q_auto:best`; `CLD_EVENT_HERO` widened 1200→1920px with an extra
+quality allowance since it's the most visually prominent, most tightly-cropped image on the
+site. Confirmed fixed via Umar testing a locally-run dev server (both apps started and health-
+checked this session) before the commit landed, not just the build/HTTP-level check from §11.
+
+**Doc updates in the same continuation** (dual write): `docs/00-core/Performance.md` gained
+rule 4a (Cloudinary responsive delivery, with the "why not next/image" reasoning), the corrected
+rule 7/8 bug note above, and a "what was done" entry for the Cloudinary work; this handoff entry
+itself, written after Umar asked directly whether documentation was being kept current — it was
+not, until this entry, since §11 predates roughly two-thirds of what actually happened on this
+branch. No TODO ledger changes this continuation — `TODO-049` was already `done` from §11 and
+nothing here reopened it, it only refined the same delivered feature.
+
+**State at end of this continuation.** `perf/image-optimization` has 8 commits, pushed to
+`origin`, not yet opened as a PR into `dev`. Two local dev servers (frontend :3000, backend
+:4000) were left running in the background this session for Umar's live testing — **not
+stopped as of this entry**; a future session picking this branch back up should check for and
+clean up stray `next dev` / `nodemon` processes before starting its own, per the port-conflict
+already hit once in §11/§12 (a leftover `next dev` from an earlier attempt held port 3000 and
+had to be killed by PID before a clean restart).
+
+**Suggested next session.** Open the PR from `perf/image-optimization` into `dev` if Umar is
+satisfied with the current preview state — nothing further is planned on this branch. Otherwise
+pick up `TODO-051` (host/speakers at event creation) or `TODO-052` (Redis) next, per §11.
