@@ -8,6 +8,7 @@ import {
   LayoutDashboard, CalendarDays, MessageSquare, Ticket,
   Settings, LogOut, ShieldCheck,
 } from 'lucide-react';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 type NavItem = {
   label: string;
@@ -90,7 +91,7 @@ export default function MemberSidebar({ isOpen, onClose }: { isOpen: boolean; on
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
             {user.avatar_url ? (
-              <img src={user.avatar_url} alt={user.full_name} className="w-8 h-8 object-cover" />
+              <img src={cldUrl(user.avatar_url, CLD_AVATAR) ?? user.avatar_url} alt={user.full_name} className="w-8 h-8 object-cover" />
             ) : (
               getInitials(user.full_name || 'M')
             )}

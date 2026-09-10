@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { cldUrl, CLD_EVENT_HERO, CLD_AVATAR } from '@/lib/cloudinary-url';
 import type { Event } from '@shared/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -250,7 +251,7 @@ export default function EventDetailPage() {
       <div className="relative h-64 sm:h-80 bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
         {event.banner_url ? (
           <img
-            src={event.banner_url}
+            src={cldUrl(event.banner_url, CLD_EVENT_HERO) ?? event.banner_url}
             alt={event.title}
             className="w-full h-full object-cover"
           />
@@ -357,7 +358,7 @@ export default function EventDetailPage() {
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                         {person.avatar_url ? (
                           <img
-                            src={person.avatar_url}
+                            src={cldUrl(person.avatar_url, CLD_AVATAR) ?? person.avatar_url}
                             alt={person.full_name}
                             className="w-full h-full object-cover"
                           />

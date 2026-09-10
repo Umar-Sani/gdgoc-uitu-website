@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { blurDataURL } from '@/lib/blur-placeholder';
+import { cldUrl, CLD_EVENT_CARD } from '@/lib/cloudinary-url';
 import type { Event } from '@shared/types';
 import { Antonio } from 'next/font/google';
 
@@ -73,7 +74,7 @@ function EventCard({ event }: { event: Event }) {
         <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
           {event.banner_url ? (
             <img
-              src={event.banner_url}
+              src={cldUrl(event.banner_url, CLD_EVENT_CARD) ?? event.banner_url}
               alt={event.title}
               className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
             />

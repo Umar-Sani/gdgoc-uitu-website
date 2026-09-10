@@ -46,6 +46,20 @@ re-derive per-caller transforms; if a caller needs a specific crop/size, add Clo
 transformation parameters at *read* time (e.g. `w_400,c_fill`), not by changing the upload
 transform.
 
+**4a. Every Cloudinary-hosted image is rendered through `cldUrl()`, not its raw `secure_url`.**
+`lib/cloudinary-url.ts` inserts a size/crop/quality transform into the URL's `/image/upload/`
+segment — Cloudinary resizes and recompresses on the fly at request time and caches the result
+at its edge, which is the standard way to get responsive delivery from Cloudinary. This is a
+**different mechanism from `next/image`** — do not wrap a Cloudinary image in `next/image`; that
+would run it through two resizing pipelines for no benefit. `cldUrl()` is a no-op (returns the
+input unchanged) on any URL that isn't a Cloudinary delivery URL, so it's safe to call
+unconditionally on a field that might hold a Google OAuth avatar or a local `blob:` preview
+during upload — never assume every `avatar_url` is Cloudinary-hosted. Pick the transform by
+context, not by copy-pasting whatever the nearest call site used: `CLD_AVATAR` (128px) for small
+avatars, `CLD_AVATAR_LARGE` (400px) for profile-page-sized ones, `CLD_EVENT_CARD` (600px) for
+card thumbnails, `CLD_EVENT_HERO` (1200px) for full-width banners, `CLD_LOGO` (300px, fit not
+fill) for sponsor logos, `CLD_THUMB` (150px) for small list-row thumbnails.
+
 **5. Filenames referencing `frontend/public/images/*` must match on-disk casing exactly.**
 Windows and macOS default filesystems are case-insensitive; Vercel's Linux build is not. Two
 pre-existing mismatches were found and fixed while doing this work (`Android WOMAN Standing
@@ -104,6 +118,12 @@ itself.
   the small `priority` logos: `ParallaxBackdrop`, `MissionScroll`'s photo carousel, and the four
   page-mascot decorations. Generated via a new script, `scripts/generate-blur-placeholders.mjs`,
   which writes `lib/blur-placeholders.json`; looked up through `lib/blur-placeholder.ts`.
+- Added `lib/cloudinary-url.ts` (rule 4a) and applied it to every Cloudinary-hosted image
+  render site across the whole frontend (~30 call sites): event banners/cards, team and forum
+  avatars, sponsor logos, featured events, and every admin CMS upload preview (the last group
+  in one place, `components/ui/ImageUpload.tsx`, which every admin form reuses). This closes a
+  gap the original static-asset work didn't touch at all — before this, every Cloudinary image
+  in the app was served at full upload resolution to every device, regardless of display size.
 
 > [!bug] `MissionScroll`'s photo carousel was serving visibly degraded images (fixed — twice)
 > Two separate bugs stacked here, and the first fix didn't fully solve it — worth recording both

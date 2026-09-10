@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MessageSquare, ThumbsUp, Eye, Plus, Pin } from 'lucide-react';
 import { useMemberData, type MemberThread } from '@/context/MemberDataContext';
 import { timeAgo } from '@/lib/formatters';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 function getInitials(name: string): string {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -33,7 +34,7 @@ function ThreadRow({ thread }: { thread: MemberThread }) {
       <div className="flex items-center gap-2.5 text-xs text-gray-500 mb-3">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center overflow-hidden shrink-0">
           {thread.author_avatar ? (
-            <img src={thread.author_avatar} alt={thread.author_name ?? ''} className="w-full h-full object-cover" />
+            <img src={cldUrl(thread.author_avatar, CLD_AVATAR) ?? thread.author_avatar} alt={thread.author_name ?? ''} className="w-full h-full object-cover" />
           ) : (
             <span className="text-[10px] font-bold text-white">{getInitials(thread.author_name ?? 'U')}</span>
           )}

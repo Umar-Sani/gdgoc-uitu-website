@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MessageSquare, ThumbsUp } from 'lucide-react';
 import { timeAgo } from '@/lib/formatters';
 import { useMemberData } from '@/context/MemberDataContext';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 function getInitials(name: string): string {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -46,7 +47,7 @@ export default function LatestForumCard() {
               {/* Author avatar */}
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
                 {t.author_avatar ? (
-                  <img src={t.author_avatar} alt={t.author_name ?? ''} className="w-9 h-9 object-cover" />
+                  <img src={cldUrl(t.author_avatar, CLD_AVATAR) ?? t.author_avatar} alt={t.author_name ?? ''} className="w-9 h-9 object-cover" />
                 ) : (
                   getInitials(t.author_name ?? 'U')
                 )}

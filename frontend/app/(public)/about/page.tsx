@@ -10,6 +10,7 @@ import CactusRunner from '../../../components/ui/CactusRunner';
 import MissionScroll from '../../../components/ui/MissionScroll';
 import { Antonio } from 'next/font/google';
 import { blurDataURL } from '@/lib/blur-placeholder';
+import { cldUrl, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -322,7 +323,7 @@ export default function AboutPage() {
                         >
                           {sponsor.logo_url ? (
                             <img
-                              src={sponsor.logo_url}
+                              src={cldUrl(sponsor.logo_url, CLD_LOGO) ?? sponsor.logo_url}
                               alt={sponsor.name}
                               className="h-32 w-auto object-contain mb-5 grayscale group-hover:grayscale-0 transition-all"
                             />

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ReactNode } from 'react';
+import { cldUrl, CLD_AVATAR_LARGE } from '@/lib/cloudinary-url';
 
 // Shared type for member to ensure compatibility
 export type TeamMember = {
@@ -49,7 +50,7 @@ export function BrutalistMemberCard({ member, index, actionHref, actionLabel = '
       {/* Image Container with Custom SVG Sticker */}
       <div className="w-full aspect-square sm:aspect-video lg:aspect-[4/3] rounded-xl border-[3px] border-black overflow-hidden bg-white mb-6 relative flex-shrink-0">
         {member.avatar_url ? (
-          <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-300" />
+          <img src={cldUrl(member.avatar_url, CLD_AVATAR_LARGE) ?? member.avatar_url} alt={member.full_name} className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-300" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100">
              <span className="text-4xl sm:text-5xl font-black text-gray-400">{getInitials(member.full_name)}</span>

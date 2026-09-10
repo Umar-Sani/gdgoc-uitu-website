@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { blurDataURL } from '@/lib/blur-placeholder';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from '@/context/AuthContext';
@@ -142,7 +143,7 @@ function ThreadCard({
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center overflow-hidden shrink-0">
             {thread.author_avatar ? (
-              <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
+              <img src={cldUrl(thread.author_avatar, CLD_AVATAR) ?? thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-[10px] font-bold text-white">{getInitials(thread.author_name)}</span>
             )}
@@ -256,7 +257,7 @@ function ThreadCard({
         <div className="flex items-center -space-x-1.5 ml-auto">
           <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden" title={thread.author_name}>
             {thread.author_avatar ? (
-              <img src={thread.author_avatar} alt="" className="w-full h-full object-cover" />
+              <img src={cldUrl(thread.author_avatar, CLD_AVATAR) ?? thread.author_avatar} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
             )}

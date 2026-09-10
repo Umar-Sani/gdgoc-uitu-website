@@ -8,6 +8,7 @@ import NotificationBell from '@/components/ui/NotificationBell';
 import ActivityChart, { type ActivityItem } from '@/components/member/ActivityChart';
 import LatestForumCard from '@/components/member/LatestForumCard';
 import DiscoverEventsCard from '@/components/member/DiscoverEventsCard';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 import { formatDate } from '@/lib/formatters';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -89,7 +90,7 @@ export default function DashboardPage() {
             <Link href={`/u/${user.username}`} className="relative flex-shrink-0 group" aria-label="My profile">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center overflow-hidden ring-4 ring-white/10 shadow-[0_12px_30px_rgba(66,133,244,0.35)] group-hover:ring-white/20 transition-all">
                 {user.avatar_url ? (
-                  <img src={user.avatar_url} alt={user.full_name} className="w-14 h-14 object-cover" />
+                  <img src={cldUrl(user.avatar_url, CLD_AVATAR) ?? user.avatar_url} alt={user.full_name} className="w-14 h-14 object-cover" />
                 ) : (
                   <span className="text-xl font-black text-white">{user.full_name?.charAt(0) ?? 'M'}</span>
                 )}

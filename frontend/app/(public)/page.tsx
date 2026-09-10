@@ -18,6 +18,7 @@ import { Antonio } from 'next/font/google';
 import MascotBanner from '../../components/ui/MascotBanner';
 import ParallaxBackdrop from '../../components/ui/ParallaxBackdrop';
 import { useAuth } from '@/context/AuthContext';
+import { cldUrl, CLD_AVATAR_LARGE, CLD_EVENT_CARD, CLD_AVATAR, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -347,7 +348,7 @@ function ForumThreadCard({ thread }: { thread: Thread }) {
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center overflow-hidden shrink-0 border-2 border-black">
           {thread.author_avatar ? (
-            <img src={thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
+            <img src={cldUrl(thread.author_avatar, CLD_AVATAR) ?? thread.author_avatar} alt={thread.author_name} className="w-full h-full object-cover" />
           ) : (
             <span className="text-[10px] font-bold text-white">{getInitials(thread.author_name)}</span>
           )}
@@ -429,7 +430,7 @@ function ForumThreadCard({ thread }: { thread: Thread }) {
         <div className="flex items-center -space-x-1.5 ml-auto">
           <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden" title={thread.author_name}>
             {thread.author_avatar ? (
-              <img src={thread.author_avatar} alt="" className="w-full h-full object-cover" />
+              <img src={cldUrl(thread.author_avatar, CLD_AVATAR) ?? thread.author_avatar} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-[9px] font-bold text-gray-600">{getInitials(thread.author_name)}</span>
             )}
@@ -559,7 +560,7 @@ function MiniMemberCard({
       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
         {member.avatar_url ? (
           <img
-            src={member.avatar_url}
+            src={cldUrl(member.avatar_url, CLD_AVATAR_LARGE) ?? member.avatar_url}
             alt={member.full_name}
             className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
             draggable={false}
@@ -993,7 +994,7 @@ function EventsHorizontalScroll({ events, featuredEvent, isMobile }: { events: E
                     {/* Image Background */}
                     <div className="absolute inset-0">
                       <img
-                        src={event.banner_url || "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
+                        src={cldUrl(event.banner_url, CLD_EVENT_CARD) ?? event.banner_url ?? "https://placehold.co/600x800/4285F4/FFF?text=GDG+EVENT"}
                         alt={event.title}
                         className="w-full h-full object-cover opacity-90 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700"
                       />
@@ -1733,7 +1734,7 @@ export default function HomePage() {
                         isActive ? 'ring-2 ring-[#4285F4] ring-offset-2 ring-offset-slate-900' : ''
                       }`}>
                         {(t as any).avatar_url ? (
-                          <img src={(t as any).avatar_url} alt={t.author_name} className="w-full h-full object-cover" />
+                          <img src={cldUrl((t as any).avatar_url, CLD_AVATAR) ?? (t as any).avatar_url} alt={t.author_name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-blue-400 to-indigo-500">
                             {getInitials(t.author_name)}
@@ -2016,7 +2017,7 @@ export default function HomePage() {
                   >
                     {sponsor.logo_url ? (
                       <img
-                        src={sponsor.logo_url}
+                        src={cldUrl(sponsor.logo_url, CLD_LOGO) ?? sponsor.logo_url}
                         alt={sponsor.name}
                         className="max-h-16 max-w-full object-contain grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-[filter,opacity] duration-300"
                       />

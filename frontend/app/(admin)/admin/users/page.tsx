@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAdmin } from '@/hooks/useRequireAdmin';
 import { supabase } from '@/lib/supabase';
+import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -455,7 +456,7 @@ export default function AdminUsersPage() {
                           : 'bg-gradient-to-br from-gray-300 to-gray-400'
                       }`}>
                         {user.avatar_url
-                          ? <img src={user.avatar_url} alt={user.full_name} className="w-full h-full rounded-full object-cover" />
+                          ? <img src={cldUrl(user.avatar_url, CLD_AVATAR) ?? user.avatar_url} alt={user.full_name} className="w-full h-full rounded-full object-cover" />
                           : getInitials(user.full_name || 'U')
                         }
                       </div>

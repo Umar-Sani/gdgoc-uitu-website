@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { cldUrl, CLD_AVATAR, CLD_THUMB } from '@/lib/cloudinary-url';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -77,7 +78,7 @@ export default function ImageUpload({
         >
           {displaySrc ? (
             <img
-              src={displaySrc}
+              src={cldUrl(displaySrc, isCircle ? CLD_AVATAR : CLD_THUMB) ?? displaySrc}
               alt="preview"
               className="w-full h-full object-cover"
               onError={(e) => {

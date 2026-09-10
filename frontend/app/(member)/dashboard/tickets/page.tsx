@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { Transaction } from '@shared/types';
+import { cldUrl, CLD_THUMB } from '@/lib/cloudinary-url';
 
 type TicketTransaction = Transaction & {
   event_id: string;
@@ -144,7 +145,7 @@ export default function MyTicketsPage() {
                   <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-400 to-indigo-500">
                     {ticket.banner_url ? (
                       <img
-                        src={ticket.banner_url}
+                        src={cldUrl(ticket.banner_url, CLD_THUMB) ?? ticket.banner_url}
                         alt={ticket.event_title}
                         className="w-full h-full object-cover"
                       />
