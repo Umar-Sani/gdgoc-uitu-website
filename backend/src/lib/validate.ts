@@ -108,6 +108,34 @@ export const createTeamMemberSchema = z.object({
 });
 export const updateTeamMemberSchema = createTeamMemberSchema.partial();
 
+// ─── CMS: people (reusable speaker/host/guest directory) ───────────────────────
+export const createPersonSchema = z.object({
+  full_name:     z.string().min(1).max(255),
+  default_role:  z.string().max(100).nullish(),
+  bio:           z.string().max(500).nullish(),
+  avatar_url:    nullableUrl,
+  linkedin_url:  nullableUrl,
+  organization:  z.string().max(255).nullish(),
+  display_order: z.number().int().optional(),
+  is_active:     z.boolean().optional(),
+});
+export const updatePersonSchema = createPersonSchema.partial();
+
+// ─── Events: attach an existing content.people record to an event ─────────────
+export const attachEventPersonSchema = z.object({
+  person_id:      z.uuid(),
+  role_at_event:  z.string().min(1).max(100),
+  display_order:  z.number().int().optional(),
+});
+export const updateEventPersonSchema = z.object({
+  role_at_event:  z.string().min(1).max(100).optional(),
+  display_order:  z.number().int().optional(),
+});
+// Combined create-person-and-attach, used by the admin "+ New Person" inline flow
+export const createAndAttachEventPersonSchema = createPersonSchema.extend({
+  role_at_event: z.string().min(1).max(100),
+});
+
 // ─── CMS: teams ───────────────────────────────────────────────────────────────
 export const createTeamSchema = z.object({
   name:          z.string().min(1).max(100),

@@ -3,7 +3,10 @@ import { pool } from '../db/client';
 import { requireAuth, requireRole, requireUsername } from '../middleware/auth';
 import { createNotification, createBulkNotification } from '../lib/notifications';
 import { sendRegistrationConfirmed, sendNewEventAnnouncement } from '../lib/mailer';
-import { validate, createEventSchema, updateEventSchema } from '../lib/validate';
+import {
+  validate, createEventSchema, updateEventSchema,
+  attachEventPersonSchema, updateEventPersonSchema, createAndAttachEventPersonSchema,
+} from '../lib/validate';
 
 const router = Router();
 
@@ -427,17 +430,27 @@ router.get('/:id/registration-status', requireAuth, async (req: Request, res: Re
 });
 
 // ─── GET /api/events/:id/people ───────────────────────────────────────────────
-// Public — get all people associated with an event
+// Public — get all people attached to an event, joined with their content.people
+// profile. See TODO-051 / content.people for why this is a join, not flat data.
 router.get('/:id/people', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
       `SELECT
-        person_id, event_id, full_name, role,
-        bio, avatar_url, linkedin_url, organization,
-        display_order, created_at
-       FROM events.event_people
-       WHERE event_id = $1
-       ORDER BY display_order ASC, created_at ASC`,
+        ep.event_id, ep.person_id, ep.role_at_event, ep.display_order, ep.created_at,
+        jsonb_build_object(
+          'person_id',    p.person_id,
+          'full_name',    p.full_name,
+          'default_role', p.default_role,
+          'bio',          p.bio,
+          'avatar_url',   p.avatar_url,
+          'linkedin_url', p.linkedin_url,
+          'organization', p.organization,
+          'is_active',    p.is_active
+        ) AS person
+       FROM events.event_people ep
+       JOIN content.people p ON p.person_id = ep.person_id
+       WHERE ep.event_id = $1
+       ORDER BY ep.display_order ASC, ep.created_at ASC`,
       [req.params.id]
     );
 
@@ -449,83 +462,96 @@ router.get('/:id/people', async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/events/:id/people ──────────────────────────────────────────────
-// Admin — add a person to an event
-router.post('/:id/people', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
+// Admin — attach an existing content.people record to this event
+router.post('/:id/people', requireAuth, requireRole('admin', 'super_admin', 'editor'), validate(attachEventPersonSchema), async (req: Request, res: Response) => {
   try {
-    const {
-      full_name, role, bio,
-      avatar_url, linkedin_url,
-      organization, display_order,
-    } = req.body;
+    const { person_id, role_at_event, display_order } = req.body;
 
-    if (!full_name || !role) {
-      return res.status(400).json({
-        data: null,
-        error: 'full_name and role are required.',
-      });
+    const person = await pool.query('SELECT person_id FROM content.people WHERE person_id = $1', [person_id]);
+    if (person.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Person not found.' });
     }
 
     const result = await pool.query(
-      `INSERT INTO events.event_people (
-        event_id, full_name, role, bio,
-        avatar_url, linkedin_url, organization, display_order
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *`,
-      [
-        req.params.id,
-        full_name.trim(),
-        role.trim(),
-        bio?.trim() ?? null,
-        avatar_url?.trim() ?? null,
-        linkedin_url?.trim() ?? null,
-        organization?.trim() ?? null,
-        display_order ?? 0,
-      ]
+      `INSERT INTO events.event_people (event_id, person_id, role_at_event, display_order)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [req.params.id, person_id, role_at_event.trim(), display_order ?? 0]
     );
 
     res.status(201).json({ data: result.rows[0], error: null });
   } catch (err: any) {
+    if (err.code === '23505') {
+      return res.status(409).json({ data: null, error: 'This person is already attached to this event.' });
+    }
     console.error('POST /api/events/:id/people error:', err.message);
     res.status(500).json({ data: null, error: err.message });
   }
 });
 
-// ─── PATCH /api/events/:id/people/:personId ───────────────────────────────────
-// Admin — edit a person on an event
-router.patch('/:id/people/:personId', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
+// ─── POST /api/events/:id/people/new ──────────────────────────────────────────
+// Admin — create a new content.people record and attach it to this event in one
+// step (the "+ New Person" inline flow). Transactional: either both writes land
+// or neither does.
+router.post('/:id/people/new', requireAuth, requireRole('admin', 'super_admin', 'editor'), validate(createAndAttachEventPersonSchema), async (req: Request, res: Response) => {
+  const client = await pool.connect();
   try {
     const {
-      full_name, role, bio,
-      avatar_url, linkedin_url,
-      organization, display_order,
+      full_name, default_role, bio, avatar_url, linkedin_url, organization,
+      display_order, is_active, role_at_event,
     } = req.body;
+
+    await client.query('BEGIN');
+
+    const personResult = await client.query(
+      `INSERT INTO content.people
+        (full_name, default_role, bio, avatar_url, linkedin_url, organization, display_order, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        full_name, default_role ?? null, bio ?? null, avatar_url ?? null,
+        linkedin_url ?? null, organization ?? null, display_order ?? 0, is_active ?? true,
+      ]
+    );
+    const person = personResult.rows[0];
+
+    const joinResult = await client.query(
+      `INSERT INTO events.event_people (event_id, person_id, role_at_event, display_order)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [req.params.id, person.person_id, role_at_event.trim(), display_order ?? 0]
+    );
+
+    await client.query('COMMIT');
+
+    res.status(201).json({ data: { ...joinResult.rows[0], person }, error: null });
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    console.error('POST /api/events/:id/people/new error:', err.message);
+    res.status(500).json({ data: null, error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ─── PATCH /api/events/:id/people/:personId ───────────────────────────────────
+// Admin — edit this person's role/order for this event only (not their profile —
+// that goes through PATCH /api/cms/people/:id)
+router.patch('/:id/people/:personId', requireAuth, requireRole('admin', 'super_admin', 'editor'), validate(updateEventPersonSchema), async (req: Request, res: Response) => {
+  try {
+    const { role_at_event, display_order } = req.body;
 
     const result = await pool.query(
       `UPDATE events.event_people SET
-        full_name     = COALESCE($1, full_name),
-        role          = COALESCE($2, role),
-        bio           = COALESCE($3, bio),
-        avatar_url    = COALESCE($4, avatar_url),
-        linkedin_url  = COALESCE($5, linkedin_url),
-        organization  = COALESCE($6, organization),
-        display_order = COALESCE($7, display_order)
-      WHERE person_id = $8 AND event_id = $9
+        role_at_event = COALESCE($1, role_at_event),
+        display_order = COALESCE($2, display_order)
+      WHERE person_id = $3 AND event_id = $4
       RETURNING *`,
-      [
-        full_name?.trim() ?? null,
-        role?.trim() ?? null,
-        bio?.trim() ?? null,
-        avatar_url?.trim() ?? null,
-        linkedin_url?.trim() ?? null,
-        organization?.trim() ?? null,
-        display_order ?? null,
-        req.params.personId,
-        req.params.id,
-      ]
+      [role_at_event ?? null, display_order ?? null, req.params.personId, req.params.id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ data: null, error: 'Person not found.' });
+      return res.status(404).json({ data: null, error: 'Person not found on this event.' });
     }
 
     res.json({ data: result.rows[0], error: null });
@@ -536,7 +562,8 @@ router.patch('/:id/people/:personId', requireAuth, requireRole('admin', 'super_a
 });
 
 // ─── DELETE /api/events/:id/people/:personId ──────────────────────────────────
-// Admin — remove a person from an event
+// Admin — detach a person from this event (does not touch their content.people
+// profile, which may still be attached to other events)
 router.delete('/:id/people/:personId', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
@@ -547,7 +574,7 @@ router.delete('/:id/people/:personId', requireAuth, requireRole('admin', 'super_
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ data: null, error: 'Person not found.' });
+      return res.status(404).json({ data: null, error: 'Person not found on this event.' });
     }
 
     res.json({ data: { deleted: true }, error: null });

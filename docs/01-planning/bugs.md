@@ -25,6 +25,7 @@ Status: `open` · `confirmed` · `fixed` · `wontfix`.
 | BUG-010 | open | Stripe webhook has no replay protection, and returns 200 on database failure so Stripe will not retry | **High** — a paid registration can be silently lost | [[../00-core/ErrorHandling]] |
 | BUG-011 | open | Route handlers respond directly, bypassing the central error handler's production redaction | **Medium** — raw driver messages leak to clients | [[../00-core/ErrorHandling]] |
 | BUG-012 | fixed | `db/client.ts` set `ssl: { rejectUnauthorized: true }` in production, which rejects Supabase pooler's certificate chain | **Critical** — every database query failed in production; `/health` reported `db: unreachable` | `TODO-046` |
+| BUG-013 | open | `GET /api/cms/team?all=true` sends the same 5-minute public `Cache-Control` header as the non-admin variant, so the admin CMS screen can serve a stale cached list right after creating/editing a member. Fixed for the analogous `GET /api/cms/people?all=true` (found and fixed live while testing `TODO-051`); `team` itself not yet fixed | **Low** — cosmetic confusion (a save reports success but the new row doesn't appear until the cache expires or a hard refresh), no data loss | [[../00-core/api]] |
 
 ## Notes
 

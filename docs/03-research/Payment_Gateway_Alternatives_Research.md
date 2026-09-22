@@ -61,7 +61,7 @@ rather than a running platform — an open question in
 ## Sources
 
 - `backend/src/routes/payments.ts` — the hard-coded `'usd'` and its comment
-- `ProjectDocs/GDGOC_UITU_schema.sql` — `payments.gateway_enum` allowing `stripe | manual | simulated`
+- `backend/db/schema/GDGOC_UITU_schema.sql` — `payments.gateway_enum` allowing `stripe | manual | simulated`
 - Unmerged branch `feat/payfast_integration`
 
 ## Next step

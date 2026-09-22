@@ -1,7 +1,9 @@
 # Database
 
-> Verified against `ProjectDocs/GDGOC_UITU_schema.sql` (v1.3, dated 2026-06-14, 1609 lines) on
-> 2026-09-09, plus `migration_teams.sql` and `migration_performance_indexes.sql`.
+> Verified against `backend/db/schema/GDGOC_UITU_schema.sql` (v1.3, dated 2026-06-14, 1609 lines)
+> on 2026-09-09, plus `migration_teams.sql`, `migration_performance_indexes.sql`, and
+> `migration_people.sql` (all in `backend/db/migrations/`). Moved from `ProjectDocs/` on
+> 2026-09-22 so the schema is tracked and visible to both teammates — see `TODO-045`.
 
 ## Database Architecture
 
@@ -34,7 +36,7 @@ Extensions installed: `pgcrypto`, `pg_trgm`, `btree_gin`, `pg_cron`.
 | `forum` | `categories`, `threads`, `replies`, `upvotes`, `reports`, `moderation_log`, `thread_summaries` | Community discussion and moderation |
 | `social` | `posts` | Social media content calendar |
 | `ai_metadata` | `event_recommendations` | Recommendation scores |
-| `content` | `homepage`, `about_sections`, `team_members`, `gallery`, `sponsors`, `contact_submissions`, `newsletter_subscribers`, `featured_events`, `teams` | CMS-driven site content |
+| `content` | `homepage`, `about_sections`, `team_members`, `people`, `gallery`, `sponsors`, `contact_submissions`, `newsletter_subscribers`, `featured_events`, `teams` | CMS-driven site content |
 | `audit` | `logs` (partitioned) | Immutable change history |
 | `notifications` | `notifications` | In-app notification delivery |
 
@@ -166,7 +168,8 @@ covering 2026 only.
 ## Migrations, N+1 Risks, Pooling, Caching
 
 **Migrations.** There is no migration tool and no ordered migration directory. Changes are a
-single authoritative `GDGOC_UITU_schema.sql` plus two ad-hoc files applied by hand:
+single authoritative `backend/db/schema/GDGOC_UITU_schema.sql` plus ad-hoc files in
+`backend/db/migrations/` applied by hand:
 
 - `migration_teams.sql` — creates `content.teams`. Already folded into the main schema, so it
   is a no-op on a fresh build.
@@ -174,6 +177,10 @@ single authoritative `GDGOC_UITU_schema.sql` plus two ad-hoc files applied by ha
   `idx_notif_prefs_user` duplicates the table's own primary key, and `idx_newsletter_active`
   **collides by name** with an existing index on a different column, so `IF NOT EXISTS` makes
   it a silent no-op and the intended index is never created. See `BUG-006`.
+- `migration_people.sql` — drops the old `events.event_people` (full-profile-per-row) and
+  creates `content.people` + a rebuilt `events.event_people` join table. Already folded into
+  the main schema, so it is a no-op on a fresh build. Not yet applied to the dev Supabase
+  instance as of `TODO-051`.
 
 See `TODO-009` for adopting a real migration tool.
 

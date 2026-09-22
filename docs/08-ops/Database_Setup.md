@@ -3,26 +3,34 @@
 Standing up the schema from scratch. Verified against the SQL files on 2026-09-09.
 
 > [!warning] There is no migration tool
-> The schema is one authoritative file plus two ad-hoc migrations, applied by hand. There are
+> The schema is one authoritative file plus a few ad-hoc migrations, applied by hand. There are
 > no down migrations and no version tracking. `TODO-009`.
 
 ## Apply the schema
 
-Run in this order, against the target PostgreSQL (Supabase SQL Editor, or `psql`):
+Run in this order, against the target PostgreSQL (Supabase SQL Editor, or `psql`). All files
+live in `backend/db/` (moved from `ProjectDocs/` on 2026-09-22 so they're tracked and visible to
+both teammates — see `TODO-045`):
 
-1. **`ProjectDocs/GDGOC_UITU_schema.sql`** — the full schema, v1.3. Idempotent throughout
-   (`IF NOT EXISTS`), so it is safe to re-run. Creates 9 schemas, 31 tables, 12 audit
-   partitions, 12 enums, 4 procedures, 25 triggers, 6 views, the indexes, RLS policies, and
-   seed data.
+1. **`backend/db/schema/GDGOC_UITU_schema.sql`** — the full schema, v1.3. Idempotent throughout
+   (`IF NOT EXISTS`), so it is safe to re-run. Creates 9 schemas, tables, audit
+   partitions, enums, procedures, triggers, views, the indexes, RLS policies, and seed data.
 
-2. **`ProjectDocs/migration_teams.sql`** — creates `content.teams`. **A no-op on a fresh
-   build**; only needed for databases created before `content.teams` was folded into the main
-   schema.
+2. **`backend/db/migrations/migration_teams.sql`** — creates `content.teams`. **A no-op on a
+   fresh build**; only needed for databases created before `content.teams` was folded into the
+   main schema.
 
-3. **`ProjectDocs/migration_performance_indexes.sql`** — adds 3 indexes, **two of which are
-   defective**: one duplicates a primary key, and one collides by name with an existing index
-   so `IF NOT EXISTS` silently skips it. See [[../01-planning/bugs|BUG-006]]. Applying it is
-   harmless but does not achieve what it claims.
+3. **`backend/db/migrations/migration_performance_indexes.sql`** — adds 3 indexes, **two of
+   which are defective**: one duplicates a primary key, and one collides by name with an
+   existing index so `IF NOT EXISTS` silently skips it. See [[../01-planning/bugs|BUG-006]].
+   Applying it is harmless but does not achieve what it claims.
+
+4. **`backend/db/migrations/migration_people.sql`** — drops the old `events.event_people`
+   (which stored a full person profile per row) and creates `content.people` plus a rebuilt
+   `events.event_people` join table (`event_id`, `person_id`, `role_at_event`,
+   `display_order`). **A no-op on a fresh build**; only needed for databases created before
+   this was folded into the main schema. Existing `event_people` rows are dropped, not
+   migrated — see `TODO-051`.
 
 ## Then do these by hand
 

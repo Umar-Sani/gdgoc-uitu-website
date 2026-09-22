@@ -9,15 +9,23 @@ import type { Event } from '@shared/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// Nested shape: event-attachment fields at the top level, profile data (owned by
+// content.people, reusable across events) under `person`. See TODO-051.
 type EventPerson = {
+  event_id: string;
   person_id: string;
-  full_name: string;
-  role: string;
-  bio: string | null;
-  avatar_url: string | null;
-  linkedin_url: string | null;
-  organization: string | null;
+  role_at_event: string;
   display_order: number;
+  person: {
+    person_id: string;
+    full_name: string;
+    default_role: string | null;
+    bio: string | null;
+    avatar_url: string | null;
+    linkedin_url: string | null;
+    organization: string | null;
+    is_active: boolean;
+  };
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -344,48 +352,48 @@ export default function EventDetailPage() {
             {people.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">
-                  {people.some((p) => p.role.toLowerCase().includes('speaker'))
+                  {people.some((p) => p.role_at_event.toLowerCase().includes('speaker'))
                     ? 'Speakers & Hosts'
                     : 'Event Team'}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {people.map((person) => (
+                  {people.map((p) => (
                     <div
-                      key={person.person_id}
+                      key={p.person_id}
                       className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100"
                     >
                       {/* Avatar */}
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
-                        {person.avatar_url ? (
+                        {p.person.avatar_url ? (
                           <img
-                            src={cldUrl(person.avatar_url, CLD_AVATAR) ?? person.avatar_url}
-                            alt={person.full_name}
+                            src={cldUrl(p.person.avatar_url, CLD_AVATAR) ?? p.person.avatar_url}
+                            alt={p.person.full_name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          person.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+                          p.person.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
                         )}
                       </div>
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-gray-900">{person.full_name}</p>
+                          <p className="text-sm font-bold text-gray-900">{p.person.full_name}</p>
                           <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 capitalize">
-                            {person.role}
+                            {p.role_at_event}
                           </span>
                         </div>
-                        {person.organization && (
-                          <p className="text-xs text-gray-500 mt-0.5">{person.organization}</p>
+                        {p.person.organization && (
+                          <p className="text-xs text-gray-500 mt-0.5">{p.person.organization}</p>
                         )}
-                        {person.bio && (
+                        {p.person.bio && (
                           <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2">
-                            {person.bio}
+                            {p.person.bio}
                           </p>
                         )}
-                        {person.linkedin_url && (
+                        {p.person.linkedin_url && (
 
-                          <a href={person.linkedin_url}
+                          <a href={p.person.linkedin_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 mt-1.5 text-xs text-blue-500 hover:underline"

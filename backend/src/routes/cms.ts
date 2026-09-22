@@ -6,6 +6,7 @@ import {
   validate,
   updateHomepageSchema, updateAboutSchema,
   createTeamMemberSchema, updateTeamMemberSchema,
+  createPersonSchema, updatePersonSchema,
   createTeamSchema, updateTeamSchema,
   createSponsorSchema, updateSponsorSchema,
   contactSchema, newsletterSchema,
@@ -198,6 +199,132 @@ router.delete('/team/:id', requireAuth, requireRole('admin', 'super_admin'), asy
   try {
     await pool.query('DELETE FROM content.team_members WHERE member_id = $1', [req.params.id]);
     res.json({ data: { deleted: true }, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// ─── PEOPLE (reusable speaker/host/guest/mentor directory) ──────────────────
+// Independent of any event — attached via events.event_people. See TODO-051.
+
+// GET /api/cms/people
+// Pass ?all=true to include inactive people (admin use — the event-attach picker
+// and the /admin/cms/people screen both need this)
+router.get('/people', async (req: Request, res: Response) => {
+  try {
+    const includeAll = req.query.all === 'true';
+    const result = await pool.query(`
+      SELECT *
+      FROM content.people
+      ${includeAll ? '' : 'WHERE is_active = true'}
+      ORDER BY display_order ASC, full_name ASC
+    `);
+    // Only cache the public listing. The ?all=true variant feeds the admin CMS
+    // screen and the event-attach picker, both of which must reflect writes
+    // immediately (a cached response here made just-created people invisible
+    // until the cache expired).
+    if (!includeAll) {
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    }
+    res.json({ data: result.rows, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// POST /api/cms/people
+router.post('/people', requireAuth, requireRole('admin', 'super_admin', 'editor'), validate(createPersonSchema), async (req: Request, res: Response) => {
+  try {
+    const { full_name, default_role, bio, avatar_url, linkedin_url, organization, display_order, is_active } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO content.people
+        (full_name, default_role, bio, avatar_url, linkedin_url, organization, display_order, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        full_name, default_role ?? null, bio ?? null, avatar_url ?? null,
+        linkedin_url ?? null, organization ?? null, display_order ?? 0, is_active ?? true,
+      ]
+    );
+
+    res.status(201).json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// PATCH /api/cms/people/:id
+router.patch('/people/:id', requireAuth, requireRole('admin', 'super_admin', 'editor'), validate(updatePersonSchema), async (req: Request, res: Response) => {
+  try {
+    const { full_name, default_role, bio, avatar_url, linkedin_url, organization, display_order, is_active } = req.body;
+
+    const result = await pool.query(
+      `UPDATE content.people SET
+        full_name     = COALESCE($1, full_name),
+        default_role  = $2,
+        bio           = $3,
+        avatar_url    = COALESCE($4, avatar_url),
+        linkedin_url  = $5,
+        organization  = $6,
+        display_order = COALESCE($7, display_order),
+        is_active     = COALESCE($8, is_active),
+        updated_at    = NOW()
+      WHERE person_id = $9
+      RETURNING *`,
+      [full_name ?? null, default_role ?? null, bio ?? null, avatar_url ?? null,
+       linkedin_url ?? null, organization ?? null, display_order ?? null, is_active ?? null,
+       req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Person not found' });
+    }
+
+    res.json({ data: result.rows[0], error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// DELETE /api/cms/people/:id — soft-deactivate, not a hard delete.
+// A person may still be attached to past events via events.event_people;
+// deactivating removes them from the public catalog and the event-attach
+// picker without breaking those existing attachments or cascading a delete.
+router.delete('/people/:id', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `UPDATE content.people SET is_active = false, updated_at = NOW()
+       WHERE person_id = $1
+       RETURNING person_id`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Person not found' });
+    }
+
+    res.json({ data: { deactivated: true }, error: null });
+  } catch (err: any) {
+    res.status(500).json({ data: null, error: err.message });
+  }
+});
+
+// PATCH /api/cms/people/:id/reactivate
+router.patch('/people/:id/reactivate', requireAuth, requireRole('admin', 'super_admin', 'editor'), async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `UPDATE content.people SET is_active = true, updated_at = NOW()
+       WHERE person_id = $1
+       RETURNING *`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Person not found' });
+    }
+
+    res.json({ data: result.rows[0], error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
   }

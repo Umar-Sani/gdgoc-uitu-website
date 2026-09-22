@@ -20,4 +20,13 @@ pool.query('SELECT NOW()').then(() => {
   console.log('⚠️  Database not connected:', err.message)
 })
 
+// Without this handler, an idle client dropped by the network or recycled by
+// Supabase's pooler emits an unhandled 'error' event on the Pool, which Node
+// treats as a fatal uncaught exception and kills the whole process (TODO-006).
+// The pool already replaces the dead client on its next checkout — logging is
+// all that's needed here.
+pool.on('error', (err) => {
+  console.error('⚠️  Unexpected error on idle database client:', err.message)
+})
+
 export default pool

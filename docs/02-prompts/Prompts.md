@@ -46,7 +46,7 @@ docs/01-planning/TODO.md if you leave anything unverified.
 ## Change the database schema
 
 ```text
-Read docs/00-core/Database.md before touching ProjectDocs/GDGOC_UITU_schema.sql.
+Read docs/00-core/Database.md before touching backend/db/schema/GDGOC_UITU_schema.sql.
 
 Constraints specific to this project:
 - There is NO migration tool. The schema file is authoritative and idempotent (IF NOT EXISTS).
