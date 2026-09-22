@@ -31,21 +31,32 @@ type EventFormData = {
   banner_url: string;
 };
 
-type EventPerson = {
+// Nested shape: event-attachment fields at the top level, profile data (owned by
+// content.people, reusable across events) under `person`. See TODO-051.
+type PersonProfile = {
   person_id: string;
-  event_id: string;
   full_name: string;
-  role: string;
+  default_role: string | null;
   bio: string | null;
   avatar_url: string | null;
   linkedin_url: string | null;
   organization: string | null;
-  display_order: number;
+  is_active: boolean;
 };
 
-type PersonFormData = {
+type EventPerson = {
+  event_id: string;
+  person_id: string;
+  role_at_event: string;
+  display_order: number;
+  person: PersonProfile;
+};
+
+// Fields for the "+ New Person" inline flow (creates a content.people record
+// and attaches it to this event in one step)
+type NewPersonFormData = {
   full_name: string;
-  role: string;
+  role_at_event: string;
   bio: string;
   avatar_url: string;
   linkedin_url: string;
@@ -93,9 +104,9 @@ const EMPTY_FORM: EventFormData = {
   banner_url: '',
 };
 
-const EMPTY_PERSON: PersonFormData = {
+const EMPTY_NEW_PERSON: NewPersonFormData = {
   full_name: '',
-  role: 'Host',
+  role_at_event: 'Host',
   bio: '',
   avatar_url: '',
   linkedin_url: '',
@@ -192,9 +203,15 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
   // People state
   const [people, setPeople]               = useState<EventPerson[]>([]);
+  const [directory, setDirectory]         = useState<PersonProfile[]>([]);
   const [addingPerson, setAddingPerson]   = useState(false);
+  const [creatingNewPerson, setCreatingNewPerson] = useState(false);
+  const [personSearch, setPersonSearch]   = useState('');
+  const [pickedPersonId, setPickedPersonId] = useState<string | null>(null);
+  const [pickedRole, setPickedRole]       = useState('Host');
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
-  const [personForm, setPersonForm]       = useState<PersonFormData>(EMPTY_PERSON);
+  const [editingRole, setEditingRole]     = useState('Host');
+  const [newPersonForm, setNewPersonForm] = useState<NewPersonFormData>(EMPTY_NEW_PERSON);
   const [personSaving, setPersonSaving]   = useState(false);
   const [personError, setPersonError]     = useState('');
 
@@ -246,12 +263,22 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   useEffect(() => {
     if (mode !== 'edit' || !eventId) return;
     fetchPeople();
+    fetchDirectory();
   }, [mode, eventId]);
 
   function fetchPeople() {
     fetch(`${API_URL}/api/events/${eventId}/people`)
       .then((r) => r.json())
       .then((res) => setPeople(res.data ?? []))
+      .catch(() => {});
+  }
+
+  // The full picker directory (including inactive, so an already-attached
+  // inactive person still displays correctly if re-fetched)
+  function fetchDirectory() {
+    fetch(`${API_URL}/api/cms/people?all=true`)
+      .then((r) => r.json())
+      .then((res) => setDirectory(res.data ?? []))
       .catch(() => {});
   }
 
@@ -369,64 +396,73 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   }
 
   // ─── People CRUD ─────────────────────────────────────────────────────────────
+  // Attaching a person requires eventId to exist (the join table FKs it), so this
+  // panel stays edit-mode-only. What changed vs. before: people are picked from
+  // the reusable content.people directory instead of re-entering a full profile
+  // per event. See TODO-051.
+
+  const attachedIds = new Set(people.map((p) => p.person_id));
 
   function startAddPerson() {
-    setPersonForm(EMPTY_PERSON);
+    setPickedPersonId(null);
+    setPickedRole('Host');
+    setPersonSearch('');
+    setCreatingNewPerson(false);
+    setNewPersonForm(EMPTY_NEW_PERSON);
     setPersonError('');
     setEditingPersonId(null);
     setAddingPerson(true);
   }
 
   function startEditPerson(p: EventPerson) {
-    setPersonForm({
-      full_name:    p.full_name,
-      role:         p.role,
-      bio:          p.bio ?? '',
-      avatar_url:   p.avatar_url ?? '',
-      linkedin_url: p.linkedin_url ?? '',
-      organization: p.organization ?? '',
-    });
+    setEditingRole(p.role_at_event);
     setPersonError('');
     setAddingPerson(false);
     setEditingPersonId(p.person_id);
   }
 
+  // Attach an existing directory person, or (if creatingNewPerson) create +
+  // attach a brand new one in a single transactional call.
   async function savePerson() {
-    if (!personForm.full_name.trim()) { setPersonError('Name is required.'); return; }
-    if (!personForm.role) { setPersonError('Role is required.'); return; }
-
     setPersonSaving(true);
     setPersonError('');
 
     try {
-      const body = {
-        full_name:    personForm.full_name.trim(),
-        role:         personForm.role,
-        bio:          personForm.bio.trim() || null,
-        avatar_url:   personForm.avatar_url.trim() || null,
-        linkedin_url: personForm.linkedin_url.trim() || null,
-        organization: personForm.organization.trim() || null,
-      };
+      if (creatingNewPerson) {
+        if (!newPersonForm.full_name.trim()) { setPersonError('Name is required.'); return; }
+        if (!newPersonForm.role_at_event.trim()) { setPersonError('Role is required.'); return; }
 
-      const url = editingPersonId
-        ? `${API_URL}/api/events/${eventId}/people/${editingPersonId}`
-        : `${API_URL}/api/events/${eventId}/people`;
+        const res = await fetch(`${API_URL}/api/events/${eventId}/people/new`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            full_name:     newPersonForm.full_name.trim(),
+            default_role:  newPersonForm.role_at_event.trim(),
+            bio:           newPersonForm.bio.trim() || null,
+            avatar_url:    newPersonForm.avatar_url.trim() || null,
+            linkedin_url:  newPersonForm.linkedin_url.trim() || null,
+            organization:  newPersonForm.organization.trim() || null,
+            role_at_event: newPersonForm.role_at_event.trim(),
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) { setPersonError(json.error || 'Failed to save.'); return; }
+        fetchDirectory();
+      } else {
+        if (!pickedPersonId) { setPersonError('Choose a person to attach.'); return; }
+        if (!pickedRole.trim()) { setPersonError('Role is required.'); return; }
 
-      const res = await fetch(url, {
-        method: editingPersonId ? 'PATCH' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      const json = await res.json();
-      if (!res.ok) { setPersonError(json.error || 'Failed to save.'); return; }
+        const res = await fetch(`${API_URL}/api/events/${eventId}/people`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ person_id: pickedPersonId, role_at_event: pickedRole.trim() }),
+        });
+        const json = await res.json();
+        if (!res.ok) { setPersonError(json.error || 'Failed to save.'); return; }
+      }
 
       setAddingPerson(false);
-      setEditingPersonId(null);
-      setPersonForm(EMPTY_PERSON);
+      setCreatingNewPerson(false);
       fetchPeople();
     } catch {
       setPersonError('Something went wrong.');
@@ -435,8 +471,31 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     }
   }
 
-  async function deletePerson(personId: string) {
-    if (!confirm('Remove this person from the event?')) return;
+  // Edit-mode save: only role_at_event/display_order change here — profile
+  // fields (name, bio, avatar, etc.) are edited via the People CMS instead.
+  async function saveEditedRole(personId: string) {
+    if (!editingRole.trim()) { setPersonError('Role is required.'); return; }
+    setPersonSaving(true);
+    setPersonError('');
+    try {
+      const res = await fetch(`${API_URL}/api/events/${eventId}/people/${personId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role_at_event: editingRole.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setPersonError(json.error || 'Failed to save.'); return; }
+      setEditingPersonId(null);
+      fetchPeople();
+    } catch {
+      setPersonError('Something went wrong.');
+    } finally {
+      setPersonSaving(false);
+    }
+  }
+
+  async function detachPerson(personId: string) {
+    if (!confirm('Remove this person from the event? Their profile stays in the People directory.')) return;
     try {
       await fetch(`${API_URL}/api/events/${eventId}/people/${personId}`, {
         method: 'DELETE',
@@ -444,9 +503,15 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       });
       fetchPeople();
     } catch {
-      setPersonError('Failed to delete.');
+      setPersonError('Failed to remove.');
     }
   }
+
+  const filteredDirectory = directory.filter((p) =>
+    p.is_active &&
+    !attachedIds.has(p.person_id) &&
+    p.full_name.toLowerCase().includes(personSearch.trim().toLowerCase())
+  );
 
   // ─── Loading state ────────────────────────────────────────────────────────────
   if (isFetching) {
@@ -763,77 +828,142 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                 </div>
               )}
 
-              {/* Inline add / edit form */}
-              {(addingPerson || editingPersonId) && (
+              {/* Inline add: pick an existing directory person, or create a new one */}
+              {addingPerson && (
                 <div className="mb-5 p-4 rounded-2xl border border-blue-200 bg-blue-50/40 space-y-3">
-                  <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                    {editingPersonId ? 'Edit Person' : 'New Person'}
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
-                      <input
-                        type="text"
-                        value={personForm.full_name}
-                        onChange={(e) => setPersonForm(p => ({ ...p, full_name: e.target.value }))}
-                        placeholder="Full name"
-                        className={inputClass()}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
-                      <select
-                        value={personForm.role}
-                        onChange={(e) => setPersonForm(p => ({ ...p, role: e.target.value }))}
-                        className={inputClass()}
-                      >
-                        {PERSON_ROLES.map(r => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Organization</label>
-                      <input
-                        type="text"
-                        value={personForm.organization}
-                        onChange={(e) => setPersonForm(p => ({ ...p, organization: e.target.value }))}
-                        placeholder="e.g. Google, UIT"
-                        className={inputClass()}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">LinkedIn URL</label>
-                      <input
-                        type="url"
-                        value={personForm.linkedin_url}
-                        onChange={(e) => setPersonForm(p => ({ ...p, linkedin_url: e.target.value }))}
-                        placeholder="https://linkedin.com/in/..."
-                        className={inputClass()}
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Bio</label>
-                      <textarea
-                        value={personForm.bio}
-                        onChange={(e) => setPersonForm(p => ({ ...p, bio: e.target.value }))}
-                        placeholder="Short bio..."
-                        rows={2}
-                        className={inputClass()}
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <ImageUpload
-                        label="Avatar"
-                        value={personForm.avatar_url}
-                        onChange={(url) => setPersonForm(p => ({ ...p, avatar_url: url }))}
-                        token={token}
-                        folder="gdgoc-uitu/event-people"
-                        shape="circle"
-                      />
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                      {creatingNewPerson ? 'New Person' : 'Attach Person'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCreatingNewPerson((v) => !v)}
+                      className="text-xs font-semibold text-blue-600 hover:underline"
+                    >
+                      {creatingNewPerson ? '← Pick from directory' : '+ New person instead'}
+                    </button>
                   </div>
+
+                  {creatingNewPerson ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                        <input
+                          type="text"
+                          value={newPersonForm.full_name}
+                          onChange={(e) => setNewPersonForm(p => ({ ...p, full_name: e.target.value }))}
+                          placeholder="Full name"
+                          className={inputClass()}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
+                        <select
+                          value={newPersonForm.role_at_event}
+                          onChange={(e) => setNewPersonForm(p => ({ ...p, role_at_event: e.target.value }))}
+                          className={inputClass()}
+                        >
+                          {PERSON_ROLES.map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Organization</label>
+                        <input
+                          type="text"
+                          value={newPersonForm.organization}
+                          onChange={(e) => setNewPersonForm(p => ({ ...p, organization: e.target.value }))}
+                          placeholder="e.g. Google, UIT"
+                          className={inputClass()}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">LinkedIn URL</label>
+                        <input
+                          type="url"
+                          value={newPersonForm.linkedin_url}
+                          onChange={(e) => setNewPersonForm(p => ({ ...p, linkedin_url: e.target.value }))}
+                          placeholder="https://linkedin.com/in/..."
+                          className={inputClass()}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Bio</label>
+                        <textarea
+                          value={newPersonForm.bio}
+                          onChange={(e) => setNewPersonForm(p => ({ ...p, bio: e.target.value }))}
+                          placeholder="Short bio..."
+                          rows={2}
+                          className={inputClass()}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <ImageUpload
+                          label="Avatar"
+                          value={newPersonForm.avatar_url}
+                          onChange={(url) => setNewPersonForm(p => ({ ...p, avatar_url: url }))}
+                          token={token}
+                          folder="gdgoc-uitu/people"
+                          shape="circle"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={personSearch}
+                        onChange={(e) => { setPersonSearch(e.target.value); setPickedPersonId(null); }}
+                        placeholder="Search the people directory..."
+                        className={inputClass()}
+                      />
+                      {personSearch.trim() && (
+                        <div className="max-h-40 overflow-y-auto rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
+                          {filteredDirectory.length === 0 ? (
+                            <p className="text-xs text-gray-400 text-center py-3">No matches. Try "+ New person instead".</p>
+                          ) : (
+                            filteredDirectory.map((person) => (
+                              <button
+                                type="button"
+                                key={person.person_id}
+                                onClick={() => {
+                                  setPickedPersonId(person.person_id);
+                                  setPickedRole(person.default_role || 'Host');
+                                  setPersonSearch(person.full_name);
+                                }}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-blue-50 transition-all ${
+                                  pickedPersonId === person.person_id ? 'bg-blue-50' : ''
+                                }`}
+                              >
+                                <span className="w-6 h-6 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                                  {person.avatar_url
+                                    ? <img src={cldUrl(person.avatar_url, CLD_AVATAR) ?? person.avatar_url} alt={person.full_name} className="w-full h-full object-cover" />
+                                    : person.full_name.charAt(0).toUpperCase()}
+                                </span>
+                                <span className="truncate">{person.full_name}</span>
+                                {person.organization && <span className="text-xs text-gray-400 truncate">— {person.organization}</span>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                      {pickedPersonId && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Role for this event *</label>
+                          <select
+                            value={pickedRole}
+                            onChange={(e) => setPickedRole(e.target.value)}
+                            className={inputClass()}
+                          >
+                            {PERSON_ROLES.map(r => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex gap-2 pt-1">
                     <button
@@ -842,11 +972,11 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       disabled={personSaving}
                       className="px-4 py-2 rounded-xl bg-[#4285F4] text-white text-xs font-semibold hover:bg-blue-600 transition-all disabled:opacity-60"
                     >
-                      {personSaving ? 'Saving...' : 'Save'}
+                      {personSaving ? 'Saving...' : creatingNewPerson ? 'Create & Attach' : 'Attach'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setAddingPerson(false); setEditingPersonId(null); setPersonError(''); }}
+                      onClick={() => { setAddingPerson(false); setCreatingNewPerson(false); setPersonError(''); }}
                       className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 transition-all"
                     >
                       Cancel
@@ -872,44 +1002,80 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       }`}
                     >
                       <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 border border-gray-200">
-                        {p.avatar_url ? (
-                          <img src={cldUrl(p.avatar_url, CLD_AVATAR) ?? p.avatar_url} alt={p.full_name} className="w-full h-full object-cover" />
+                        {p.person.avatar_url ? (
+                          <img src={cldUrl(p.person.avatar_url, CLD_AVATAR) ?? p.person.avatar_url} alt={p.person.full_name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-400">
-                            {p.full_name.charAt(0).toUpperCase()}
+                            {p.person.full_name.charAt(0).toUpperCase()}
                           </div>
                         )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-gray-800 truncate">{p.full_name}</span>
-                          <RoleBadge role={p.role} />
+                          <span className="text-sm font-semibold text-gray-800 truncate">{p.person.full_name}</span>
+                          {editingPersonId === p.person_id ? (
+                            <select
+                              value={editingRole}
+                              onChange={(e) => setEditingRole(e.target.value)}
+                              className="text-xs rounded-lg border border-gray-200 px-2 py-1"
+                            >
+                              {PERSON_ROLES.map(r => (
+                                <option key={r} value={r}>{r}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <RoleBadge role={p.role_at_event} />
+                          )}
                         </div>
-                        {p.organization && (
-                          <p className="text-xs text-gray-400 truncate">{p.organization}</p>
+                        {p.person.organization && (
+                          <p className="text-xs text-gray-400 truncate">{p.person.organization}</p>
                         )}
                       </div>
 
                       <div className="flex gap-1.5 flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => startEditPerson(p)}
-                          className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-all"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deletePerson(p.person_id)}
-                          className="p-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-all"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        {editingPersonId === p.person_id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => saveEditedRole(p.person_id)}
+                              disabled={personSaving}
+                              className="px-2.5 py-1.5 rounded-lg bg-[#4285F4] text-white text-xs font-semibold hover:bg-blue-600 transition-all disabled:opacity-60"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingPersonId(null)}
+                              className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 transition-all"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEditPerson(p)}
+                              className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-all"
+                              title="Edit role for this event"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => detachPerson(p.person_id)}
+                              className="p-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-all"
+                              title="Remove from this event"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

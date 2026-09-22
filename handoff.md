@@ -530,3 +530,137 @@ they're still wanted for further review) before starting new work on this repo.
 **Suggested next session.** After the PR merges to `dev`, pick up `TODO-051` (host/speakers at
 event creation) or `TODO-052` (Redis) next, per §11 — both already have concrete file:line
 starting points recorded in the TODO ledger.
+
+---
+
+## 14. `feat/people-directory` — TODO-051 redesigned as a reusable people directory (2026-09-22)
+
+Umar picked up `TODO-051` (event-creation blocked on host/speakers because `event_people` had a
+`NOT NULL` FK to `events.events` and stored a full profile per row). Rather than the
+draft-event-first flow the TODO originally suggested, Umar wanted a standalone speakers/guests
+directory — people entered once, reusable across events and eventually shown in a public
+catalog independent of any single event. New branch `feat/people-directory` off `dev`.
+
+**Design, agreed with Umar before writing code:**
+- New table `content.people` (mirrors the existing `content.team_members` shape: bio, avatar,
+  linkedin, organization, `is_active`, `display_order`) — a reusable directory independent of
+  events.
+- `events.event_people` rebuilt as a pure join table: `(event_id, person_id, role_at_event,
+  display_order)`, PK on `(event_id, person_id)`. `role_at_event` is a deliberate per-event
+  override of the person's `default_role`, so the same person can be "Speaker" at one event and
+  "Panelist" at another — Umar chose this explicitly over a single shared role field.
+- Soft-delete (`is_active`), not hard delete — Umar's reasoning: a person can be attached to
+  multiple past events via the join table, so hard-deleting or cascading would silently remove
+  them from event pages that already shipped. Deactivating removes them from the public catalog
+  and the event-attach picker only.
+- `GET /api/events/:id/people` returns a **nested** shape (`{ role_at_event, display_order,
+  person: {...} }`), not flattened — Umar's call after I raised both options: "do what is the
+  optimal way / best way for the system, don't look at how long it will take." This is more
+  correct modeling (event-attachment vs. person-profile are separate concerns) even though it
+  touched more call sites than a flat shape would have.
+- Existing `event_people` rows are test data and were intentionally **not migrated** — table is
+  dropped and recreated. Umar was explicit about this up front.
+
+**What shipped this session:**
+- Schema: the master schema file and hand-applied migrations were moved from `ProjectDocs/`
+  (locally git-excluded, invisible to Umair) to a new tracked `backend/db/` — `backend/db/schema/
+  GDGOC_UITU_schema.sql` and `backend/db/migrations/`. All vault docs referencing the old path
+  (`Database.md`, `Deployment.md`, `Database_Setup.md`, `Prompts.md`,
+  `Payment_Gateway_Alternatives_Research.md`, `ADR-003`) updated to the new one. `content.people`
+  added to the schema file; `event_people` moved into the `content` schema section since it now
+  FKs `content.people`, which must be created first. Standalone hand-applied migration written to
+  `backend/db/migrations/migration_people.sql` (drops old `event_people`, creates both tables,
+  grants `gdgoc_app`) — **not yet run against Supabase**, per the existing no-migration-tool
+  pattern (`TODO-009`).
+- Backend: `content.people` CRUD added to `backend/src/routes/cms.ts` (`GET /api/cms/people`,
+  `?all=true` admin variant, `POST`, `PATCH`, `DELETE` → soft-deactivate, `PATCH .../reactivate`).
+  `backend/src/routes/events.ts`'s `/:id/people` block reworked: `GET` now joins `content.people`
+  and returns the nested shape; `POST` attaches an existing person by `person_id`; new
+  `POST /:id/people/new` creates a person and attaches them in one transaction (`pool.connect()`
+  + `BEGIN`/`COMMIT`/`ROLLBACK`, mirroring the existing pattern in `events.ts`'s registration
+  route and `cms.ts`'s team-rename route); `PATCH`/`DELETE` now only touch the join row
+  (role/order or detach), never the person's profile. New Zod schemas in `backend/src/lib/validate.ts`.
+- Frontend: new admin screen `frontend/app/(admin)/admin/cms/people/page.tsx` (list, inline
+  add/edit, deactivate/reactivate toggle — copied the structure of the Team CMS page, dropped its
+  teams-tab grouping since people don't need it). `EventForm.tsx`'s "Hosts, Speakers & Guests"
+  panel reworked from a full-profile inline form into a directory search-and-pick UI with a
+  "+ New person instead" toggle for the combined create-and-attach flow; stays edit-mode-only
+  (attaching still needs `eventId` for the join table's FK — an accepted scope boundary, not a
+  gap). Public event detail page (`events/[id]/page.tsx`) updated for the nested response shape.
+  New public catalog page `frontend/app/(public)/speakers/page.tsx`, added to the nav
+  (`app/(public)/layout.tsx`) between Forum and About.
+- Both `npm run build` (frontend, Next.js/Turbopack) and `tsc` (backend) pass clean.
+
+**Not done yet — next session or before merging:**
+- The SQL migration has not been run against the dev Supabase instance. Nothing in this feature
+  works end-to-end until it is.
+- No live testing yet (create a person, attach to an event, verify the public pages) — the plan's
+  verification checklist is written but unexecuted.
+- `TODO-051` marked `in-progress` in the ledger, not `done`, until the migration is applied and
+  verified live.
+
+**Suggested next session.** Apply `backend/db/migrations/migration_people.sql` to Supabase, then
+run through the verification checklist (create/attach/detach a person, deactivate one still
+attached to a past event, check the public `/speakers` and event-detail pages). Mark `TODO-051`
+`done` once verified. Open the PR from `feat/people-directory` into `dev` after that.
+
+---
+
+## 15. `feat/people-directory` — indexing pass, migration applied and verified live (2026-09-22)
+
+Continuation of §14, same day. Umar asked to run the migration and make sure it was optimized
+(indexing, RLS) before applying it.
+
+**Indexing fix caught before applying.** The original migration had
+`idx_event_people_event_id` on `events.event_people(event_id)` — but the table's own
+`PRIMARY KEY (event_id, person_id)` already produces a composite btree whose leading column is
+`event_id`, so that index duplicated the PK exactly the way `BUG-006`'s `idx_notif_prefs_user`
+duplicates its table's PK. Dropped it; kept only `idx_event_people_person_id` (the PK doesn't
+cover person-first lookups). Added `idx_people_is_active` on `content.people(display_order)
+WHERE is_active = true` — a partial index matching the one real filter every query in this
+feature runs (`content.team_members`'s `idx_team_section` was the precedent: index the filter
+column, not `display_order` alone, since these are small CMS tables where a plain sorted scan is
+already cheap). Both `backend/db/schema/GDGOC_UITU_schema.sql` and
+`backend/db/migrations/migration_people.sql` updated to match.
+
+**RLS — deliberately not added.** Checked every `content.*` table in the schema
+(`team_members`, `sponsors`, `gallery`, etc.) — none has RLS enabled; only tables with a
+`user_id` column do (`users.users`, `events.registrations`, `payments.transactions`,
+`audit.logs`, `notifications.notifications`), and `BUG-004` already documents that even those
+policies are inert (no `TO <role>`, no `FORCE ROW LEVEL SECURITY`). `content.people` and
+`events.event_people` have no `user_id` to scope a policy against and are publicly readable by
+design, with writes gated by `requireAuth`/`requireRole` at the API layer — adding RLS here
+would be dead policy code matching the exact mistake `BUG-004` flags elsewhere, not a real
+optimization. Documented this reasoning inline in both SQL files so a future session doesn't
+second-guess it without context.
+
+**Migration applied to the live Supabase dev instance.** No `psql` available in this
+environment, so ran it via a one-off Node script using the `pg` package already in
+`backend/`'s dependencies, against `DATABASE_URL` from `backend/.env`. Checked
+`events.event_people` first — found 13 existing rows (placeholder names like "Sara Khan",
+"Dr. Laiba Mughal" across 4 events) — confirmed with Umar before running the destructive
+`DROP TABLE`, consistent with what he'd already said about test data, then proceeded. Verified
+after: both tables' columns, the two indexes (no duplicate), `gdgoc_app` grants (`SELECT`,
+`INSERT`, `UPDATE`, `DELETE` on both), and `rowsecurity = false` on both, all match the design.
+
+**Live end-to-end verification via the API** (backend dev server started locally, mock auth
+`ALLOW_MOCK_AUTH=true` with the mock user resolving to `super_admin` — confirmed via a DB query
+before use). Exercised: create a person, confirm they appear in the public and admin directory
+listings; attach to an existing event and confirm the nested `{ role_at_event, ..., person: {...}
+}` response shape; duplicate-attach correctly 409s; the combined `POST /:id/people/new`
+create-and-attach transaction works and the new person shows up in the directory too; `PATCH`
+role-at-event edits only the join row; deactivating a person removes them from the public
+catalog **immediately** while they remain visible (with `is_active: false`) on the event they're
+already attached to — the core soft-delete guarantee the design was built around — confirmed,
+not assumed; reactivate restores them; detach removes the join row without touching the
+person's profile; detaching twice 404s. All test rows cleaned up afterward — both tables are
+empty again, ready for real data. Backend dev server stopped after verification.
+
+**Not done yet.** Frontend UI flows (the admin person picker in `EventForm.tsx`, the
+`/admin/cms/people` screen, the public `/speakers` page) were verified only via API calls this
+session, not clicked through in an actual browser. `TODO-051` marked `done` in the ledger on the
+strength of the API-level verification; if the UI has a bug the API test wouldn't catch (e.g. a
+frontend field-name mismatch), it would surface on first real use.
+
+**Suggested next session.** Click through the admin and public UI in a browser before merging,
+per the gap above. Then open the PR from `feat/people-directory` into `dev`.

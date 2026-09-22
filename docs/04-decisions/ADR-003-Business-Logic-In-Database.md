@@ -97,7 +97,7 @@ involved either way.
 
 ## Sources
 
-- `ProjectDocs/GDGOC_UITU_schema.sql` — procedure definitions and triggers
+- `backend/db/schema/GDGOC_UITU_schema.sql` — procedure definitions and triggers
 - `backend/src/routes/events.ts`, `payments.ts`, `users.ts` — call sites and exception mapping
 - The frozen PRD's academic objectives
 

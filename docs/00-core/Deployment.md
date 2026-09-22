@@ -118,12 +118,15 @@ There is **no release tagging, no changelog, and no version number** anywhere in
 
 There is no migration tool. Applying the database by hand, in this order:
 
-1. `ProjectDocs/GDGOC_UITU_schema.sql` — the full authoritative schema (v1.3), idempotent via
-   `IF NOT EXISTS` throughout.
-2. `ProjectDocs/migration_teams.sql` — no-op on a fresh build; only needed for databases
-   created before `content.teams` was folded into the main schema.
-3. `ProjectDocs/migration_performance_indexes.sql` — adds 3 indexes, **two of which are
-   defective** (`BUG-006`).
+1. `backend/db/schema/GDGOC_UITU_schema.sql` — the full authoritative schema (v1.3), idempotent
+   via `IF NOT EXISTS` throughout.
+2. `backend/db/migrations/migration_teams.sql` — no-op on a fresh build; only needed for
+   databases created before `content.teams` was folded into the main schema.
+3. `backend/db/migrations/migration_performance_indexes.sql` — adds 3 indexes, **two of which
+   are defective** (`BUG-006`).
+4. `backend/db/migrations/migration_people.sql` — no-op on a fresh build; only needed for
+   databases created before `content.people` and the rebuilt `events.event_people` join table
+   were folded into the main schema (`TODO-051`).
 
 Then, manually and not currently done: change the `gdgoc_app` role password away from the
 literal `'CHANGE_IN_PRODUCTION'` in the schema file (`TODO-015`), and seed `forum.categories`,
