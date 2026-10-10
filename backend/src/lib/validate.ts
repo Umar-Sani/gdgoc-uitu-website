@@ -17,6 +17,21 @@ export function validate(schema: z.ZodTypeAny) {
   };
 }
 
+// Validates req.params the same way (e.g. a `:id` that must be a UUID), so a malformed id
+// is a clean 400 instead of a Postgres "invalid input syntax for type uuid" 500.
+export function validateParams(schema: z.ZodTypeAny) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.params);
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'Invalid request parameters';
+      return res.status(400).json({ data: null, error: message });
+    }
+    next();
+  };
+}
+
+export const uuidIdParamSchema = z.object({ id: z.uuid({ error: 'Invalid id' }) });
+
 // ─── Reusable field helpers ───────────────────────────────────────────────────
 const nullableUrl = z.url().nullish();
 
@@ -27,6 +42,11 @@ export const createThreadSchema = z.object({
   category_id: z.coerce.number().int().positive({ message: 'Invalid category' }),
   tags:        z.array(z.string().max(50)).max(5).optional(),
 });
+
+// Admin moderation toggles. `z.boolean()` is strict on purpose: "false" (a string) or 0
+// must be a 400, not silently coerced to a pinned/locked thread.
+export const pinThreadSchema  = z.object({ is_pinned: z.boolean({ error: 'is_pinned must be true or false' }) });
+export const lockThreadSchema = z.object({ is_locked: z.boolean({ error: 'is_locked must be true or false' }) });
 
 export const createReplySchema = z.object({
   body:            z.string().min(1, 'Reply cannot be empty').max(5_000),
@@ -142,6 +162,16 @@ export const createTeamSchema = z.object({
   display_order: z.number().int().optional(),
 });
 export const updateTeamSchema = createTeamSchema.partial();
+
+// ─── CMS: gallery ─────────────────────────────────────────────────────────────
+export const createGalleryItemSchema = z.object({
+  title:         z.string().max(200).nullish(),
+  media_url:     z.url({ error: 'media_url must be a valid URL' }).max(2_048),
+  media_type:    z.enum(['image', 'video']).optional(),
+  event_id:      z.uuid().nullish(),
+  category:      z.string().max(100).nullish(),
+  display_order: z.number().int().optional(),
+});
 
 // ─── CMS: sponsors ────────────────────────────────────────────────────────────
 export const createSponsorSchema = z.object({

@@ -3,7 +3,10 @@ import { pool } from '../db/client';
 import { requireAuth, requireRole, requireUsername } from '../middleware/auth';
 import { createNotification, createBulkNotification } from '../lib/notifications';
 import { sendNewReplyNotification, sendMentionNotification } from '../lib/mailer';
-import { validate, createThreadSchema, createReplySchema } from '../lib/validate';
+import {
+  validate, validateParams, uuidIdParamSchema,
+  createThreadSchema, createReplySchema, pinThreadSchema, lockThreadSchema,
+} from '../lib/validate';
 
 const router = Router();
 
@@ -553,13 +556,16 @@ router.get('/categories', async (req: Request, res: Response) => {
 
 // ─── PUT /api/forum/threads/:id/pin ──────────────────────────────────────────
 // Auth required (admin) — toggle pin status
-router.put('/threads/:id/pin', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.put('/threads/:id/pin', requireAuth, requireRole('admin', 'super_admin'), validateParams(uuidIdParamSchema), validate(pinThreadSchema), async (req: Request, res: Response) => {
   try {
     const { is_pinned } = req.body;
     const result = await pool.query(
-      `UPDATE forum.threads SET is_pinned = $1, updated_at = NOW() WHERE thread_id = $2 RETURNING *`,
+      `UPDATE forum.threads SET is_pinned = $1, updated_at = NOW() WHERE thread_id = $2 AND is_deleted = FALSE RETURNING *`,
       [is_pinned, req.params.id]
     );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Thread not found' });
+    }
     res.json({ data: result.rows[0], error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -568,13 +574,16 @@ router.put('/threads/:id/pin', requireAuth, requireRole('admin', 'super_admin'),
 
 // ─── PUT /api/forum/threads/:id/lock ─────────────────────────────────────────
 // Auth required (admin) — toggle lock status
-router.put('/threads/:id/lock', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.put('/threads/:id/lock', requireAuth, requireRole('admin', 'super_admin'), validateParams(uuidIdParamSchema), validate(lockThreadSchema), async (req: Request, res: Response) => {
   try {
     const { is_locked } = req.body;
     const result = await pool.query(
-      `UPDATE forum.threads SET is_locked = $1, updated_at = NOW() WHERE thread_id = $2 RETURNING *`,
+      `UPDATE forum.threads SET is_locked = $1, updated_at = NOW() WHERE thread_id = $2 AND is_deleted = FALSE RETURNING *`,
       [is_locked, req.params.id]
     );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Thread not found' });
+    }
     res.json({ data: result.rows[0], error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });

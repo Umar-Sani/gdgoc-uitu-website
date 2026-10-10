@@ -12,6 +12,7 @@ import {
   contactSchema, newsletterSchema,
   createFeaturedEventSchema, updateFeaturedEventSchema,
   createTestimonialSchema, updateTestimonialSchema,
+  createGalleryItemSchema,
 } from '../lib/validate';
 
 const router = Router();
@@ -442,14 +443,10 @@ router.get('/gallery', async (req: Request, res: Response) => {
 });
 
 // POST /api/cms/gallery
-router.post('/gallery', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/gallery', requireAuth, requireRole('admin', 'super_admin'), validate(createGalleryItemSchema), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { title, media_url, media_type, event_id, category, display_order } = req.body;
-
-    if (!media_url) {
-      return res.status(400).json({ data: null, error: 'media_url is required' });
-    }
 
     const result = await pool.query(
       `INSERT INTO content.gallery (title, media_url, media_type, event_id, category, display_order, uploaded_by)

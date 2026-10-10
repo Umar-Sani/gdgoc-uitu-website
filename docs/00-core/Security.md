@@ -155,12 +155,21 @@ an admin can delete an asset that is still referenced by a record.
 
 ## 15. Input Validation ⚠️
 
-Zod v4 via a `validate(schema)` middleware, applied to `req.body` only. On failure: `400` with
+Zod v4 via a `validate(schema)` middleware for `req.body`, plus `validateParams(schema)` for
+`req.params` (currently used for the UUID `:id` on thread pin/lock). On failure: `400` with
 the first issue's message. Unknown keys are stripped by Zod's object default, which is what
 protects the dynamic `UPDATE` builders from mass assignment.
 
-Routes that mutate but have **no** Zod schema: `POST/PATCH/DELETE /api/events/:id/people*`,
-`PUT /api/forum/threads/:id/pin`, `/lock`, and `POST /api/cms/gallery`. `TODO-018`.
+Every route that accepts a JSON body now has a schema (`TODO-018`): the `events/:id/people*`
+writers were covered by the people-directory work, and `PUT /api/forum/threads/:id/pin`,
+`/lock` and `POST /api/cms/gallery` were added here. The pin/lock booleans are strict —
+`"false"` or `1` is a 400, not coerced. Pin/lock on a missing or deleted thread is now a 404
+instead of a `200` with `data: undefined`.
+
+Not covered: `DELETE` routes and the body-less `POST` routes (register, upvote, view) take no
+body; their `:id` path params are still unvalidated, so a malformed UUID there is a Postgres
+error surfaced as `500` (see `BUG-011`). Only the validation error *message* is returned, never
+the field path (`TODO-012`).
 
 ## 16. Rate Limiting ✅
 
