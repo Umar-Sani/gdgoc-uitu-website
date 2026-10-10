@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import ReactMarkdown from 'react-markdown';
-import { markdownRemarkPlugins, markdownRehypePlugins } from '@/lib/markdown';
+import { markdownRemarkPlugins, markdownRehypePlugins, markdownUrlTransform } from '@/lib/markdown';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { cldUrl, CLD_AVATAR } from '@/lib/cloudinary-url';
 
@@ -127,7 +127,7 @@ function ReplyCard({ reply }: { reply: Reply }) {
           <span className="text-xs text-gray-400 ml-auto">{timeAgo(reply.created_at)}</span>
         </div>
         <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line prose prose-sm prose-blue max-w-none prose-img:rounded-lg prose-img:max-h-96">
-          <ReactMarkdown remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} components={markdownComponents}>
+          <ReactMarkdown remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} urlTransform={markdownUrlTransform} components={markdownComponents}>
             {preprocessMarkdown(reply.body)}
           </ReactMarkdown>
         </div>
@@ -387,7 +387,7 @@ export default function ThreadDetailPage() {
 
           {/* Body */}
           <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line prose prose-blue max-w-none prose-img:rounded-lg prose-img:max-h-96">
-            <ReactMarkdown remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} components={markdownComponents}>
+            <ReactMarkdown remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} urlTransform={markdownUrlTransform} components={markdownComponents}>
               {preprocessMarkdown(thread.body)}
             </ReactMarkdown>
           </div>

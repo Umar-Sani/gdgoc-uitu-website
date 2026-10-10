@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
-import { markdownRemarkPlugins, markdownRehypePlugins } from '@/lib/markdown';
+import { markdownRemarkPlugins, markdownRehypePlugins, markdownUrlTransform } from '@/lib/markdown';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -396,7 +396,7 @@ function ForumThreadCard({ thread }: { thread: Thread }) {
           ref={bodyRef}
           className="max-h-28 overflow-hidden text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-headings:my-1.5 prose-ul:my-1 prose-ol:my-1 prose-a:text-blue-600 prose-code:text-pink-600 prose-img:rounded-lg prose-img:max-h-24 prose-img:my-1 [&_pre]:whitespace-pre-wrap [&_pre]:text-xs"
         >
-          <ReactMarkdown remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} components={markdownComponents}>
+          <ReactMarkdown remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} urlTransform={markdownUrlTransform} components={markdownComponents}>
             {preprocessMarkdown(previewText)}
           </ReactMarkdown>
         </div>

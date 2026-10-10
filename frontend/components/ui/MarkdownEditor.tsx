@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { markdownRemarkPlugins, markdownRehypePlugins } from '@/lib/markdown';
+import { markdownRemarkPlugins, markdownRehypePlugins, markdownUrlTransform } from '@/lib/markdown';
 import { Bold, Italic, Quote, Link, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -140,7 +140,7 @@ export function MarkdownEditor({ value, onChange, placeholder = "Write something
           <div className="p-4 prose prose-slate max-w-none text-gray-800 min-h-[150px]">
             {value ? (
               <ReactMarkdown 
-                remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins}
+                remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} urlTransform={markdownUrlTransform}
                 components={{
                   img: ({node, ...props}) => <img {...props} className="max-w-full rounded-lg" style={{ maxHeight: '400px', objectFit: 'contain' }} />,
                   a: ({ href, children, ...props }) => {
