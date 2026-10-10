@@ -45,9 +45,9 @@ provisioned**:
 >   real client's.
 > - `db/client.ts` set `ssl: { rejectUnauthorized: true }` in production, which rejects
 >   Supabase's pooler certificate chain outright — every query failed with *self-signed
->   certificate in certificate chain*. Now `{ rejectUnauthorized: false }` unconditionally
->   (TLS encryption still applies; only CA-chain validation is skipped) — see `TODO-046` for the
->   stricter alternative (pinning Supabase's CA certificate).
+>   certificate in certificate chain*. First worked around with
+>   `{ rejectUnauthorized: false }`; since `TODO-046` the pool instead trusts exactly Supabase's
+>   Root 2021 CA (committed at `backend/certs/`), so the chain is fully verified again.
 
 > [!note] Frontend deploy on Vercel — confirmed working (2026-09-09), production URL `https://gdgoc-uitu.vercel.app`
 > Deployed from the same GitHub repo, **Root Directory set to `frontend`** in the Vercel
@@ -98,12 +98,18 @@ redirects.
 
 **Backend** — 18 variables: `PORT`, `NODE_ENV`, `FRONTEND_URL`, `DATABASE_URL`, `SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY`, `ALLOW_MOCK_AUTH`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-three `CLOUDINARY_*`, and six `BREVO_*`.
+three `CLOUDINARY_*`, and six `BREVO_*`. Optional, added later: `TURNSTILE_SECRET_KEY`
+(captcha on public forms, `TODO-024`; `TURNSTILE_HOSTNAMES` optionally overrides the accepted
+hostnames, default is the `FRONTEND_URL` host), `DATABASE_SSL_CA` (override the pinned DB CA,
+`TODO-046`), and the per-user rate-limit tunables `USER_RATE_LIMIT_MAX`,
+`USER_WRITE_RATE_LIMIT_MAX`, `FORUM_THREAD_LIMIT_PER_HOUR`, `FORUM_REPLY_LIMIT_PER_10MIN`
+(`TODO-019`). Frontend optional: `NEXT_PUBLIC_TURNSTILE_SITE_KEY`,
+`NEXT_PUBLIC_ENABLE_MOCK_AUTH` (dev only).
 
 Two settings must be correct in production:
 
 - `NODE_ENV=production` — disables the mock-auth bypass. It no longer affects database TLS
-  validation, which is now `rejectUnauthorized: false` unconditionally — see `BUG-012`.
+  validation, which now always verifies against the pinned Supabase CA — see `BUG-012`, `TODO-046`.
 - `FRONTEND_URL` — the **only** permitted CORS origin, and the base for Stripe return URLs.
 
 ## Release process
@@ -128,9 +134,10 @@ There is no migration tool. Applying the database by hand, in this order:
    databases created before `content.people` and the rebuilt `events.event_people` join table
    were folded into the main schema (`TODO-051`).
 
-Then, manually and not currently done: change the `gdgoc_app` role password away from the
-literal `'CHANGE_IN_PRODUCTION'` in the schema file (`TODO-015`), and seed `forum.categories`,
-which no SQL file populates.
+Then, manually and not currently done: on a database built from an older schema, run
+`migration_gdgoc_app_nologin.sql` to remove the `gdgoc_app` role's literal
+`'CHANGE_IN_PRODUCTION'` password (`TODO-015`), and seed `forum.categories`, which no SQL file
+populates.
 
 ## CI/CD
 
@@ -161,10 +168,11 @@ migrations. Restoring would depend on Supabase's managed backups, which have nev
 **None.** No flag system, no remote config, no gradual rollout. The two runtime switches that
 exist are environment-driven and are not feature flags in any managed sense:
 
-- `ALLOW_MOCK_AUTH` (backend) — combined with `NODE_ENV !== 'production'`, enables the
-  `mock-token` bypass.
-- `MOCK_ENABLED` (frontend, `lib/mockAuth.ts`) — a **hard-coded constant**, currently `false`.
-  Changing it requires a code edit and a rebuild.
+- `ALLOW_MOCK_AUTH` (backend) — enables the `mock-token` bypass, but only when `FRONTEND_URL`
+  is unset/localhost; with `NODE_ENV=production` the process refuses to start (`TODO-013`).
+- `NEXT_PUBLIC_ENABLE_MOCK_AUTH` (frontend, read by `lib/mockAuth.ts`) — opt-in per developer
+  in `.env.local`. Folded to `false` in every production build, since `NODE_ENV` is always
+  `production` there.
 
 ## Secrets and configuration
 
@@ -182,7 +190,6 @@ missing secret surfaces as a runtime failure on first use rather than a boot fai
 |---|---|
 | Railway config lives only in its dashboard — no `railway.json`/deploy manifest in-repo | `TODO-047` |
 | Vercel Root Directory, and the Supabase/Google OAuth redirect URLs, live only in their dashboards | `TODO-048` |
-| DB pool skips TLS certificate-chain validation (`rejectUnauthorized: false`) rather than pinning Supabase's CA | `TODO-046`, `BUG-012` |
 | No CI pipeline of any kind | `TODO-034` |
 | No staging environment; local likely shares the production database | `TODO-035` |
 | No `.env.example` and no boot-time secret validation | `TODO-014` |

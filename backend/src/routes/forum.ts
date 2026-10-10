@@ -3,7 +3,12 @@ import { pool } from '../db/client';
 import { requireAuth, requireRole, requireUsername } from '../middleware/auth';
 import { createNotification, createBulkNotification } from '../lib/notifications';
 import { sendNewReplyNotification, sendMentionNotification } from '../lib/mailer';
-import { validate, createThreadSchema, createReplySchema } from '../lib/validate';
+import {
+  validate, validateParams, uuidIdParamSchema,
+  createThreadSchema, createReplySchema, pinThreadSchema, lockThreadSchema,
+} from '../lib/validate';
+import { forumThreadLimiter, forumReplyLimiter } from '../middleware/userRateLimit';
+import { shouldCountView } from '../lib/viewDedupe';
 
 const router = Router();
 
@@ -196,9 +201,16 @@ router.get('/threads/:id', async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/forum/threads/:id/view ─────────────────────────────────────────
-// Public — increment thread view count
-router.post('/threads/:id/view', async (req: Request, res: Response) => {
+// Public — increment thread view count.
+// A captcha on every page view would be hostile UX, so instead each client (IP) counts at
+// most once per thread per VIEW_DEDUPE_MS; repeats get the same success response without
+// touching the database, so a script learns nothing and inflates nothing (TODO-024).
+// Implementation and caveats: lib/viewDedupe.ts.
+router.post('/threads/:id/view', validateParams(uuidIdParamSchema), async (req: Request, res: Response) => {
   try {
+    if (!shouldCountView(req.ip ?? 'unknown', req.params.id)) {
+      return res.json({ data: { success: true }, error: null });
+    }
     await pool.query(
       `UPDATE forum.threads
        SET view_count = view_count + 1
@@ -214,7 +226,7 @@ router.post('/threads/:id/view', async (req: Request, res: Response) => {
 
 // ─── POST /api/forum/threads ──────────────────────────────────────────────────
 // Auth required — create a new thread
-router.post('/threads', requireAuth, requireUsername, validate(createThreadSchema), async (req: Request, res: Response) => {
+router.post('/threads', requireAuth, requireUsername, forumThreadLimiter, validate(createThreadSchema), async (req: Request, res: Response) => {
   try {
     const { title, body, category_id, tags } = req.body;
     const authorId = (req as any).user.id;
@@ -290,7 +302,7 @@ router.post('/threads', requireAuth, requireUsername, validate(createThreadSchem
 
 // ─── POST /api/forum/threads/:id/replies ─────────────────────────────────────
 // Auth required — add a reply to a thread
-router.post('/threads/:id/replies', requireAuth, requireUsername, validate(createReplySchema), async (req: Request, res: Response) => {
+router.post('/threads/:id/replies', requireAuth, requireUsername, forumReplyLimiter, validate(createReplySchema), async (req: Request, res: Response) => {
   try {
     const { body, parent_reply_id } = req.body;
     const authorId = (req as any).user.id;
@@ -553,13 +565,16 @@ router.get('/categories', async (req: Request, res: Response) => {
 
 // ─── PUT /api/forum/threads/:id/pin ──────────────────────────────────────────
 // Auth required (admin) — toggle pin status
-router.put('/threads/:id/pin', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.put('/threads/:id/pin', requireAuth, requireRole('admin', 'super_admin'), validateParams(uuidIdParamSchema), validate(pinThreadSchema), async (req: Request, res: Response) => {
   try {
     const { is_pinned } = req.body;
     const result = await pool.query(
-      `UPDATE forum.threads SET is_pinned = $1, updated_at = NOW() WHERE thread_id = $2 RETURNING *`,
+      `UPDATE forum.threads SET is_pinned = $1, updated_at = NOW() WHERE thread_id = $2 AND is_deleted = FALSE RETURNING *`,
       [is_pinned, req.params.id]
     );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Thread not found' });
+    }
     res.json({ data: result.rows[0], error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });
@@ -568,13 +583,16 @@ router.put('/threads/:id/pin', requireAuth, requireRole('admin', 'super_admin'),
 
 // ─── PUT /api/forum/threads/:id/lock ─────────────────────────────────────────
 // Auth required (admin) — toggle lock status
-router.put('/threads/:id/lock', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.put('/threads/:id/lock', requireAuth, requireRole('admin', 'super_admin'), validateParams(uuidIdParamSchema), validate(lockThreadSchema), async (req: Request, res: Response) => {
   try {
     const { is_locked } = req.body;
     const result = await pool.query(
-      `UPDATE forum.threads SET is_locked = $1, updated_at = NOW() WHERE thread_id = $2 RETURNING *`,
+      `UPDATE forum.threads SET is_locked = $1, updated_at = NOW() WHERE thread_id = $2 AND is_deleted = FALSE RETURNING *`,
       [is_locked, req.params.id]
     );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ data: null, error: 'Thread not found' });
+    }
     res.json({ data: result.rows[0], error: null });
   } catch (err: any) {
     res.status(500).json({ data: null, error: err.message });

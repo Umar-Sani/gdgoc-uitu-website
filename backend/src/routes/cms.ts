@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { requireCaptcha } from '../middleware/captcha';
 import { sendNewsletterWelcome } from '../lib/mailer';
 import {
   validate,
@@ -12,6 +13,7 @@ import {
   contactSchema, newsletterSchema,
   createFeaturedEventSchema, updateFeaturedEventSchema,
   createTestimonialSchema, updateTestimonialSchema,
+  createGalleryItemSchema,
 } from '../lib/validate';
 
 const router = Router();
@@ -442,14 +444,10 @@ router.get('/gallery', async (req: Request, res: Response) => {
 });
 
 // POST /api/cms/gallery
-router.post('/gallery', requireAuth, requireRole('admin', 'super_admin'), async (req: Request, res: Response) => {
+router.post('/gallery', requireAuth, requireRole('admin', 'super_admin'), validate(createGalleryItemSchema), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { title, media_url, media_type, event_id, category, display_order } = req.body;
-
-    if (!media_url) {
-      return res.status(400).json({ data: null, error: 'media_url is required' });
-    }
 
     const result = await pool.query(
       `INSERT INTO content.gallery (title, media_url, media_type, event_id, category, display_order, uploaded_by)
@@ -550,7 +548,7 @@ router.delete('/sponsors/:id', requireAuth, requireRole('admin', 'super_admin'),
 
 // POST /api/cms/contact
 // Public — submit a contact form
-router.post('/contact', validate(contactSchema), async (req: Request, res: Response) => {
+router.post('/contact', requireCaptcha('contact'), validate(contactSchema), async (req: Request, res: Response) => {
   try {
     const { full_name, email, subject, message } = req.body;
 
@@ -571,7 +569,7 @@ router.post('/contact', validate(contactSchema), async (req: Request, res: Respo
 
 // POST /api/cms/newsletter
 // Public — subscribe to newsletter
-router.post('/newsletter', validate(newsletterSchema), async (req: Request, res: Response) => {
+router.post('/newsletter', requireCaptcha('newsletter'), validate(newsletterSchema), async (req: Request, res: Response) => {
   try {
     const { email, name } = req.body;
 

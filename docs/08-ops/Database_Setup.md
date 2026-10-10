@@ -38,8 +38,10 @@ The schema does not finish the job. None of the following is automated:
 
 ### 1. Change the `gdgoc_app` password
 
-The schema creates the role with the literal password `'CHANGE_IN_PRODUCTION'`. Change it
-before anything is reachable. `TODO-015`.
+The schema now creates the role `NOLOGIN`, so there is nothing to change on a fresh build. To
+use it, set a secret out-of-band: `ALTER ROLE gdgoc_app LOGIN PASSWORD '<secret>';`. A database
+built from an older schema still has the literal `'CHANGE_IN_PRODUCTION'` password — run
+`backend/db/migrations/migration_gdgoc_app_nologin.sql`. `TODO-015`.
 
 ### 2. Seed `forum.categories`
 

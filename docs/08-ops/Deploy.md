@@ -61,7 +61,7 @@ Two settings that **must** be correct in any production environment:
 
 | Variable | Why it matters |
 |---|---|
-| `NODE_ENV=production` | Enables database TLS certificate validation **and** disables the `mock-token` auth bypass |
+| `NODE_ENV=production` | Makes the process refuse to start if `ALLOW_MOCK_AUTH=true` is also set (database TLS validation is always on, pinned to `backend/certs/`) |
 | `FRONTEND_URL` | The only permitted CORS origin, and the base for Stripe return URLs |
 
 Once the host is known, also set `trust proxy` to the correct hop count — without it, IP rate

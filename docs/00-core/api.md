@@ -64,9 +64,10 @@ the database but is never assignable through the API and is filtered out of
 `GET /api/admin/roles`.
 
 > [!warning] A mock-auth bypass exists in the backend
-> When `NODE_ENV !== 'production'` **and** `ALLOW_MOCK_AUTH === 'true'`, the literal token
-> `mock-token` authenticates as a hard-coded UUID and is treated as `admin` by `requireRole`
-> regardless of the roles requested. Both conditions are required. See [[Security]].
+> When `ALLOW_MOCK_AUTH === 'true'` **and** `FRONTEND_URL` is unset or points at localhost, the
+> literal token `mock-token` authenticates as a hard-coded UUID and is treated as `admin` by
+> `requireRole` regardless of the roles requested. The process refuses to boot if
+> `ALLOW_MOCK_AUTH=true` with `NODE_ENV=production`. See [[Security]].
 
 ## Endpoints
 
@@ -157,7 +158,8 @@ All other mutations require admin or super_admin.
 | Endpoint | Access |
 |---|---|
 | `GET/POST/PATCH/DELETE /api/social/posts*` | admin, super_admin (+ `writeLimiter`) |
-| `POST /api/upload` | **Auth only — no role guard** (+ `writeLimiter`). 5 MB, images only, field name `image` |
+| `POST /api/upload?folder=` | Auth + per-folder role (`avatars`: any user; `people`: admin/super_admin/editor; `events`/`team`/`sponsors`: admin/super_admin) (+ `writeLimiter`). 5 MB, JPEG/PNG/GIF/WebP by magic bytes, field name `image`. Unknown folder → 400 |
+| `DELETE /api/upload` | Same folder rules; body `{ public_id }`. `avatars` only if it is the caller's current avatar. 404 if the asset is already gone |
 | `GET /api/notifications`, `/unread-count` | Auth, scoped to the caller |
 | `PATCH /api/notifications/read-all`, `/:id/read`, `DELETE /:id` | Auth, scoped to the caller |
 
@@ -173,17 +175,26 @@ No `204`, and no `422` — validation failures return `400`.
 
 **Validation failure** returns `400` with only the **first** Zod issue's message, as a string.
 The field path is discarded, so a client cannot map the error back to a form field. See
-`TODO-012`. Query and route parameters are **never** Zod-validated — only `req.body` is.
+`TODO-012`. Query parameters are never Zod-validated; route params only on forum pin/lock
+(UUID `:id`, via `validateParams`). Everything else relies on Postgres to reject bad ids.
 
-**Rate limits** (`express-rate-limit`, keyed by IP):
+**Rate limits** (`express-rate-limit`). Per IP:
 
 | Scope | Window | Max |
 |---|---|---|
 | Global | 15 minutes | 300 requests |
 | `/api/social`, `/api/upload` | 1 minute | 20 requests |
 
-> [!warning] `trust proxy` is not set
-> Express is never told to trust a proxy, so behind a reverse proxy or PaaS all requests may
-> rate-limit against the proxy's IP as a single bucket. See `BUG-008`.
+Per authenticated user (keyed on the verified user id, applied by `requireAuth`; `TODO-019`):
+
+| Scope | Window | Max |
+|---|---|---|
+| Any authenticated request | 15 minutes | 600 |
+| Authenticated POST/PUT/PATCH/DELETE | 1 minute | 60 |
+| `POST /api/forum/threads` | 1 hour | 10 |
+| `POST /api/forum/threads/:id/replies` | 10 minutes | 30 |
+
+Exceeding either returns `429` with `{ data: null, error }`. `trust proxy` is set to one hop
+(`BUG-008`, fixed), so the IP limits key on the real client address.
 
 Full error semantics, retry behaviour and idempotency: [[ErrorHandling]].

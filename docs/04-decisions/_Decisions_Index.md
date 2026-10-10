@@ -29,7 +29,6 @@ writing an ADR at the time.
 | No ORM — raw parameterised SQL via `pg` | Consistent across every route file |
 | No test framework | No test infrastructure anywhere |
 | No API versioning | No `/v1` prefix or version header |
-| Client-side-only route protection (no `middleware.ts`) | `(member)` / `(admin)` layouts |
 | React Context instead of a data-fetching library | `AuthContext`, `MemberDataContext` |
 | Notification delivery by polling rather than WebSocket | `NotificationBell` polls |
 | Tailwind + shadcn/Radix with a hand-built "brutalist" idiom | Consistent across components |

@@ -44,10 +44,13 @@ dependencies but never imported.
 
 > [!warning] Mock-auth bypass
 > `backend/src/middleware/auth.ts` accepts the literal token `mock-token` as a hard-coded
-> admin UUID when `NODE_ENV !== 'production'` **and** `ALLOW_MOCK_AUTH === 'true'`. Both
-> conditions are required, so production is protected by the `NODE_ENV` check alone.
-> `frontend/lib/mockAuth.ts` has a matching client switch, currently `MOCK_ENABLED = false`
-> (a hard-coded constant, not an env var). See `TODO-013`.
+> admin UUID only when `ALLOW_MOCK_AUTH === 'true'`. It fails closed two ways (`TODO-013`):
+> the process **refuses to start** if that flag is set with `NODE_ENV=production`, and the
+> bypass stays off whenever `FRONTEND_URL` is not localhost — so a hosted deploy where
+> `NODE_ENV` was never set is still safe. It logs a warning at boot either way.
+> `frontend/lib/mockAuth.ts` is opt-in via `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` and is a
+> build-time constant `false` in production bundles. The remaining residual risk is a
+> deployment that sets *both* `ALLOW_MOCK_AUTH=true` and a localhost `FRONTEND_URL`.
 
 ## 5. Authorization ⚠️
 
@@ -55,12 +58,20 @@ dependencies but never imported.
 Per-resource ownership is enforced by scoping SQL to the caller's `user_id` (notifications,
 registrations, tickets), not by a policy layer.
 
-> [!warning] Frontend route guards are not a security control
-> There is no `middleware.ts`. `(member)` and `(admin)` layouts redirect **after hydration**,
-> so protected HTML is served to anyone. Data remains protected by API guards. See `TODO-004`.
+> [!note] Server-side route gating (`TODO-004`)
+> `frontend/proxy.ts` (Next 16's `middleware.ts`) gates `/dashboard`, `/settings` and `/admin`
+> before any HTML is rendered: no valid session → 307 to `/login?redirect=<path>`; `/admin`
+> additionally requires role `editor`/`admin`/`super_admin` (looked up via `GET /api/users/me`),
+> otherwise 307 to `/dashboard`. An unreachable API denies. It uses `getUser()`, which validates
+> the JWT with Supabase — never `getSession()`, which trusts the cookie.
+>
+> What it does **not** do: it is not the authorization boundary (the API still is), it checks
+> role only at the coarse admin/non-admin level (finer `adminOnly`/`superAdminOnly` nav rules
+> remain client-side, and the API enforces them), and the session cookie is not `HttpOnly`
+> because supabase-js must read it in the browser — the same XSS exposure localStorage had.
+> `/complete-profile` and the `(auth)` pages are intentionally not gated.
 
-Known authorization gaps: `BUG-007` (two under-guarded CMS reads), and `POST /api/upload`
-having no role guard at all.
+Known authorization gaps: `BUG-007` (two under-guarded CMS reads).
 
 ## 6. Session Security ⚠️
 
@@ -92,7 +103,9 @@ registrations and transactions prevents orphaning financial records.
 > SECURITY` is never applied, so the connecting owner role bypasses RLS entirely. The same
 > missing session settings mean audit rows record a NULL actor. See `BUG-003`, `BUG-004`.
 
-SSL certificate validation is enabled only when `NODE_ENV === 'production'`.
+The database connection verifies the server certificate chain against a pinned **Supabase Root
+2021 CA** (`backend/certs/supabase-prod-ca-2021.crt`, expires 2031-04-26 — replace before then;
+`DATABASE_SSL_CA` overrides it). Validation is always on, in every environment (`TODO-046`).
 
 ## 10. Secrets Management ⚠️
 
@@ -102,8 +115,10 @@ either app and **no startup validation** that required variables are present —
 non-null-asserted (`process.env.X!`), so a missing value fails at first use, not at boot.
 See `TODO-014`.
 
-The schema file creates role `gdgoc_app` with literal password `'CHANGE_IN_PRODUCTION'`
-(`TODO-015`).
+The schema file creates role `gdgoc_app` as `NOLOGIN` — no credential is committed
+(`TODO-015`). Databases built *before* that change still have it with `LOGIN` and the literal
+password `'CHANGE_IN_PRODUCTION'` until `backend/db/migrations/migration_gdgoc_app_nologin.sql`
+is run — **that migration has not yet been applied to the live Supabase project**.
 
 ## 11. Encryption ⚠️
 
@@ -125,28 +140,66 @@ creation that *should* be scheduled are not. `TODO-007`.
 
 ## 14. File Upload Security ✅
 
-`POST /api/upload`: multer memory storage, 5 MB cap, `fileFilter` accepting only
-`image/*` mimetypes, single field `image`, requires authentication. The buffer is base64-encoded
-into a data URI and sent to Cloudinary.
+`POST /api/upload`: multer memory storage, 5 MB cap, single field `image`, requires
+authentication. Hardened under `TODO-017`:
 
-Weaknesses: mimetype is client-asserted and not verified against magic bytes; the `?folder=`
-query parameter has **no allow-list**; there is **no role guard**; and no delete path exists, so
-removing a CMS row orphans the Cloudinary asset. `TODO-017`.
+- **Folder allow-list.** `?folder=` must be one of five exact values (`avatars`, `people`,
+  `events`, `team`, `sponsors`, all under `gdgoc-uitu/`); missing or unknown → 400. Checked
+  *before* the body is buffered.
+- **Per-folder role guard.** `avatars` accepts any signed-in user; `people` needs
+  admin/super_admin/editor; `events`, `team`, `sponsors` need admin/super_admin. The map lives
+  in `backend/src/routes/upload.ts` (`FOLDER_ROLES`) and must be updated with new frontend uses.
+- **Magic-byte check.** The file's leading bytes must be JPEG, PNG, GIF or WebP
+  (`lib/imageSniff.ts`); the declared Content-Type is only a pre-filter. **SVG is rejected**
+  (it can carry script). The sniffed type, not the client's, goes to Cloudinary.
+- **Delete path.** `DELETE /api/upload` with `{ "public_id": "<folder>/<leaf>" }`. Same folder
+  role rules; for `avatars` the asset must be the caller's *current* `avatar_url`. It is an
+  explicit call, **not** wired into the replace flow in `ImageUpload`, because deleting on
+  replace would break the saved record if the form is then cancelled — so orphans from
+  replaced images are still possible until a caller uses it.
+
+Residual: no content scanning beyond the header bytes (a file can start with valid PNG bytes
+and carry a trailing payload; Cloudinary re-encodes, which neutralises that for delivery), and
+an admin can delete an asset that is still referenced by a record.
 
 ## 15. Input Validation ⚠️
 
-Zod v4 via a `validate(schema)` middleware, applied to `req.body` only. On failure: `400` with
+Zod v4 via a `validate(schema)` middleware for `req.body`, plus `validateParams(schema)` for
+`req.params` (currently used for the UUID `:id` on thread pin/lock). On failure: `400` with
 the first issue's message. Unknown keys are stripped by Zod's object default, which is what
 protects the dynamic `UPDATE` builders from mass assignment.
 
-Routes that mutate but have **no** Zod schema: `POST/PATCH/DELETE /api/events/:id/people*`,
-`PUT /api/forum/threads/:id/pin`, `/lock`, and `POST /api/cms/gallery`. `TODO-018`.
+Every route that accepts a JSON body now has a schema (`TODO-018`): the `events/:id/people*`
+writers were covered by the people-directory work, and `PUT /api/forum/threads/:id/pin`,
+`/lock` and `POST /api/cms/gallery` were added here. The pin/lock booleans are strict —
+`"false"` or `1` is a 400, not coerced. Pin/lock on a missing or deleted thread is now a 404
+instead of a `200` with `data: undefined`.
+
+Not covered: `DELETE` routes and the body-less `POST` routes (register, upvote, view) take no
+body; their `:id` path params are still unvalidated, so a malformed UUID there is a Postgres
+error surfaced as `500` (see `BUG-011`). Only the validation error *message* is returned, never
+the field path (`TODO-012`).
 
 ## 16. Rate Limiting ✅
 
-Global 300/15 min; write endpoints 20/min. Both keyed by IP with no custom `keyGenerator`,
-and undermined by the missing `trust proxy` (`BUG-008`). There is no per-user or per-account
-limiting, so a distributed client is unconstrained. `TODO-019`.
+Two layers (`TODO-019`):
+
+- **Per IP** (`index.ts`): global 300 / 15 min; `/api/social` and `/api/upload` 20 / min.
+  `trust proxy` is set to 1 hop (`BUG-008`, fixed).
+- **Per authenticated user** (`middleware/userRateLimit.ts`, applied inside `requireAuth` once
+  the identity is verified, so the key cannot be forged): 600 / 15 min for any request, 60 / min
+  for POST/PUT/PATCH/DELETE, plus stricter forum limits — 10 threads / hour and 30 replies /
+  10 min. Tunable via `USER_RATE_LIMIT_MAX`, `USER_WRITE_RATE_LIMIT_MAX`,
+  `FORUM_THREAD_LIMIT_PER_HOUR`, `FORUM_REPLY_LIMIT_PER_10MIN`. 429 body is `{ data: null,
+  error }` with standard `RateLimit-*` headers.
+
+Limits:
+- Counters are **in process memory** — correct for the single Railway instance, but a scaled-out
+  backend would count per replica until a shared store exists (`TODO-052`).
+- The per-IP limiter still applies to signed-in users too, so many users behind one NAT share
+  that bucket; the per-user layer adds, it does not replace.
+- No per-*account* limits on credential endpoints — sign-in is Supabase Auth's (`TODO-023`).
+- Unauthenticated public writes (contact, newsletter, view count) are IP-limited only here; see §24 for their captcha/de-dupe (`TODO-024`).
 
 ## 17. CSRF ✅ (by architecture)
 
@@ -157,10 +210,15 @@ introduced.
 
 ## 18. XSS ⚠️
 
-React escapes by default. Two live risks:
+React escapes by default. One live risk, one closed:
 
-1. Forum content is rendered through `react-markdown` with `remark-gfm`. No sanitizer plugin
-   (`rehype-sanitize`) is configured. `TODO-020`.
+1. ~~Forum content rendered through `react-markdown` with no sanitizer~~ — closed by `TODO-020`.
+   Every `<ReactMarkdown>` (forum list, thread/reply, editor preview, homepage) now takes its
+   plugins from `frontend/lib/markdown.ts`: `remark-gfm` plus `rehype-sanitize` (default
+   schema). Before this, raw HTML was already escaped and `javascript:` URLs blanked by
+   react-markdown's defaults, so this is defence in depth that survives a future `rehype-raw`.
+   Keep `rehypeSanitize` last in the rehype list. `mention:` links are allowed only in the exact shape `mention:<username>` (`BUG-014`). Behaviour change: raw HTML a user types is now
+   removed rather than shown as literal text.
 2. **Outbound email templates interpolate user-supplied strings into HTML with no escaping**
    (`backend/src/lib/mailer.ts`) — thread titles, names and body snippets. `BUG-009`.
 
@@ -204,8 +262,24 @@ documented here, and no application-side lockout or captcha exists. `TODO-023`.
 ## 24. Abuse / Spam ⚠️
 
 `POST /api/cms/contact`, `POST /api/cms/newsletter` and `POST /api/forum/threads/:id/view` are
-public writes with no captcha and only IP rate limiting. The view-count endpoint is trivially
-inflatable. `TODO-024`.
+public writes (`TODO-024`):
+
+- **Contact and newsletter: Cloudflare Turnstile.** `middleware/captcha.ts` verifies
+  `captcha_token` against Cloudflare's `siteverify` *before* body validation. Frontend:
+  `components/ui/TurnstileWidget.tsx`. Besides `success`, the verified response's **`action`**
+  must equal the surface (`contact` / `newsletter`) and its **`hostname`** must be one of ours
+  (derived from `FRONTEND_URL`; `TURNSTILE_HOSTNAMES` overrides; `localhost` only outside
+  production) — so a token minted on another site or form can't be replayed here. It is
+  **dormant until configured** — with no
+  `TURNSTILE_SECRET_KEY` the backend passes through (boot warning), and with no
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` the widget renders nothing and the forms behave as before.
+  Once the secret is set it fails closed: missing token → 400, rejected → 400, Cloudflare
+  unreachable → 503. Set both keys together.
+- **View count: de-duplication, not a captcha.** A captcha on every thread view would be
+  hostile UX. Instead `lib/viewDedupe.ts` counts one view per IP per thread per 30 minutes;
+  repeats receive the normal success response without touching the DB. In-memory and
+  per-process. It bounds inflation per IP; a distributed client can still inflate slowly, and
+  the counter is not a trustworthy metric.
 
 ## 25. Logging ❌
 
@@ -257,7 +331,7 @@ no dependency scanning, no penetration test. The two prior audits were manual re
 | RLS actually enforcing | ❌ `BUG-004` |
 | Audit log records the actor | ❌ `BUG-003` |
 | HTML-escaped outbound email | ❌ `BUG-009` |
-| Markdown sanitisation | ❌ `TODO-020` |
+| Markdown sanitisation | ✅ `TODO-020` |
 | Secrets validated at boot | ❌ `TODO-014` |
 | Structured logging | ❌ |
 | Monitoring / alerting | ❌ |

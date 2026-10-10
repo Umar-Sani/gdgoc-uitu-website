@@ -26,8 +26,11 @@ Status: `open` · `confirmed` · `fixed` · `wontfix`.
 | BUG-011 | open | Route handlers respond directly, bypassing the central error handler's production redaction | **Medium** — raw driver messages leak to clients | [[../00-core/ErrorHandling]] |
 | BUG-012 | fixed | `db/client.ts` set `ssl: { rejectUnauthorized: true }` in production, which rejects Supabase pooler's certificate chain | **Critical** — every database query failed in production; `/health` reported `db: unreachable` | `TODO-046` |
 | BUG-013 | open | `GET /api/cms/team?all=true` sends the same 5-minute public `Cache-Control` header as the non-admin variant, so the admin CMS screen can serve a stale cached list right after creating/editing a member. Fixed for the analogous `GET /api/cms/people?all=true` (found and fixed live while testing `TODO-051`); `team` itself not yet fixed | **Low** — cosmetic confusion (a save reports success but the new row doesn't appear until the cache expires or a hard refresh), no data loss | [[../00-core/api]] |
+| BUG-014 | fixed | `@username` mentions in forum markdown never rendered as pills — react-markdown's default URL transform blanked `mention:` hrefs before the custom `a` component saw them, so mentions were `<a href="">` | **Low** — cosmetic | `TODO-020` |
 
 ## Notes
+
+> [!note] `BUG-014` (mention pills) — found and fixed 2026-10-10; see the BUG-014 note below.
 
 ### BUG-001 — currency mismatch
 
@@ -114,6 +117,19 @@ featured events.
 check rather than the query string. A role-guard matrix test would prevent recurrence —
 [[../00-core/Testing_Strategy]].
 
+### BUG-014 — mention pills never rendered
+
+**Diagnosis.** The forum/home pages rewrite `@name` to `[@name](mention:name)` and their `a`
+component renders `mention:` links as pills. react-markdown's default `urlTransform` blanks any
+protocol outside http/https/mailto/irc/xmpp *before* components run, so the component saw
+`href=""`; `rehype-sanitize` would have stripped it a second time.
+
+**Fixed 2026-10-10.** `frontend/lib/markdown.ts` exports `markdownUrlTransform`, which passes
+through only `mention:` + `[A-Za-z0-9_]{1,30}` (so `mention:../../admin` is still blanked) and
+defers to the default for everything else; the sanitize schema allows the `mention` protocol.
+Verified in a browser: `@alice_1` and `@bob` render as pills; traversal and `javascript:` links
+stay neutralised.
+
 ### BUG-008 — `trust proxy` unset
 
 **Diagnosis.** `express-rate-limit` keys on `req.ip`. Without `app.set('trust proxy', …)`,
@@ -146,7 +162,7 @@ against a Supabase pooler connection string; any query rejects immediately.
 connection is still TLS-encrypted; only certificate-chain validation is skipped, which is what
 Supabase's own Node/`pg` connection guidance recommends for hosted connections through the
 pooler. The stricter alternative — fetching and pinning Supabase's CA certificate instead of
-disabling validation — is left as `TODO-046`.
+disabling validation — was done later as `TODO-046` (2026-10-10): the pool now pins Supabase's Root 2021 CA and validates fully.
 
 ### BUG-009 — unescaped email templates
 

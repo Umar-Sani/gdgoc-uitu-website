@@ -664,3 +664,99 @@ frontend field-name mismatch), it would surface on first real use.
 
 **Suggested next session.** Click through the admin and public UI in a browser before merging,
 per the gap above. Then open the PR from `feat/people-directory` into `dev`.
+
+---
+
+## 16. `chore/security-hardening` — nine TODOs from the security ledger (2026-10-10)
+
+One commit per task, each with its own TODO/Security/api/Deployment doc updates. Branch is
+local only, cut from `dev`; nothing pushed, nothing merged.
+
+| TODO | Status | What changed |
+|---|---|---|
+| 046 | done | `db/client.ts` pins Supabase Root 2021 CA (`backend/certs/`), `rejectUnauthorized: true`. Verified chain + real query + negative control |
+| 013 | done | Backend refuses to boot with `ALLOW_MOCK_AUTH` under `NODE_ENV=production`; bypass off when `FRONTEND_URL` is non-local. Frontend switch is `NEXT_PUBLIC_ENABLE_MOCK_AUTH`, compiled out of prod builds |
+| 015 | **in-progress** | Schema creates `gdgoc_app` `NOLOGIN`; `migration_gdgoc_app_nologin.sql` written. **Not applied to Supabase** (live inspection was blocked by the permission classifier) |
+| 017 | done | Folder allow-list + per-folder roles, magic-byte sniffing (SVG rejected), `DELETE /api/upload` with avatar ownership check. Real Cloudinary upload→delete→404 verified |
+| 018 | done | Zod for forum pin/lock (strict booleans) and gallery create; `validateParams`; pin/lock 404 on missing thread |
+| 019 | done | `middleware/userRateLimit.ts` applied from `requireAuth`; forum thread/reply limiters; env-tunable |
+| 020 | done | `rehype-sanitize` via shared `frontend/lib/markdown.ts` at all 5 sites; browser-verified |
+| 004 | done (needs real sign-in check) | `frontend/proxy.ts`; Supabase session moved to a cookie via `lib/supabaseCookieStorage.ts` (implicit flow kept on purpose); new dep `@supabase/ssr` |
+| 024 | **in-progress** | Turnstile middleware + widget; view-count de-dupe. Dormant until `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` are set |
+
+**Decisions worth remembering.** (a) `proxy.ts`, not `middleware.ts` — Next 16 renamed it.
+(b) Did not use `createBrowserClient`: it hard-codes PKCE, which would change email-verify and
+password-reset link behaviour. (c) View counts are de-duplicated, not captcha'd — a captcha per
+page view is poor UX. (d) Turnstile and `gdgoc_app` are shipped inert/unapplied rather than
+risking a production break.
+
+**Found, not fixed.** `@mention` pills never render (react-markdown blanks `mention:` hrefs) —
+noted under bugs.md Notes. `login/page.tsx` pushes `?redirect=` without validating it is a
+same-site path (open redirect). The Supabase DB returned "tenant/user not found" for a while at
+session start (project likely paused) and recovered; free-tier pausing is a standing risk.
+
+**Before merging.** (1) Real email + Google sign-in on a preview deploy — `TODO-004` was only
+tested against a fake Supabase. Existing sessions auto-migrate localStorage→cookie. (2) Run the
+`gdgoc_app` migration after confirming nothing connects as that role. (3) Create the Turnstile
+site and set both keys. (4) Test a non-admin token against `/api/upload` — role-denied path was
+not exercised.
+
+---
+
+## 17. `chore/security-hardening` — follow-ups from §16 (2026-10-10)
+
+**Closed.**
+- `BUG-014` (new, fixed): `@mention` pills now render. `frontend/lib/markdown.ts` passes
+  through only `mention:<username>`; traversal (`mention:../x`) and `javascript:` stay blanked.
+  Browser-verified.
+- `TODO-056` (new, done): open redirect on `/login?redirect=`. `lib/safeRedirect.ts`; 11 unit
+  cases + browser check (notice shows for `/dashboard`, not for `https://evil.test`).
+- Role-denied `/api/upload` path (was "not verified"): 17-case matrix through the real router
+  with a fake Supabase Auth, stubbed pool and stubbed Cloudinary — member/editor/admin × all five
+  folders, avatar ownership on DELETE, bad token. All pass; Cloudinary `destroy` called only for
+  the two permitted deletes.
+- Production build (`next build`) passes with `proxy.ts` registered ("ƒ Proxy (Middleware)").
+  Built with `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` on purpose: no `mock-token` string in
+  `.next/static`, so the bypass is compiled out. (Inert fixture user data is still bundled.)
+  A first build failed on a stale Turbopack `next/font` cache; `rm -rf frontend/.next` fixed it.
+
+**Still open — needs the owner.**
+- `TODO-015`: preflight (read-only) showed `gdgoc_app` has `LOGIN` and nothing is connected as
+  it. The agent was blocked from altering the credential. Owner runs
+  `migration_gdgoc_app_nologin.sql` in the Supabase SQL editor.
+- `TODO-024`: needs a Cloudflare Turnstile site; set `TURNSTILE_SECRET_KEY` (Railway) and
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Vercel). Real keys untested.
+- `TODO-004`: needs one real email sign-in and one Google sign-in on a preview deploy.
+
+**New finding.** `frontend/` contains a stale nested `.git` (`master`, "feat: initial
+commit"). `git` run from inside `frontend/` targets it and shows a bogus diff — always run git
+from the repo root. Tracked as `TODO-057`; not deleted (owner's data).
+
+---
+
+## 18. `chore/security-hardening` — Turnstile widget integrated, nested repo removed (2026-10-11)
+
+- `TODO-015`: owner applied `migration_gdgoc_app_nologin.sql` in Supabase; marked done on their
+  word (not independently re-verified by the agent).
+- `TODO-024`: owner created the Turnstile widget (public site key in `frontend/.env.local`,
+  gitignored). Followed Cloudflare's existing-widget flow for the pieces that apply: server-side
+  siteverify with client IP, ≤2048-char token, fail-closed, plus **action and hostname binding**
+  (new — previously only `success` was checked). Deliberately NOT done: retrieving the secret
+  via Wrangler — the agent has no Cloudflare auth and won't handle the secret; the owner sets
+  `TURNSTILE_SECRET_KEY` on Railway directly. Real widget → real token → API payload verified
+  in a browser; server checks covered by 15 stubbed-siteverify unit cases. Still inert in
+  production until the Railway secret + Vercel site key are set.
+- `TODO-057`: `frontend/.git` deleted at the owner's request (bundle saved outside the repo
+  first). `git` from `frontend/` now resolves to the project repo.
+- `TODO-004` (real Supabase sign-in test) deferred by the owner.
+
+---
+
+## 19. `chore/security-hardening` — Turnstile verified with the real secret (2026-10-11)
+
+Owner shared the Turnstile secret in chat for a local test (to be rotated afterwards; it was
+used only as a process env var, never written to a file or commit — grep confirms). The
+widget's interactive "verify you are human" step was solved by the owner, not automation.
+Results via a throwaway proxy that forced validation to fail after the captcha check (no DB
+writes): action mismatch rejected; correct action passed; replay of the spent token rejected.
+`TODO-024` stays in-progress only for the production env vars + secret rotation.

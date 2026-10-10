@@ -10,8 +10,8 @@
 PostgreSQL 15 hosted on Supabase. Accessed two ways — see [[Architecture]]:
 
 - **Express** via `pg`, raw parameterised SQL. Pool config (`backend/src/db/client.ts`):
-  `max: 20`, `idleTimeoutMillis: 30000`, `connectionTimeoutMillis: 5000`. SSL validates
-  certificates in production only (`rejectUnauthorized: false` otherwise). No
+  `max: 20`, `idleTimeoutMillis: 30000`, `connectionTimeoutMillis: 5000`. TLS verifies
+  the server chain against a pinned Supabase Root 2021 CA (`backend/certs/`, `TODO-046`). No
   `statement_timeout`, and **no `pool.on('error')` handler** — see `TODO-006`.
 - **Next.js** via `@supabase/supabase-js` for simple public reads and all auth.
 

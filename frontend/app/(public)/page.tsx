@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { markdownRemarkPlugins, markdownRehypePlugins, markdownUrlTransform } from '@/lib/markdown';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -18,6 +18,7 @@ import { Antonio } from 'next/font/google';
 import MascotBanner from '../../components/ui/MascotBanner';
 import ParallaxBackdrop from '../../components/ui/ParallaxBackdrop';
 import { useAuth } from '@/context/AuthContext';
+import TurnstileWidget, { TURNSTILE_ENABLED } from '@/components/ui/TurnstileWidget';
 import { cldUrl, CLD_AVATAR_LARGE, CLD_EVENT_CARD, CLD_AVATAR, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
@@ -395,7 +396,7 @@ function ForumThreadCard({ thread }: { thread: Thread }) {
           ref={bodyRef}
           className="max-h-28 overflow-hidden text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-headings:my-1.5 prose-ul:my-1 prose-ol:my-1 prose-a:text-blue-600 prose-code:text-pink-600 prose-img:rounded-lg prose-img:max-h-24 prose-img:my-1 [&_pre]:whitespace-pre-wrap [&_pre]:text-xs"
         >
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          <ReactMarkdown remarkPlugins={markdownRemarkPlugins} rehypePlugins={markdownRehypePlugins} urlTransform={markdownUrlTransform} components={markdownComponents}>
             {preprocessMarkdown(previewText)}
           </ReactMarkdown>
         </div>
@@ -1299,6 +1300,8 @@ export default function HomePage() {
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterSuccess, setNewsletterSuccess] = useState(false);
   const [newsletterError, setNewsletterError] = useState('');
+  const [newsletterCaptcha, setNewsletterCaptcha] = useState<string | null>(null);
+  const [newsletterCaptchaReset, setNewsletterCaptchaReset] = useState(0);
 
   // Testimonial carousel
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -1407,7 +1410,7 @@ export default function HomePage() {
       const res = await fetch(`${API_URL}/api/cms/newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newsletterEmail, name: newsletterName }),
+        body: JSON.stringify({ email: newsletterEmail, name: newsletterName, captcha_token: newsletterCaptcha ?? undefined }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -1419,6 +1422,9 @@ export default function HomePage() {
       setNewsletterError('Something went wrong. Please try again.');
     } finally {
       setNewsletterLoading(false);
+      // Tokens are single-use: fetch a fresh challenge after every attempt.
+      setNewsletterCaptcha(null);
+      setNewsletterCaptchaReset((n) => n + 1);
     }
   }
 
@@ -2141,9 +2147,10 @@ export default function HomePage() {
                   {newsletterError && (
                     <p className="text-red-300 text-xs">{newsletterError}</p>
                   )}
+                  <TurnstileWidget action="newsletter" onToken={setNewsletterCaptcha} resetKey={newsletterCaptchaReset} />
                   <button
                     type="submit"
-                    disabled={newsletterLoading}
+                    disabled={newsletterLoading || (TURNSTILE_ENABLED && !newsletterCaptcha)}
                     className="w-full py-2.5 rounded-xl bg-white text-[#4285F4] font-bold text-sm hover:bg-gray-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {newsletterLoading ? 'Subscribing...' : 'Subscribe for Free'}

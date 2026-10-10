@@ -69,8 +69,9 @@ password `CHANGE_IN_PRODUCTION`. See `TODO-015`.
 ## M
 
 **Mock auth** — a development bypass. Backend: the literal token `mock-token` authenticates as
-a hard-coded admin UUID when `NODE_ENV !== 'production'` **and** `ALLOW_MOCK_AUTH === 'true'`.
-Frontend: `lib/mockAuth.ts`, gated by a hard-coded `MOCK_ENABLED` constant, currently `false`.
+a hard-coded admin UUID when `ALLOW_MOCK_AUTH === 'true'` and `FRONTEND_URL` is local; the process
+won't boot with it set under `NODE_ENV=production`. Frontend: `lib/mockAuth.ts`, enabled by
+`NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` and compiled out of production builds.
 
 ## P
 
