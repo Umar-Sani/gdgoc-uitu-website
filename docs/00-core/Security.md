@@ -58,9 +58,18 @@ dependencies but never imported.
 Per-resource ownership is enforced by scoping SQL to the caller's `user_id` (notifications,
 registrations, tickets), not by a policy layer.
 
-> [!warning] Frontend route guards are not a security control
-> There is no `middleware.ts`. `(member)` and `(admin)` layouts redirect **after hydration**,
-> so protected HTML is served to anyone. Data remains protected by API guards. See `TODO-004`.
+> [!note] Server-side route gating (`TODO-004`)
+> `frontend/proxy.ts` (Next 16's `middleware.ts`) gates `/dashboard`, `/settings` and `/admin`
+> before any HTML is rendered: no valid session → 307 to `/login?redirect=<path>`; `/admin`
+> additionally requires role `editor`/`admin`/`super_admin` (looked up via `GET /api/users/me`),
+> otherwise 307 to `/dashboard`. An unreachable API denies. It uses `getUser()`, which validates
+> the JWT with Supabase — never `getSession()`, which trusts the cookie.
+>
+> What it does **not** do: it is not the authorization boundary (the API still is), it checks
+> role only at the coarse admin/non-admin level (finer `adminOnly`/`superAdminOnly` nav rules
+> remain client-side, and the API enforces them), and the session cookie is not `HttpOnly`
+> because supabase-js must read it in the browser — the same XSS exposure localStorage had.
+> `/complete-profile` and the `(auth)` pages are intentionally not gated.
 
 Known authorization gaps: `BUG-007` (two under-guarded CMS reads).
 

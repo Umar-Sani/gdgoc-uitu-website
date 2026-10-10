@@ -127,11 +127,14 @@ rather than memoising one. See `TODO-003`.
 
 Plus `/auth/callback` outside all groups, handling the OAuth code exchange.
 
-> [!warning] All route protection is client-side
-> There is **no `middleware.ts`**. Gating happens in layout components after hydration, so a
-> protected page's HTML is served to anyone who requests it. The data behind it is still
-> protected by the API's `requireAuth`/`requireRole`, so this is an information-architecture
-> weakness rather than a data breach. See [[Security]] and `TODO-004`.
+> [!note] Route protection is server-side first, then client-side (`TODO-004`)
+> `frontend/proxy.ts` (the Next.js 16 name for `middleware.ts`) runs before `/dashboard`,
+> `/settings` and `/admin` are rendered. It verifies the session with Supabase Auth
+> (`getUser()`), and for `/admin` also checks the role via `GET /api/users/me`, failing closed.
+> The layouts' client-side redirects remain as a second layer, and the API's
+> `requireAuth`/`requireRole` remain the real authorization boundary. For this to work the
+> Supabase session is stored in a **cookie** (`lib/supabaseCookieStorage.ts`) rather than
+> localStorage. See [[Security]].
 
 State is React Context only — `AuthContext` (app-wide) and `MemberDataContext` (member area,
 fetches events and threads once per session). There is no React Query/SWR/Zustand, and **no
