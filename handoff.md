@@ -700,3 +700,34 @@ tested against a fake Supabase. Existing sessions auto-migrate localStorage→co
 `gdgoc_app` migration after confirming nothing connects as that role. (3) Create the Turnstile
 site and set both keys. (4) Test a non-admin token against `/api/upload` — role-denied path was
 not exercised.
+
+---
+
+## 17. `chore/security-hardening` — follow-ups from §16 (2026-10-10)
+
+**Closed.**
+- `BUG-014` (new, fixed): `@mention` pills now render. `frontend/lib/markdown.ts` passes
+  through only `mention:<username>`; traversal (`mention:../x`) and `javascript:` stay blanked.
+  Browser-verified.
+- `TODO-056` (new, done): open redirect on `/login?redirect=`. `lib/safeRedirect.ts`; 11 unit
+  cases + browser check (notice shows for `/dashboard`, not for `https://evil.test`).
+- Role-denied `/api/upload` path (was "not verified"): 17-case matrix through the real router
+  with a fake Supabase Auth, stubbed pool and stubbed Cloudinary — member/editor/admin × all five
+  folders, avatar ownership on DELETE, bad token. All pass; Cloudinary `destroy` called only for
+  the two permitted deletes.
+- Production build (`next build`) passes with `proxy.ts` registered ("ƒ Proxy (Middleware)").
+  Built with `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` on purpose: no `mock-token` string in
+  `.next/static`, so the bypass is compiled out. (Inert fixture user data is still bundled.)
+  A first build failed on a stale Turbopack `next/font` cache; `rm -rf frontend/.next` fixed it.
+
+**Still open — needs the owner.**
+- `TODO-015`: preflight (read-only) showed `gdgoc_app` has `LOGIN` and nothing is connected as
+  it. The agent was blocked from altering the credential. Owner runs
+  `migration_gdgoc_app_nologin.sql` in the Supabase SQL editor.
+- `TODO-024`: needs a Cloudflare Turnstile site; set `TURNSTILE_SECRET_KEY` (Railway) and
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Vercel). Real keys untested.
+- `TODO-004`: needs one real email sign-in and one Google sign-in on a preview deploy.
+
+**New finding.** `frontend/` contains a stale nested `.git` (`master`, "feat: initial
+commit"). `git` run from inside `frontend/` targets it and shows a bogus diff — always run git
+from the repo root. Tracked as `TODO-057`; not deleted (owner's data).
