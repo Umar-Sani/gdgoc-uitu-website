@@ -62,8 +62,7 @@ registrations, tickets), not by a policy layer.
 > There is no `middleware.ts`. `(member)` and `(admin)` layouts redirect **after hydration**,
 > so protected HTML is served to anyone. Data remains protected by API guards. See `TODO-004`.
 
-Known authorization gaps: `BUG-007` (two under-guarded CMS reads), and `POST /api/upload`
-having no role guard at all.
+Known authorization gaps: `BUG-007` (two under-guarded CMS reads).
 
 ## 6. Session Security ⚠️
 
@@ -132,13 +131,27 @@ creation that *should* be scheduled are not. `TODO-007`.
 
 ## 14. File Upload Security ✅
 
-`POST /api/upload`: multer memory storage, 5 MB cap, `fileFilter` accepting only
-`image/*` mimetypes, single field `image`, requires authentication. The buffer is base64-encoded
-into a data URI and sent to Cloudinary.
+`POST /api/upload`: multer memory storage, 5 MB cap, single field `image`, requires
+authentication. Hardened under `TODO-017`:
 
-Weaknesses: mimetype is client-asserted and not verified against magic bytes; the `?folder=`
-query parameter has **no allow-list**; there is **no role guard**; and no delete path exists, so
-removing a CMS row orphans the Cloudinary asset. `TODO-017`.
+- **Folder allow-list.** `?folder=` must be one of five exact values (`avatars`, `people`,
+  `events`, `team`, `sponsors`, all under `gdgoc-uitu/`); missing or unknown → 400. Checked
+  *before* the body is buffered.
+- **Per-folder role guard.** `avatars` accepts any signed-in user; `people` needs
+  admin/super_admin/editor; `events`, `team`, `sponsors` need admin/super_admin. The map lives
+  in `backend/src/routes/upload.ts` (`FOLDER_ROLES`) and must be updated with new frontend uses.
+- **Magic-byte check.** The file's leading bytes must be JPEG, PNG, GIF or WebP
+  (`lib/imageSniff.ts`); the declared Content-Type is only a pre-filter. **SVG is rejected**
+  (it can carry script). The sniffed type, not the client's, goes to Cloudinary.
+- **Delete path.** `DELETE /api/upload` with `{ "public_id": "<folder>/<leaf>" }`. Same folder
+  role rules; for `avatars` the asset must be the caller's *current* `avatar_url`. It is an
+  explicit call, **not** wired into the replace flow in `ImageUpload`, because deleting on
+  replace would break the saved record if the form is then cancelled — so orphans from
+  replaced images are still possible until a caller uses it.
+
+Residual: no content scanning beyond the header bytes (a file can start with valid PNG bytes
+and carry a trailing payload; Cloudinary re-encodes, which neutralises that for delivery), and
+an admin can delete an asset that is still referenced by a record.
 
 ## 15. Input Validation ⚠️
 

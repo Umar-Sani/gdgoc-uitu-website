@@ -9,7 +9,8 @@ interface ImageUploadProps {
   value: string;
   onChange: (url: string) => void;
   token: string | null;
-  folder?: string;
+  /** Must be one of the folders the API allow-lists (backend/src/routes/upload.ts). */
+  folder: string;
   label?: string;
   shape?: 'square' | 'circle';
   previewClass?: string;
@@ -19,7 +20,7 @@ export default function ImageUpload({
   value,
   onChange,
   token,
-  folder = 'gdgoc-uitu',
+  folder,
   label,
   shape = 'square',
   previewClass,

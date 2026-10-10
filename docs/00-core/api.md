@@ -158,7 +158,8 @@ All other mutations require admin or super_admin.
 | Endpoint | Access |
 |---|---|
 | `GET/POST/PATCH/DELETE /api/social/posts*` | admin, super_admin (+ `writeLimiter`) |
-| `POST /api/upload` | **Auth only — no role guard** (+ `writeLimiter`). 5 MB, images only, field name `image` |
+| `POST /api/upload?folder=` | Auth + per-folder role (`avatars`: any user; `people`: admin/super_admin/editor; `events`/`team`/`sponsors`: admin/super_admin) (+ `writeLimiter`). 5 MB, JPEG/PNG/GIF/WebP by magic bytes, field name `image`. Unknown folder → 400 |
+| `DELETE /api/upload` | Same folder rules; body `{ public_id }`. `avatars` only if it is the caller's current avatar. 404 if the asset is already gone |
 | `GET /api/notifications`, `/unread-count` | Auth, scoped to the caller |
 | `PATCH /api/notifications/read-all`, `/:id/read`, `DELETE /:id` | Auth, scoped to the caller |
 
