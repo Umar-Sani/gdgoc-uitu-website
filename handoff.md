@@ -749,3 +749,14 @@ from the repo root. Tracked as `TODO-057`; not deleted (owner's data).
 - `TODO-057`: `frontend/.git` deleted at the owner's request (bundle saved outside the repo
   first). `git` from `frontend/` now resolves to the project repo.
 - `TODO-004` (real Supabase sign-in test) deferred by the owner.
+
+---
+
+## 19. `chore/security-hardening` — Turnstile verified with the real secret (2026-10-11)
+
+Owner shared the Turnstile secret in chat for a local test (to be rotated afterwards; it was
+used only as a process env var, never written to a file or commit — grep confirms). The
+widget's interactive "verify you are human" step was solved by the owner, not automation.
+Results via a throwaway proxy that forced validation to fail after the captcha check (no DB
+writes): action mismatch rejected; correct action passed; replay of the spent token rejected.
+`TODO-024` stays in-progress only for the production env vars + secret rotation.
