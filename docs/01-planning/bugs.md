@@ -29,6 +29,14 @@ Status: `open` · `confirmed` · `fixed` · `wontfix`.
 
 ## Notes
 
+> [!note] Found 2026-10-10 while doing `TODO-020`, not yet given a `BUG-` ID
+> `@username` mentions in forum markdown never render as pills or profile links. The pages
+> rewrite `@name` to `[@name](mention:name)` and their `a` component checks
+> `href?.startsWith('mention:')`, but react-markdown's default `urlTransform` blanks any
+> protocol outside http/https/mailto/irc/xmpp first, so the component sees `href=""`. The fix is
+> a custom `urlTransform` that passes `mention:` through (and `rehype-sanitize`'s schema then
+> needs `mention` in `protocols.href`). Low severity, cosmetic.
+
 ### BUG-001 — currency mismatch
 
 **Diagnosis.** `backend/src/routes/payments.ts` inserts the transaction row with

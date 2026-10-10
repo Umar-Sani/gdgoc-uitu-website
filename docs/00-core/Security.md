@@ -201,10 +201,15 @@ introduced.
 
 ## 18. XSS ⚠️
 
-React escapes by default. Two live risks:
+React escapes by default. One live risk, one closed:
 
-1. Forum content is rendered through `react-markdown` with `remark-gfm`. No sanitizer plugin
-   (`rehype-sanitize`) is configured. `TODO-020`.
+1. ~~Forum content rendered through `react-markdown` with no sanitizer~~ — closed by `TODO-020`.
+   Every `<ReactMarkdown>` (forum list, thread/reply, editor preview, homepage) now takes its
+   plugins from `frontend/lib/markdown.ts`: `remark-gfm` plus `rehype-sanitize` (default
+   schema). Before this, raw HTML was already escaped and `javascript:` URLs blanked by
+   react-markdown's defaults, so this is defence in depth that survives a future `rehype-raw`.
+   Keep `rehypeSanitize` last in the rehype list. Behaviour change: raw HTML a user types is now
+   removed rather than shown as literal text.
 2. **Outbound email templates interpolate user-supplied strings into HTML with no escaping**
    (`backend/src/lib/mailer.ts`) — thread titles, names and body snippets. `BUG-009`.
 
@@ -301,7 +306,7 @@ no dependency scanning, no penetration test. The two prior audits were manual re
 | RLS actually enforcing | ❌ `BUG-004` |
 | Audit log records the actor | ❌ `BUG-003` |
 | HTML-escaped outbound email | ❌ `BUG-009` |
-| Markdown sanitisation | ❌ `TODO-020` |
+| Markdown sanitisation | ✅ `TODO-020` |
 | Secrets validated at boot | ❌ `TODO-014` |
 | Structured logging | ❌ |
 | Monitoring / alerting | ❌ |
