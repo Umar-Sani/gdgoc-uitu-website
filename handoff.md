@@ -760,3 +760,17 @@ widget's interactive "verify you are human" step was solved by the owner, not au
 Results via a throwaway proxy that forced validation to fail after the captcha check (no DB
 writes): action mismatch rejected; correct action passed; replay of the spent token rejected.
 `TODO-024` stays in-progress only for the production env vars + secret rotation.
+
+---
+
+## 20. `chore/security-hardening` — pushed, PR #29 opened (2026-10-11)
+
+Branch pushed and PR opened into `dev`: https://github.com/Umar-Sani/gdgoc-uitu-website/pull/29
+(16 commits, 42 files at the time). Docs reconciled with current status: `Security.md`
+checklist and header, `Glossary.md`, `Deployment.md`, the payment feature's `Security.md`, and
+the ledger (`TODO-004` moved back to in-progress — code done, real sign-in check pending).
+
+**Open after merge, all owner-side:** `TODO-004` real sign-in test; `TODO-024` rotate the
+Turnstile secret, set `TURNSTILE_SECRET_KEY` (Railway) + `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+(Vercel), widget hostnames, one production submit. Other items untouched by this branch remain
+as listed in `TODO.md` (notably `TODO-001/002/003/005–012/014`, `BUG-001/003/005/009–011`).

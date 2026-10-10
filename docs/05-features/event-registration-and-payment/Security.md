@@ -123,8 +123,9 @@ rows.
 **Controls.** Global rate limit only — 300 requests / 15 min / IP. Neither payment endpoint is
 covered by the stricter `writeLimiter`.
 
-**Residual risk.** Meaningful. IP-keyed limiting is undermined by the missing `trust proxy`
-(`BUG-008`), and there is no per-user limit (`TODO-019`). Abandoned `pending` rows accumulate
+**Residual risk.** Moderate. `trust proxy` is now set (`BUG-008`, fixed) and authenticated
+requests are also limited per user — 600 / 15 min, 60 writes / min (`TODO-019`) — but neither
+is specific to checkout, and the counters are in-memory. Abandoned `pending` rows accumulate
 with nothing pruning them.
 
 ### T11 — Information leakage on failure
@@ -151,6 +152,6 @@ central handler's production redaction — `BUG-011`.
 | Retry on settlement failure | ❌ `BUG-010` |
 | Correct currency | ❌ `BUG-001` |
 | Username required on the paid path | ❌ |
-| Per-user rate limiting | ❌ `TODO-019` |
+| Per-user rate limiting | ✅ generic limits via `requireAuth` (`TODO-019`); no checkout-specific limit |
 | Error redaction on checkout 500s | ❌ `BUG-011` |
 | RLS as defence in depth | ❌ `BUG-004` |

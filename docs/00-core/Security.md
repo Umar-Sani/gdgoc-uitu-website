@@ -1,13 +1,14 @@
 # Security
 
-> Verified against the code on 2026-09-09.
+> Verified against the code on 2026-09-09; updated 2026-10-11 for the `chore/security-hardening`
+> work (PR #29) — `TODO-004`, `013`, `015`, `017`, `018`, `019`, `020`, `024`, `046`, `056`.
 
 > [!important] This supersedes parts of `ProjectDocs/Security.md`
 > That document (audited 2026-06-14) marks **helmet** and **rate limiting** as ❌ "not
 > applied". Both were applied in the 2026-06-14 security commit and are live today —
-> `backend/src/index.ts` lines 24 and 36. Those two entries are stale. Its findings on SSL
-> certificate validation, raw error leakage and RLS remain accurate. Sections here take
-> precedence.
+> `backend/src/index.ts` lines 24 and 36. Those two entries are stale. Its finding on SSL
+> certificate validation has since been fixed (`TODO-046`); raw error leakage (`BUG-011`) and
+> RLS (`BUG-004`) remain accurate. Sections here take precedence.
 
 Legend: ✅ implemented · ⚠️ partial · ❌ absent · `TODO` not yet documented.
 
@@ -118,7 +119,8 @@ See `TODO-014`.
 The schema file creates role `gdgoc_app` as `NOLOGIN` — no credential is committed
 (`TODO-015`). Databases built *before* that change still have it with `LOGIN` and the literal
 password `'CHANGE_IN_PRODUCTION'` until `backend/db/migrations/migration_gdgoc_app_nologin.sql`
-is run — **that migration has not yet been applied to the live Supabase project**.
+is run. The owner applied it to the live Supabase project on 2026-10-11 (reported, not
+independently re-verified); any other environment built from an older schema still needs it.
 
 ## 11. Encryption ⚠️
 
@@ -324,10 +326,16 @@ no dependency scanning, no penetration test. The two prior audits were manual re
 | Role guards on admin surfaces | ✅ (2 known gaps — `BUG-007`) |
 | Parameterised SQL | ✅ |
 | helmet, CORS, body cap | ✅ |
-| Rate limiting | ✅ (undermined by `BUG-008`) |
+| Rate limiting | ✅ per IP (`BUG-008` fixed) and per authenticated user (`TODO-019`) |
 | Stripe signature verification | ✅ |
-| Zod validation on bodies | ⚠️ 4 routes uncovered |
-| Query/param validation | ❌ |
+| Zod validation on bodies | ✅ every JSON-body route (`TODO-018`) |
+| Query/param validation | ⚠️ UUID `:id` on forum pin/lock/view only |
+| Server-side route gating | ⚠️ `proxy.ts` built and tested against a fake Supabase; **real sign-in test pending** (`TODO-004`) |
+| Upload hardening | ✅ folder allow-list, per-folder roles, magic bytes, delete path (`TODO-017`) |
+| DB TLS certificate verification | ✅ pinned Supabase CA (`TODO-046`) |
+| Mock-auth fail-closed | ✅ (`TODO-013`) |
+| Captcha on public forms | ⚠️ code verified with real widget + secret; **inactive until prod env vars set** (`TODO-024`) |
+| Open-redirect protection on login | ✅ (`TODO-056`) |
 | RLS actually enforcing | ❌ `BUG-004` |
 | Audit log records the actor | ❌ `BUG-003` |
 | HTML-escaped outbound email | ❌ `BUG-009` |

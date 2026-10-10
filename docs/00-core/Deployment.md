@@ -134,10 +134,10 @@ There is no migration tool. Applying the database by hand, in this order:
    databases created before `content.people` and the rebuilt `events.event_people` join table
    were folded into the main schema (`TODO-051`).
 
-Then, manually and not currently done: on a database built from an older schema, run
+Then, manually: on any *other* database built from an older schema, run
 `migration_gdgoc_app_nologin.sql` to remove the `gdgoc_app` role's literal
-`'CHANGE_IN_PRODUCTION'` password (`TODO-015`), and seed `forum.categories`, which no SQL file
-populates.
+`'CHANGE_IN_PRODUCTION'` password (`TODO-015`; already applied to the live Supabase project),
+and seed `forum.categories`, which no SQL file populates (`TODO-042`, not yet done).
 
 ## CI/CD
 

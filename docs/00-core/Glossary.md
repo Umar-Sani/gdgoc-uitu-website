@@ -58,8 +58,14 @@ trigger.
 **GDGoC** — Google Developer Groups on Campus. **UITU** — UIT University. Together, the
 chapter this platform serves.
 
-**`gdgoc_app`** — the database role created by the schema file, with the literal placeholder
-password `CHANGE_IN_PRODUCTION`. See `TODO-015`.
+**`gdgoc_app`** — the least-privilege database role created by the schema file. Created
+`NOLOGIN` since `TODO-015` (it formerly shipped with the literal password
+`CHANGE_IN_PRODUCTION`); the API does not connect as it.
+
+**Proxy (`proxy.ts`)** — Next.js 16's name for `middleware.ts`. `frontend/proxy.ts` gates
+`/dashboard`, `/settings` and `/admin` server-side. See `TODO-004`.
+
+**Turnstile** — Cloudflare's captcha, used on the contact and newsletter forms. See `TODO-024`.
 
 ## I
 
