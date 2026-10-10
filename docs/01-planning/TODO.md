@@ -26,7 +26,7 @@ work. Defects in shipped code live in [[bugs]], not here.
 | TODO-010 | open | **doc** — interaction between the `pg` pool (`max: 20`) and Supabase's own connection limits is unverified | [[../00-core/Database]] |
 | TODO-011 | open | **code** — no API versioning. A breaking change breaks the deployed frontend immediately | [[../00-core/api]] |
 | TODO-012 | open | **code** — validation errors return only the first Zod issue's message and discard the field path | [[../00-core/api]] |
-| TODO-013 | open | **code** — mock-auth bypass exists on both sides; frontend switch is a hard-coded constant | [[../00-core/Security]] |
+| TODO-013 | done | **code** — mock-auth bypass. Fixed 2026-10-10 on `chore/security-hardening`: backend throws at boot if `ALLOW_MOCK_AUTH=true` with `NODE_ENV=production`, and keeps the bypass off when `FRONTEND_URL` is non-local (covers an unset `NODE_ENV`); frontend switch is now `NEXT_PUBLIC_ENABLE_MOCK_AUTH` and compiles to `false` in production builds. Verified over HTTP: `mock-token` → 200 with a local `FRONTEND_URL`, 401 with a Vercel one | [[../00-core/Security]] |
 | TODO-014 | open | **code** — no `.env.example` in either app, and no boot-time validation of required secrets | [[../00-core/Deployment]] |
 | TODO-015 | open | **code** — `gdgoc_app` role ships with literal password `CHANGE_IN_PRODUCTION` | [[../00-core/Security]] |
 | TODO-016 | open | **doc** — encryption-at-rest posture beyond Supabase defaults is undocumented | [[../00-core/Security]] |

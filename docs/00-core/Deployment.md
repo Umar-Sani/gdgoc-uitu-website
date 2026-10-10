@@ -161,10 +161,11 @@ migrations. Restoring would depend on Supabase's managed backups, which have nev
 **None.** No flag system, no remote config, no gradual rollout. The two runtime switches that
 exist are environment-driven and are not feature flags in any managed sense:
 
-- `ALLOW_MOCK_AUTH` (backend) — combined with `NODE_ENV !== 'production'`, enables the
-  `mock-token` bypass.
-- `MOCK_ENABLED` (frontend, `lib/mockAuth.ts`) — a **hard-coded constant**, currently `false`.
-  Changing it requires a code edit and a rebuild.
+- `ALLOW_MOCK_AUTH` (backend) — enables the `mock-token` bypass, but only when `FRONTEND_URL`
+  is unset/localhost; with `NODE_ENV=production` the process refuses to start (`TODO-013`).
+- `NEXT_PUBLIC_ENABLE_MOCK_AUTH` (frontend, read by `lib/mockAuth.ts`) — opt-in per developer
+  in `.env.local`. Folded to `false` in every production build, since `NODE_ENV` is always
+  `production` there.
 
 ## Secrets and configuration
 

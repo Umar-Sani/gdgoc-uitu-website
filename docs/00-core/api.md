@@ -64,9 +64,10 @@ the database but is never assignable through the API and is filtered out of
 `GET /api/admin/roles`.
 
 > [!warning] A mock-auth bypass exists in the backend
-> When `NODE_ENV !== 'production'` **and** `ALLOW_MOCK_AUTH === 'true'`, the literal token
-> `mock-token` authenticates as a hard-coded UUID and is treated as `admin` by `requireRole`
-> regardless of the roles requested. Both conditions are required. See [[Security]].
+> When `ALLOW_MOCK_AUTH === 'true'` **and** `FRONTEND_URL` is unset or points at localhost, the
+> literal token `mock-token` authenticates as a hard-coded UUID and is treated as `admin` by
+> `requireRole` regardless of the roles requested. The process refuses to boot if
+> `ALLOW_MOCK_AUTH=true` with `NODE_ENV=production`. See [[Security]].
 
 ## Endpoints
 

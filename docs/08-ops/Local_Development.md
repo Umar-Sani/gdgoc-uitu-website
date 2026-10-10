@@ -59,13 +59,14 @@ To stand up a schema from scratch, see [[Database_Setup]].
 
 Both apps have a development bypass, and **both switches must be set** — they are independent:
 
-- **Backend:** `ALLOW_MOCK_AUTH=true` **and** `NODE_ENV !== 'production'`. Then the literal
-  token `mock-token` authenticates as a hard-coded UUID and is treated as `admin` by
-  `requireRole` regardless of the roles requested.
-- **Frontend:** `MOCK_ENABLED` in `frontend/lib/mockAuth.ts` — a **hard-coded constant**,
-  currently `false`. Changing it requires editing the file and restarting.
+- **Backend:** `ALLOW_MOCK_AUTH=true` in `backend/.env`, with `FRONTEND_URL` unset or on
+  localhost. Then the literal token `mock-token` authenticates as a hard-coded UUID and is
+  treated as `admin` by `requireRole` regardless of the roles requested. The server prints a
+  warning at boot when it is active, and won't start at all under `NODE_ENV=production`.
+- **Frontend:** `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` in `frontend/.env.local`, then restart
+  `next dev`. It has no effect in a production build.
 
-Which fixture is active is also hard-coded (`ACTIVE_MOCK_USER = mockUsers.admin`). See
+Which fixture is active is still hard-coded (`ACTIVE_MOCK_USER = mockUsers.admin`). See
 `TODO-013`.
 
 ## Stripe webhooks locally

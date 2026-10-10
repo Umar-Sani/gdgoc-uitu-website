@@ -44,10 +44,13 @@ dependencies but never imported.
 
 > [!warning] Mock-auth bypass
 > `backend/src/middleware/auth.ts` accepts the literal token `mock-token` as a hard-coded
-> admin UUID when `NODE_ENV !== 'production'` **and** `ALLOW_MOCK_AUTH === 'true'`. Both
-> conditions are required, so production is protected by the `NODE_ENV` check alone.
-> `frontend/lib/mockAuth.ts` has a matching client switch, currently `MOCK_ENABLED = false`
-> (a hard-coded constant, not an env var). See `TODO-013`.
+> admin UUID only when `ALLOW_MOCK_AUTH === 'true'`. It fails closed two ways (`TODO-013`):
+> the process **refuses to start** if that flag is set with `NODE_ENV=production`, and the
+> bypass stays off whenever `FRONTEND_URL` is not localhost — so a hosted deploy where
+> `NODE_ENV` was never set is still safe. It logs a warning at boot either way.
+> `frontend/lib/mockAuth.ts` is opt-in via `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` and is a
+> build-time constant `false` in production bundles. The remaining residual risk is a
+> deployment that sets *both* `ALLOW_MOCK_AUTH=true` and a localhost `FRONTEND_URL`.
 
 ## 5. Authorization ⚠️
 

@@ -1,6 +1,13 @@
 import type { User } from '@shared/types'
 
-export const MOCK_ENABLED = false
+// Opt-in per developer via frontend/.env.local: NEXT_PUBLIC_ENABLE_MOCK_AUTH=true.
+// Both operands are inlined at build time, and `next build` always sets NODE_ENV to
+// 'production', so this folds to a constant `false` in every deployed bundle and the
+// mock branches are dead code there (TODO-013). The backend must also have
+// ALLOW_MOCK_AUTH=true for the 'mock-token' to be accepted.
+export const MOCK_ENABLED =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true'
 
 export const mockUsers: Record<string, User> = {
   member: {
