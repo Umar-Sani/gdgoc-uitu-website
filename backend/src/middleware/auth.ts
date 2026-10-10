@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Request, Response, NextFunction } from 'express';
 import { pool } from '../db/client';
+import { applyUserRateLimits } from './userRateLimit';
 
 const getSupabaseAdmin = () => createClient(
   process.env.SUPABASE_URL!,
@@ -53,7 +54,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   if (MOCK_ENABLED && token === 'mock-token') {
     (req as any).user = { id: MOCK_UUID };
-    return next();
+    return applyUserRateLimits(req, res, next);
   }
 
   try {
@@ -65,7 +66,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     (req as any).user = user;
-    next();
+    // Per-user limits key on the identity just verified above (TODO-019).
+    return applyUserRateLimits(req, res, next);
 
   } catch (err) {
     return res.status(500).json({ data: null, error: 'Auth service unavailable' });

@@ -7,6 +7,7 @@ import {
   validate, validateParams, uuidIdParamSchema,
   createThreadSchema, createReplySchema, pinThreadSchema, lockThreadSchema,
 } from '../lib/validate';
+import { forumThreadLimiter, forumReplyLimiter } from '../middleware/userRateLimit';
 
 const router = Router();
 
@@ -217,7 +218,7 @@ router.post('/threads/:id/view', async (req: Request, res: Response) => {
 
 // ─── POST /api/forum/threads ──────────────────────────────────────────────────
 // Auth required — create a new thread
-router.post('/threads', requireAuth, requireUsername, validate(createThreadSchema), async (req: Request, res: Response) => {
+router.post('/threads', requireAuth, requireUsername, forumThreadLimiter, validate(createThreadSchema), async (req: Request, res: Response) => {
   try {
     const { title, body, category_id, tags } = req.body;
     const authorId = (req as any).user.id;
@@ -293,7 +294,7 @@ router.post('/threads', requireAuth, requireUsername, validate(createThreadSchem
 
 // ─── POST /api/forum/threads/:id/replies ─────────────────────────────────────
 // Auth required — add a reply to a thread
-router.post('/threads/:id/replies', requireAuth, requireUsername, validate(createReplySchema), async (req: Request, res: Response) => {
+router.post('/threads/:id/replies', requireAuth, requireUsername, forumReplyLimiter, validate(createReplySchema), async (req: Request, res: Response) => {
   try {
     const { body, parent_reply_id } = req.body;
     const authorId = (req as any).user.id;

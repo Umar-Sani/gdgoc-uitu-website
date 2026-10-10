@@ -175,17 +175,26 @@ No `204`, and no `422` — validation failures return `400`.
 
 **Validation failure** returns `400` with only the **first** Zod issue's message, as a string.
 The field path is discarded, so a client cannot map the error back to a form field. See
-`TODO-012`. Query and route parameters are **never** Zod-validated — only `req.body` is.
+`TODO-012`. Query parameters are never Zod-validated; route params only on forum pin/lock
+(UUID `:id`, via `validateParams`). Everything else relies on Postgres to reject bad ids.
 
-**Rate limits** (`express-rate-limit`, keyed by IP):
+**Rate limits** (`express-rate-limit`). Per IP:
 
 | Scope | Window | Max |
 |---|---|---|
 | Global | 15 minutes | 300 requests |
 | `/api/social`, `/api/upload` | 1 minute | 20 requests |
 
-> [!warning] `trust proxy` is not set
-> Express is never told to trust a proxy, so behind a reverse proxy or PaaS all requests may
-> rate-limit against the proxy's IP as a single bucket. See `BUG-008`.
+Per authenticated user (keyed on the verified user id, applied by `requireAuth`; `TODO-019`):
+
+| Scope | Window | Max |
+|---|---|---|
+| Any authenticated request | 15 minutes | 600 |
+| Authenticated POST/PUT/PATCH/DELETE | 1 minute | 60 |
+| `POST /api/forum/threads` | 1 hour | 10 |
+| `POST /api/forum/threads/:id/replies` | 10 minutes | 30 |
+
+Exceeding either returns `429` with `{ data: null, error }`. `trust proxy` is set to one hop
+(`BUG-008`, fixed), so the IP limits key on the real client address.
 
 Full error semantics, retry behaviour and idempotency: [[ErrorHandling]].

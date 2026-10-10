@@ -173,9 +173,24 @@ the field path (`TODO-012`).
 
 ## 16. Rate Limiting ✅
 
-Global 300/15 min; write endpoints 20/min. Both keyed by IP with no custom `keyGenerator`,
-and undermined by the missing `trust proxy` (`BUG-008`). There is no per-user or per-account
-limiting, so a distributed client is unconstrained. `TODO-019`.
+Two layers (`TODO-019`):
+
+- **Per IP** (`index.ts`): global 300 / 15 min; `/api/social` and `/api/upload` 20 / min.
+  `trust proxy` is set to 1 hop (`BUG-008`, fixed).
+- **Per authenticated user** (`middleware/userRateLimit.ts`, applied inside `requireAuth` once
+  the identity is verified, so the key cannot be forged): 600 / 15 min for any request, 60 / min
+  for POST/PUT/PATCH/DELETE, plus stricter forum limits — 10 threads / hour and 30 replies /
+  10 min. Tunable via `USER_RATE_LIMIT_MAX`, `USER_WRITE_RATE_LIMIT_MAX`,
+  `FORUM_THREAD_LIMIT_PER_HOUR`, `FORUM_REPLY_LIMIT_PER_10MIN`. 429 body is `{ data: null,
+  error }` with standard `RateLimit-*` headers.
+
+Limits:
+- Counters are **in process memory** — correct for the single Railway instance, but a scaled-out
+  backend would count per replica until a shared store exists (`TODO-052`).
+- The per-IP limiter still applies to signed-in users too, so many users behind one NAT share
+  that bucket; the per-user layer adds, it does not replace.
+- No per-*account* limits on credential endpoints — sign-in is Supabase Auth's (`TODO-023`).
+- Unauthenticated public writes (contact, newsletter, view count) remain IP-only (`TODO-024`).
 
 ## 17. CSRF ✅ (by architecture)
 
