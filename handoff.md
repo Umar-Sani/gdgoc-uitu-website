@@ -664,3 +664,39 @@ frontend field-name mismatch), it would surface on first real use.
 
 **Suggested next session.** Click through the admin and public UI in a browser before merging,
 per the gap above. Then open the PR from `feat/people-directory` into `dev`.
+
+---
+
+## 16. `chore/security-hardening` — nine TODOs from the security ledger (2026-10-10)
+
+One commit per task, each with its own TODO/Security/api/Deployment doc updates. Branch is
+local only, cut from `dev`; nothing pushed, nothing merged.
+
+| TODO | Status | What changed |
+|---|---|---|
+| 046 | done | `db/client.ts` pins Supabase Root 2021 CA (`backend/certs/`), `rejectUnauthorized: true`. Verified chain + real query + negative control |
+| 013 | done | Backend refuses to boot with `ALLOW_MOCK_AUTH` under `NODE_ENV=production`; bypass off when `FRONTEND_URL` is non-local. Frontend switch is `NEXT_PUBLIC_ENABLE_MOCK_AUTH`, compiled out of prod builds |
+| 015 | **in-progress** | Schema creates `gdgoc_app` `NOLOGIN`; `migration_gdgoc_app_nologin.sql` written. **Not applied to Supabase** (live inspection was blocked by the permission classifier) |
+| 017 | done | Folder allow-list + per-folder roles, magic-byte sniffing (SVG rejected), `DELETE /api/upload` with avatar ownership check. Real Cloudinary upload→delete→404 verified |
+| 018 | done | Zod for forum pin/lock (strict booleans) and gallery create; `validateParams`; pin/lock 404 on missing thread |
+| 019 | done | `middleware/userRateLimit.ts` applied from `requireAuth`; forum thread/reply limiters; env-tunable |
+| 020 | done | `rehype-sanitize` via shared `frontend/lib/markdown.ts` at all 5 sites; browser-verified |
+| 004 | done (needs real sign-in check) | `frontend/proxy.ts`; Supabase session moved to a cookie via `lib/supabaseCookieStorage.ts` (implicit flow kept on purpose); new dep `@supabase/ssr` |
+| 024 | **in-progress** | Turnstile middleware + widget; view-count de-dupe. Dormant until `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` are set |
+
+**Decisions worth remembering.** (a) `proxy.ts`, not `middleware.ts` — Next 16 renamed it.
+(b) Did not use `createBrowserClient`: it hard-codes PKCE, which would change email-verify and
+password-reset link behaviour. (c) View counts are de-duplicated, not captcha'd — a captcha per
+page view is poor UX. (d) Turnstile and `gdgoc_app` are shipped inert/unapplied rather than
+risking a production break.
+
+**Found, not fixed.** `@mention` pills never render (react-markdown blanks `mention:` hrefs) —
+noted under bugs.md Notes. `login/page.tsx` pushes `?redirect=` without validating it is a
+same-site path (open redirect). The Supabase DB returned "tenant/user not found" for a while at
+session start (project likely paused) and recovered; free-tier pausing is a standing risk.
+
+**Before merging.** (1) Real email + Google sign-in on a preview deploy — `TODO-004` was only
+tested against a fake Supabase. Existing sessions auto-migrate localStorage→cookie. (2) Run the
+`gdgoc_app` migration after confirming nothing connects as that role. (3) Create the Turnstile
+site and set both keys. (4) Test a non-admin token against `/api/upload` — role-denied path was
+not exercised.
