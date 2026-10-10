@@ -36,13 +36,15 @@ function loadScript(): Promise<void> {
 }
 
 interface Props {
+  /** Names the protected surface; the backend rejects a token minted for a different action. */
+  action: string;
   /** Called with a fresh single-use token, or null when it expires/errors. */
   onToken: (token: string | null) => void;
   /** Change this value to get a new challenge (tokens are single-use, so bump after each submit). */
   resetKey?: number;
 }
 
-export default function TurnstileWidget({ onToken, resetKey = 0 }: Props) {
+export default function TurnstileWidget({ action, onToken, resetKey = 0 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const onTokenRef = useRef(onToken);
   onTokenRef.current = onToken;
@@ -58,6 +60,7 @@ export default function TurnstileWidget({ onToken, resetKey = 0 }: Props) {
         if (cancelled || !ref.current || !window.turnstile) return;
         widgetId = window.turnstile.render(ref.current, {
           sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+          action,
           callback: (token: string) => onTokenRef.current(token),
           'expired-callback': () => onTokenRef.current(null),
           'error-callback': () => onTokenRef.current(null),
@@ -69,7 +72,7 @@ export default function TurnstileWidget({ onToken, resetKey = 0 }: Props) {
       cancelled = true;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
-  }, [resetKey]);
+  }, [action, resetKey]);
 
   if (!TURNSTILE_ENABLED) return null;
   return <div ref={ref} className="min-h-[65px]" />;

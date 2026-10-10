@@ -731,3 +731,21 @@ not exercised.
 **New finding.** `frontend/` contains a stale nested `.git` (`master`, "feat: initial
 commit"). `git` run from inside `frontend/` targets it and shows a bogus diff — always run git
 from the repo root. Tracked as `TODO-057`; not deleted (owner's data).
+
+---
+
+## 18. `chore/security-hardening` — Turnstile widget integrated, nested repo removed (2026-10-11)
+
+- `TODO-015`: owner applied `migration_gdgoc_app_nologin.sql` in Supabase; marked done on their
+  word (not independently re-verified by the agent).
+- `TODO-024`: owner created the Turnstile widget (public site key in `frontend/.env.local`,
+  gitignored). Followed Cloudflare's existing-widget flow for the pieces that apply: server-side
+  siteverify with client IP, ≤2048-char token, fail-closed, plus **action and hostname binding**
+  (new — previously only `success` was checked). Deliberately NOT done: retrieving the secret
+  via Wrangler — the agent has no Cloudflare auth and won't handle the secret; the owner sets
+  `TURNSTILE_SECRET_KEY` on Railway directly. Real widget → real token → API payload verified
+  in a browser; server checks covered by 15 stubbed-siteverify unit cases. Still inert in
+  production until the Railway secret + Vercel site key are set.
+- `TODO-057`: `frontend/.git` deleted at the owner's request (bundle saved outside the repo
+  first). `git` from `frontend/` now resolves to the project repo.
+- `TODO-004` (real Supabase sign-in test) deferred by the owner.

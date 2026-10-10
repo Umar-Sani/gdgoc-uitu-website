@@ -99,7 +99,8 @@ redirects.
 **Backend** — 18 variables: `PORT`, `NODE_ENV`, `FRONTEND_URL`, `DATABASE_URL`, `SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY`, `ALLOW_MOCK_AUTH`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
 three `CLOUDINARY_*`, and six `BREVO_*`. Optional, added later: `TURNSTILE_SECRET_KEY`
-(captcha on public forms, `TODO-024`), `DATABASE_SSL_CA` (override the pinned DB CA,
+(captcha on public forms, `TODO-024`; `TURNSTILE_HOSTNAMES` optionally overrides the accepted
+hostnames, default is the `FRONTEND_URL` host), `DATABASE_SSL_CA` (override the pinned DB CA,
 `TODO-046`), and the per-user rate-limit tunables `USER_RATE_LIMIT_MAX`,
 `USER_WRITE_RATE_LIMIT_MAX`, `FORUM_THREAD_LIMIT_PER_HOUR`, `FORUM_REPLY_LIMIT_PER_10MIN`
 (`TODO-019`). Frontend optional: `NEXT_PUBLIC_TURNSTILE_SITE_KEY`,

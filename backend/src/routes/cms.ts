@@ -548,7 +548,7 @@ router.delete('/sponsors/:id', requireAuth, requireRole('admin', 'super_admin'),
 
 // POST /api/cms/contact
 // Public — submit a contact form
-router.post('/contact', requireCaptcha, validate(contactSchema), async (req: Request, res: Response) => {
+router.post('/contact', requireCaptcha('contact'), validate(contactSchema), async (req: Request, res: Response) => {
   try {
     const { full_name, email, subject, message } = req.body;
 
@@ -569,7 +569,7 @@ router.post('/contact', requireCaptcha, validate(contactSchema), async (req: Req
 
 // POST /api/cms/newsletter
 // Public — subscribe to newsletter
-router.post('/newsletter', requireCaptcha, validate(newsletterSchema), async (req: Request, res: Response) => {
+router.post('/newsletter', requireCaptcha('newsletter'), validate(newsletterSchema), async (req: Request, res: Response) => {
   try {
     const { email, name } = req.body;
 

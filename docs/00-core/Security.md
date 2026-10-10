@@ -266,7 +266,11 @@ public writes (`TODO-024`):
 
 - **Contact and newsletter: Cloudflare Turnstile.** `middleware/captcha.ts` verifies
   `captcha_token` against Cloudflare's `siteverify` *before* body validation. Frontend:
-  `components/ui/TurnstileWidget.tsx`. It is **dormant until configured** — with no
+  `components/ui/TurnstileWidget.tsx`. Besides `success`, the verified response's **`action`**
+  must equal the surface (`contact` / `newsletter`) and its **`hostname`** must be one of ours
+  (derived from `FRONTEND_URL`; `TURNSTILE_HOSTNAMES` overrides; `localhost` only outside
+  production) — so a token minted on another site or form can't be replayed here. It is
+  **dormant until configured** — with no
   `TURNSTILE_SECRET_KEY` the backend passes through (boot warning), and with no
   `NEXT_PUBLIC_TURNSTILE_SITE_KEY` the widget renders nothing and the forms behave as before.
   Once the secret is set it fails closed: missing token → 400, rejected → 400, Cloudflare

@@ -2147,7 +2147,7 @@ export default function HomePage() {
                   {newsletterError && (
                     <p className="text-red-300 text-xs">{newsletterError}</p>
                   )}
-                  <TurnstileWidget onToken={setNewsletterCaptcha} resetKey={newsletterCaptchaReset} />
+                  <TurnstileWidget action="newsletter" onToken={setNewsletterCaptcha} resetKey={newsletterCaptchaReset} />
                   <button
                     type="submit"
                     disabled={newsletterLoading || (TURNSTILE_ENABLED && !newsletterCaptcha)}

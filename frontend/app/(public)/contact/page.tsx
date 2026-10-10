@@ -250,7 +250,7 @@ export default function ContactPage() {
                     {errors.message && <p className="mt-1 text-xs text-red-500">{errors.message}</p>}
                   </div>
 
-                  <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaReset} />
+                  <TurnstileWidget action="contact" onToken={setCaptchaToken} resetKey={captchaReset} />
 
                   <button
                     type="submit"
