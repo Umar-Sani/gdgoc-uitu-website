@@ -1588,10 +1588,14 @@ CREATE POLICY notifications_self_policy ON notifications.notifications
 -- APPLICATION DATABASE ROLES & GRANTS
 -- ============================================================
 
--- Create application role (least-privilege)
+-- Create application role (least-privilege).
+-- Created NOLOGIN on purpose: no credential lives in this repository (TODO-015). To make
+-- the role usable, an operator sets a secret out-of-band, never in a committed file:
+--     ALTER ROLE gdgoc_app LOGIN PASSWORD '<value from your secret manager>';
+-- The API currently connects with the pooler's default user, not as gdgoc_app.
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gdgoc_app') THEN
-        CREATE ROLE gdgoc_app LOGIN PASSWORD 'CHANGE_IN_PRODUCTION';
+        CREATE ROLE gdgoc_app NOLOGIN;
     END IF;
 END $$;
 

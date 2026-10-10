@@ -107,8 +107,10 @@ either app and **no startup validation** that required variables are present —
 non-null-asserted (`process.env.X!`), so a missing value fails at first use, not at boot.
 See `TODO-014`.
 
-The schema file creates role `gdgoc_app` with literal password `'CHANGE_IN_PRODUCTION'`
-(`TODO-015`).
+The schema file creates role `gdgoc_app` as `NOLOGIN` — no credential is committed
+(`TODO-015`). Databases built *before* that change still have it with `LOGIN` and the literal
+password `'CHANGE_IN_PRODUCTION'` until `backend/db/migrations/migration_gdgoc_app_nologin.sql`
+is run — **that migration has not yet been applied to the live Supabase project**.
 
 ## 11. Encryption ⚠️
 

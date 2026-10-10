@@ -128,9 +128,10 @@ There is no migration tool. Applying the database by hand, in this order:
    databases created before `content.people` and the rebuilt `events.event_people` join table
    were folded into the main schema (`TODO-051`).
 
-Then, manually and not currently done: change the `gdgoc_app` role password away from the
-literal `'CHANGE_IN_PRODUCTION'` in the schema file (`TODO-015`), and seed `forum.categories`,
-which no SQL file populates.
+Then, manually and not currently done: on a database built from an older schema, run
+`migration_gdgoc_app_nologin.sql` to remove the `gdgoc_app` role's literal
+`'CHANGE_IN_PRODUCTION'` password (`TODO-015`), and seed `forum.categories`, which no SQL file
+populates.
 
 ## CI/CD
 
