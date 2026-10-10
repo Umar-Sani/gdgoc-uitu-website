@@ -92,7 +92,9 @@ registrations and transactions prevents orphaning financial records.
 > SECURITY` is never applied, so the connecting owner role bypasses RLS entirely. The same
 > missing session settings mean audit rows record a NULL actor. See `BUG-003`, `BUG-004`.
 
-SSL certificate validation is enabled only when `NODE_ENV === 'production'`.
+The database connection verifies the server certificate chain against a pinned **Supabase Root
+2021 CA** (`backend/certs/supabase-prod-ca-2021.crt`, expires 2031-04-26 — replace before then;
+`DATABASE_SSL_CA` overrides it). Validation is always on, in every environment (`TODO-046`).
 
 ## 10. Secrets Management ⚠️
 

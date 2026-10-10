@@ -45,9 +45,9 @@ provisioned**:
 >   real client's.
 > - `db/client.ts` set `ssl: { rejectUnauthorized: true }` in production, which rejects
 >   Supabase's pooler certificate chain outright — every query failed with *self-signed
->   certificate in certificate chain*. Now `{ rejectUnauthorized: false }` unconditionally
->   (TLS encryption still applies; only CA-chain validation is skipped) — see `TODO-046` for the
->   stricter alternative (pinning Supabase's CA certificate).
+>   certificate in certificate chain*. First worked around with
+>   `{ rejectUnauthorized: false }`; since `TODO-046` the pool instead trusts exactly Supabase's
+>   Root 2021 CA (committed at `backend/certs/`), so the chain is fully verified again.
 
 > [!note] Frontend deploy on Vercel — confirmed working (2026-09-09), production URL `https://gdgoc-uitu.vercel.app`
 > Deployed from the same GitHub repo, **Root Directory set to `frontend`** in the Vercel
@@ -103,7 +103,7 @@ three `CLOUDINARY_*`, and six `BREVO_*`.
 Two settings must be correct in production:
 
 - `NODE_ENV=production` — disables the mock-auth bypass. It no longer affects database TLS
-  validation, which is now `rejectUnauthorized: false` unconditionally — see `BUG-012`.
+  validation, which now always verifies against the pinned Supabase CA — see `BUG-012`, `TODO-046`.
 - `FRONTEND_URL` — the **only** permitted CORS origin, and the base for Stripe return URLs.
 
 ## Release process
@@ -182,7 +182,6 @@ missing secret surfaces as a runtime failure on first use rather than a boot fai
 |---|---|
 | Railway config lives only in its dashboard — no `railway.json`/deploy manifest in-repo | `TODO-047` |
 | Vercel Root Directory, and the Supabase/Google OAuth redirect URLs, live only in their dashboards | `TODO-048` |
-| DB pool skips TLS certificate-chain validation (`rejectUnauthorized: false`) rather than pinning Supabase's CA | `TODO-046`, `BUG-012` |
 | No CI pipeline of any kind | `TODO-034` |
 | No staging environment; local likely shares the production database | `TODO-035` |
 | No `.env.example` and no boot-time secret validation | `TODO-014` |

@@ -146,7 +146,7 @@ against a Supabase pooler connection string; any query rejects immediately.
 connection is still TLS-encrypted; only certificate-chain validation is skipped, which is what
 Supabase's own Node/`pg` connection guidance recommends for hosted connections through the
 pooler. The stricter alternative — fetching and pinning Supabase's CA certificate instead of
-disabling validation — is left as `TODO-046`.
+disabling validation — was done later as `TODO-046` (2026-10-10): the pool now pins Supabase's Root 2021 CA and validates fully.
 
 ### BUG-009 — unescaped email templates
 
