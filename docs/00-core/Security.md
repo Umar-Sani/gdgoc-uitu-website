@@ -217,7 +217,7 @@ React escapes by default. One live risk, one closed:
    plugins from `frontend/lib/markdown.ts`: `remark-gfm` plus `rehype-sanitize` (default
    schema). Before this, raw HTML was already escaped and `javascript:` URLs blanked by
    react-markdown's defaults, so this is defence in depth that survives a future `rehype-raw`.
-   Keep `rehypeSanitize` last in the rehype list. Behaviour change: raw HTML a user types is now
+   Keep `rehypeSanitize` last in the rehype list. `mention:` links are allowed only in the exact shape `mention:<username>` (`BUG-014`). Behaviour change: raw HTML a user types is now
    removed rather than shown as literal text.
 2. **Outbound email templates interpolate user-supplied strings into HTML with no escaping**
    (`backend/src/lib/mailer.ts`) — thread titles, names and body snippets. `BUG-009`.

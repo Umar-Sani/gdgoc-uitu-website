@@ -4,13 +4,15 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { safeRedirectPath } from '@/lib/safeRedirect';
 
 function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
 
   // If user was redirected from a protected page, we redirect back after login
-  const redirectTo = searchParams.get('redirect') || null;
+  // Validated: `?redirect=` is attacker-controllable, so only same-site paths are honoured.
+  const redirectTo = safeRedirectPath(searchParams.get('redirect'));
 
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
