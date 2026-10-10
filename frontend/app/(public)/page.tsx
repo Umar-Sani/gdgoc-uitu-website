@@ -18,6 +18,7 @@ import { Antonio } from 'next/font/google';
 import MascotBanner from '../../components/ui/MascotBanner';
 import ParallaxBackdrop from '../../components/ui/ParallaxBackdrop';
 import { useAuth } from '@/context/AuthContext';
+import TurnstileWidget, { TURNSTILE_ENABLED } from '@/components/ui/TurnstileWidget';
 import { cldUrl, CLD_AVATAR_LARGE, CLD_EVENT_CARD, CLD_AVATAR, CLD_LOGO } from '@/lib/cloudinary-url';
 
 const antonio = Antonio({ subsets: ['latin'] });
@@ -1299,6 +1300,8 @@ export default function HomePage() {
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterSuccess, setNewsletterSuccess] = useState(false);
   const [newsletterError, setNewsletterError] = useState('');
+  const [newsletterCaptcha, setNewsletterCaptcha] = useState<string | null>(null);
+  const [newsletterCaptchaReset, setNewsletterCaptchaReset] = useState(0);
 
   // Testimonial carousel
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -1407,7 +1410,7 @@ export default function HomePage() {
       const res = await fetch(`${API_URL}/api/cms/newsletter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newsletterEmail, name: newsletterName }),
+        body: JSON.stringify({ email: newsletterEmail, name: newsletterName, captcha_token: newsletterCaptcha ?? undefined }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -1419,6 +1422,9 @@ export default function HomePage() {
       setNewsletterError('Something went wrong. Please try again.');
     } finally {
       setNewsletterLoading(false);
+      // Tokens are single-use: fetch a fresh challenge after every attempt.
+      setNewsletterCaptcha(null);
+      setNewsletterCaptchaReset((n) => n + 1);
     }
   }
 
@@ -2141,9 +2147,10 @@ export default function HomePage() {
                   {newsletterError && (
                     <p className="text-red-300 text-xs">{newsletterError}</p>
                   )}
+                  <TurnstileWidget onToken={setNewsletterCaptcha} resetKey={newsletterCaptchaReset} />
                   <button
                     type="submit"
-                    disabled={newsletterLoading}
+                    disabled={newsletterLoading || (TURNSTILE_ENABLED && !newsletterCaptcha)}
                     className="w-full py-2.5 rounded-xl bg-white text-[#4285F4] font-bold text-sm hover:bg-gray-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {newsletterLoading ? 'Subscribing...' : 'Subscribe for Free'}

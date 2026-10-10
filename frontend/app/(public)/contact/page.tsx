@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Antonio } from 'next/font/google';
+import TurnstileWidget, { TURNSTILE_ENABLED } from '@/components/ui/TurnstileWidget';
 
 const antonio = Antonio({ subsets: ['latin'] });
 
@@ -13,6 +14,8 @@ export default function ContactPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [generalError, setGeneralError] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -30,6 +33,10 @@ export default function ContactPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
+    if (TURNSTILE_ENABLED && !captchaToken) {
+      setGeneralError('Please complete the captcha first.');
+      return;
+    }
 
     setIsLoading(true);
     setGeneralError('');
@@ -38,7 +45,7 @@ export default function ContactPage() {
       const res = await fetch(`${API_URL}/api/cms/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, captcha_token: captchaToken ?? undefined }),
       });
 
       const json = await res.json();
@@ -54,6 +61,9 @@ export default function ContactPage() {
       setGeneralError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
+      // Tokens are single-use: fetch a fresh challenge after every attempt.
+      setCaptchaToken(null);
+      setCaptchaReset((n) => n + 1);
     }
   }
 
@@ -240,9 +250,11 @@ export default function ContactPage() {
                     {errors.message && <p className="mt-1 text-xs text-red-500">{errors.message}</p>}
                   </div>
 
+                  <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaReset} />
+
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || (TURNSTILE_ENABLED && !captchaToken)}
                     className="w-full py-3 rounded-xl bg-[#4285F4] hover:bg-blue-600 text-white font-semibold text-sm transition-all shadow-md hover:shadow-blue-200 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (

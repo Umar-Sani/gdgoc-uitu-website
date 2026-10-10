@@ -8,6 +8,7 @@ import {
   createThreadSchema, createReplySchema, pinThreadSchema, lockThreadSchema,
 } from '../lib/validate';
 import { forumThreadLimiter, forumReplyLimiter } from '../middleware/userRateLimit';
+import { shouldCountView } from '../lib/viewDedupe';
 
 const router = Router();
 
@@ -200,9 +201,16 @@ router.get('/threads/:id', async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/forum/threads/:id/view ─────────────────────────────────────────
-// Public — increment thread view count
-router.post('/threads/:id/view', async (req: Request, res: Response) => {
+// Public — increment thread view count.
+// A captcha on every page view would be hostile UX, so instead each client (IP) counts at
+// most once per thread per VIEW_DEDUPE_MS; repeats get the same success response without
+// touching the database, so a script learns nothing and inflates nothing (TODO-024).
+// Implementation and caveats: lib/viewDedupe.ts.
+router.post('/threads/:id/view', validateParams(uuidIdParamSchema), async (req: Request, res: Response) => {
   try {
+    if (!shouldCountView(req.ip ?? 'unknown', req.params.id)) {
+      return res.json({ data: { success: true }, error: null });
+    }
     await pool.query(
       `UPDATE forum.threads
        SET view_count = view_count + 1

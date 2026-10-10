@@ -37,7 +37,7 @@ work. Defects in shipped code live in [[bugs]], not here.
 | TODO-021 | open | **doc** — SSRF not assessed | [[../00-core/Security]] |
 | TODO-022 | open | **doc** — IDOR/BOLA not systematically tested across user-scoped endpoints | [[../00-core/Security]] |
 | TODO-023 | open | **doc** — credential-stuffing protections delegated to Supabase Auth and undocumented | [[../00-core/Security]] |
-| TODO-024 | open | **code** — public writes (contact, newsletter, thread view count) have no captcha; view count is trivially inflatable | [[../00-core/Security]] |
+| TODO-024 | in-progress | **code** — captcha on public writes. Code done 2026-10-10 on `chore/security-hardening`: Turnstile verification middleware + widget on contact and newsletter; thread view count de-duplicated per IP/thread/30 min (deliberately not a captcha — see Security §24). Verified over HTTP with Cloudflare's always-pass/always-fail test secrets and in a browser (widget → token → payload). **Inactive until you create a Turnstile site and set `TURNSTILE_SECRET_KEY` (Railway) + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Vercel)**, then mark done | [[../00-core/Security]] |
 | TODO-025 | open | **code** — no monitoring. `GET /health` exists but nothing polls it | [[../00-core/Security]] |
 | TODO-026 | open | **code** — no alerting; silent webhook failures are invisible by construction | [[../00-core/Security]] |
 | TODO-027 | open | **code** — Supabase backups never restore-tested; no rehearsed recovery | [[../00-core/Deployment]] |

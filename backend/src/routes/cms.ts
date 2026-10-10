@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { requireCaptcha } from '../middleware/captcha';
 import { sendNewsletterWelcome } from '../lib/mailer';
 import {
   validate,
@@ -547,7 +548,7 @@ router.delete('/sponsors/:id', requireAuth, requireRole('admin', 'super_admin'),
 
 // POST /api/cms/contact
 // Public — submit a contact form
-router.post('/contact', validate(contactSchema), async (req: Request, res: Response) => {
+router.post('/contact', requireCaptcha, validate(contactSchema), async (req: Request, res: Response) => {
   try {
     const { full_name, email, subject, message } = req.body;
 
@@ -568,7 +569,7 @@ router.post('/contact', validate(contactSchema), async (req: Request, res: Respo
 
 // POST /api/cms/newsletter
 // Public — subscribe to newsletter
-router.post('/newsletter', validate(newsletterSchema), async (req: Request, res: Response) => {
+router.post('/newsletter', requireCaptcha, validate(newsletterSchema), async (req: Request, res: Response) => {
   try {
     const { email, name } = req.body;
 

@@ -199,7 +199,7 @@ Limits:
 - The per-IP limiter still applies to signed-in users too, so many users behind one NAT share
   that bucket; the per-user layer adds, it does not replace.
 - No per-*account* limits on credential endpoints — sign-in is Supabase Auth's (`TODO-023`).
-- Unauthenticated public writes (contact, newsletter, view count) remain IP-only (`TODO-024`).
+- Unauthenticated public writes (contact, newsletter, view count) are IP-limited only here; see §24 for their captcha/de-dupe (`TODO-024`).
 
 ## 17. CSRF ✅ (by architecture)
 
@@ -262,8 +262,20 @@ documented here, and no application-side lockout or captcha exists. `TODO-023`.
 ## 24. Abuse / Spam ⚠️
 
 `POST /api/cms/contact`, `POST /api/cms/newsletter` and `POST /api/forum/threads/:id/view` are
-public writes with no captcha and only IP rate limiting. The view-count endpoint is trivially
-inflatable. `TODO-024`.
+public writes (`TODO-024`):
+
+- **Contact and newsletter: Cloudflare Turnstile.** `middleware/captcha.ts` verifies
+  `captcha_token` against Cloudflare's `siteverify` *before* body validation. Frontend:
+  `components/ui/TurnstileWidget.tsx`. It is **dormant until configured** — with no
+  `TURNSTILE_SECRET_KEY` the backend passes through (boot warning), and with no
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` the widget renders nothing and the forms behave as before.
+  Once the secret is set it fails closed: missing token → 400, rejected → 400, Cloudflare
+  unreachable → 503. Set both keys together.
+- **View count: de-duplication, not a captcha.** A captcha on every thread view would be
+  hostile UX. Instead `lib/viewDedupe.ts` counts one view per IP per thread per 30 minutes;
+  repeats receive the normal success response without touching the DB. In-memory and
+  per-process. It bounds inflation per IP; a distributed client can still inflate slowly, and
+  the counter is not a trustworthy metric.
 
 ## 25. Logging ❌
 
